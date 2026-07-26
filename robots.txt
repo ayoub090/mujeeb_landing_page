@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://ayoub090.github.io/mujeeb_landing_page/sitemap.xml

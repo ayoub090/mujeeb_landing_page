@@ -947,6 +947,11 @@
 
       <div class="form-card">
         <form id="leadForm">
+          <input type="hidden" name="utm_source" id="utmSource">
+          <input type="hidden" name="utm_medium" id="utmMedium">
+          <input type="hidden" name="utm_campaign" id="utmCampaign">
+          <input type="hidden" name="landing_page" id="landingPage">
+          <input type="hidden" name="consent_timestamp" id="consentTimestamp">
           <div class="field">
             <label>الاسم الكريم</label>
             <input type="text" name="name" placeholder="مثال: عبدالله المطيري" required>
@@ -957,7 +962,11 @@
           </div>
           <div class="field">
             <label>رقم الواتساب (بالرمز الدولي)</label>
-            <input type="tel" name="whatsapp" placeholder="+9665XXXXXXXX" dir="ltr" style="text-align:right" required>
+            <input type="tel" name="whatsapp" placeholder="+9665XXXXXXXX" dir="ltr" style="text-align:right" autocomplete="tel" inputmode="tel" required>
+          </div>
+          <div class="field">
+            <label>&#1575;&#1604;&#1576;&#1585;&#1610;&#1583; &#1575;&#1604;&#1573;&#1604;&#1603;&#1578;&#1585;&#1608;&#1606;&#1610;</label>
+            <input type="email" name="email" placeholder="name@company.com" dir="ltr" style="text-align:right" autocomplete="email" required>
           </div>
           <div class="field">
             <label>عدد المكالمات اليومية تقريباً</label>
@@ -968,6 +977,12 @@
               <option>٥٠ – ٢٠٠ مكالمة</option>
               <option>أكثر من ٢٠٠ مكالمة</option>
             </select>
+          </div>
+          <div class="field" style="text-align:right">
+            <label style="display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.7;font-weight:500">
+              <input type="checkbox" name="contact_consent" value="yes" required style="width:18px;height:18px;margin-top:3px;flex:0 0 auto">
+              <span>&#1571;&#1608;&#1575;&#1601;&#1602; &#1591;&#1608;&#1593;&#1575;&#1611; &#1593;&#1604;&#1609; &#1575;&#1587;&#1578;&#1582;&#1583;&#1575;&#1605; &#1576;&#1610;&#1575;&#1606;&#1575;&#1578;&#1610; &#1604;&#1604;&#1578;&#1608;&#1575;&#1589;&#1604; &#1605;&#1593;&#1610; &#1576;&#1582;&#1589;&#1608;&#1589; &#1578;&#1580;&#1585;&#1576;&#1577; &#1605;&#1580;&#1610;&#1576; &#1593;&#1576;&#1585; &#1575;&#1604;&#1576;&#1585;&#1610;&#1583; &#1575;&#1604;&#1573;&#1604;&#1603;&#1578;&#1585;&#1608;&#1606;&#1610; &#1571;&#1608; &#1608;&#1575;&#1578;&#1587;&#1575;&#1576;&#1548; &#1608;&#1602;&#1585;&#1571;&#1578; <a href="privacy.html" target="_blank" rel="noopener" style="color:var(--primary);text-decoration:underline">&#1587;&#1610;&#1575;&#1587;&#1577; &#1575;&#1604;&#1582;&#1589;&#1608;&#1589;&#1610;&#1577;</a>. &#1610;&#1605;&#1603;&#1606;&#1606;&#1610; &#1587;&#1581;&#1576; &#1605;&#1608;&#1575;&#1601;&#1602;&#1578;&#1610; &#1601;&#1610; &#1571;&#1610; &#1608;&#1602;&#1578;.</span>
+            </label>
           </div>
           <button type="submit" class="btn" style="width:100%;margin-top:6px">احجز تجربتك المجانية الآن</button>
           <p class="form-note">🔒 بدون التزام، بدون بطاقة ائتمان — تجربة حية على مكالمات متجرك الحقيقية.</p>
@@ -1040,8 +1055,14 @@
     // ============================================================
 
     const leadForm = document.getElementById('leadForm');
+    const query = new URLSearchParams(window.location.search);
+    document.getElementById('utmSource').value = query.get('utm_source') || 'direct';
+    document.getElementById('utmMedium').value = query.get('utm_medium') || 'none';
+    document.getElementById('utmCampaign').value = query.get('utm_campaign') || 'none';
+    document.getElementById('landingPage').value = window.location.href;
     leadForm.addEventListener('submit', async e => {
       e.preventDefault();
+      document.getElementById('consentTimestamp').value = new Date().toISOString();
 
       // Validation: check ID beddel
       if (FORMSPREE_ID === 'YOUR_FORM_ID') {

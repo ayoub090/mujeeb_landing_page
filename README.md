@@ -26,4 +26,11 @@ The pilot is intentionally small: a merchant tests Mujeeb on 50 real orders over
 - [Order-confirmation guides by store type](https://usemujeeb.com/solutions/)
 - [Privacy policy](https://usemujeeb.com/privacy.html)
 
+## Operating documents
+
+- [Low-cost Micro-SaaS delivery plan](MICRO_SAAS_DELIVERY_PLAN.md)
+- [Organic social launch pack](SOCIAL_LAUNCH_PACK.md)
+- [Multichannel campaign playbook](CAMPAIGN_PLAYBOOK.md)
+- [Weekly marketing operating system](MARKETING_OPERATING_SYSTEM.md)
+
 This repository contains the public landing page and educational SEO pages. Product capabilities described here should be validated in a pilot before making performance claims.

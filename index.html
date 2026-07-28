@@ -614,6 +614,37 @@
       font-weight: 300
     }
 
+    .calculator {
+      max-width: 900px;
+      margin: 42px auto 0;
+      padding: 32px;
+      background: var(--cream);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      text-align: right
+    }
+
+    .calc-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px
+    }
+
+    .calc-result {
+      margin-top: 22px;
+      padding: 20px;
+      border-radius: 16px;
+      background: var(--bg-soft);
+      text-align: center
+    }
+
+    .calc-result strong {
+      display: block;
+      color: var(--green);
+      font-size: clamp(25px, 4vw, 38px)
+    }
+
     /* form */
     .form-sec {
       background: var(--bg-soft);
@@ -767,6 +798,20 @@
 
       .form-card {
         padding: 34px 24px
+      }
+
+      .calc-grid {
+        grid-template-columns: 1fr 1fr
+      }
+    }
+
+    @media(max-width:520px) {
+      .calc-grid {
+        grid-template-columns: 1fr
+      }
+
+      .calculator {
+        padding: 24px 18px
       }
     }
   </style>
@@ -938,6 +983,42 @@
     </div>
   </section>
 
+  <section id="calculator" class="center" style="padding-top:20px">
+    <div class="container">
+      <span class="sec-tag">احسب خط الأساس</span>
+      <h2>ما حجم الخسارة التي يمكن للتجربة قياسها؟</h2>
+      <p class="sec-sub">أدخل أرقام متجرك. هذه حسبة سيناريو وليست وعداً بنتيجة؛ نسبة الحالات القابلة للمنع افتراض تختبره على العينة.</p>
+      <div class="calculator">
+        <div class="calc-grid">
+          <div class="field">
+            <label for="calcOrders">الطلبات الشهرية</label>
+            <input id="calcOrders" type="number" min="0" step="1" inputmode="numeric" placeholder="مثال: 1000">
+          </div>
+          <div class="field">
+            <label for="calcRto">نسبة عدم الاستلام %</label>
+            <input id="calcRto" type="number" min="0" max="100" step="0.1" inputmode="decimal" placeholder="مثال: 12">
+          </div>
+          <div class="field">
+            <label for="calcCost">تكلفة المرتجع بالريال</label>
+            <input id="calcCost" type="number" min="0" step="0.01" inputmode="decimal" placeholder="مثال: 45">
+          </div>
+          <div class="field">
+            <label for="calcPreventable">افتراض القابل للمنع %</label>
+            <input id="calcPreventable" type="number" min="0" max="100" step="1" inputmode="numeric" placeholder="مثال: 20">
+          </div>
+        </div>
+        <button id="calculateBtn" type="button" class="btn" style="width:100%">احسب السيناريو</button>
+        <div id="calcResult" class="calc-result" aria-live="polite" hidden>
+          <span>الخسارة الشهرية المقدّرة</span>
+          <strong id="monthlyLoss">—</strong>
+          <span>الجزء القابل للقياس وفق افتراضك: <b id="addressableLoss">—</b></span>
+          <p class="form-note">اختبر الافتراض على ٥٠ طلباً قبل اتخاذ قرار شراء أو توسع.</p>
+          <a href="#book" class="btn small">اطلب تجربة ٥٠ طلباً</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Booking form -->
   <section id="book" class="form-sec center">
     <div class="container">
@@ -1065,6 +1146,27 @@
     });
 
     const FORMSPREE_ID = 'mrewnovv';
+
+    const calculateBtn = document.getElementById('calculateBtn');
+    const money = new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR', maximumFractionDigits: 0 });
+    calculateBtn.addEventListener('click', () => {
+      const orders = Number(document.getElementById('calcOrders').value);
+      const rtoRate = Number(document.getElementById('calcRto').value);
+      const returnCost = Number(document.getElementById('calcCost').value);
+      const preventableRate = Number(document.getElementById('calcPreventable').value);
+      const valid = orders > 0 && rtoRate >= 0 && rtoRate <= 100 && returnCost >= 0 && preventableRate >= 0 && preventableRate <= 100;
+      if (!valid) {
+        alert('أدخل أرقاماً صحيحة، واجعل النسب بين 0 و100.');
+        return;
+      }
+      const monthlyLoss = orders * (rtoRate / 100) * returnCost;
+      const addressableLoss = monthlyLoss * (preventableRate / 100);
+      document.getElementById('monthlyLoss').textContent = money.format(monthlyLoss);
+      document.getElementById('addressableLoss').textContent = money.format(addressableLoss);
+      document.getElementById('calcResult').hidden = false;
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({ event: 'calculate_roi', monthly_orders: orders, rto_rate: rtoRate });
+    });
 
     const leadForm = document.getElementById('leadForm');
     const query = new URLSearchParams(window.location.search);

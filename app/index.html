@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>مجيب | لوحة تأكيد الطلبات</title>
+  <meta name="description" content="لوحة تجريبية لتأكيد طلبات الدفع عند الاستلام ومتابعة نتائج الاتصال.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <a class="brand" href="/" aria-label="مجيب - الصفحة الرئيسية"><span>م</span><strong>مجيب</strong></a>
+      <nav aria-label="التنقل الرئيسي">
+        <button class="nav-item active" data-view="dashboard"><span>⌂</span> نظرة عامة</button>
+        <button class="nav-item" data-view="orders"><span>▤</span> الطلبات</button>
+        <button class="nav-item" data-view="calls"><span>◉</span> مركز الاتصال</button>
+      </nav>
+      <div class="pilot-card">
+        <small>التجربة المجانية</small>
+        <strong><span id="pilotUsed">0</span> من 50 محاولة</strong>
+        <div class="progress"><i id="pilotProgress"></i></div>
+        <p>اختبر النتيجة قبل ربط مزوّد الاتصال.</p>
+      </div>
+      <a class="back-link" href="/">← العودة إلى الموقع</a>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <button class="mobile-menu" id="mobileMenu" aria-label="فتح القائمة">☰</button>
+        <div><p>مساء الخير 👋</p><h1 id="viewTitle">نظرة عامة</h1></div>
+        <div class="top-actions">
+          <span class="mode-badge"><i></i> وضع تجريبي</span>
+          <button class="avatar" aria-label="حساب المتجر">مت</button>
+        </div>
+      </header>
+
+      <section class="view active" id="dashboardView">
+        <div class="notice"><strong>هذه بيئة تجربة آمنة.</strong> لا يتم إجراء مكالمات حقيقية أو إرسال بيانات العملاء إلى أي مزوّد.</div>
+        <div class="metrics" id="metrics"></div>
+        <div class="grid-two">
+          <article class="panel outcome-panel">
+            <div class="panel-head"><div><span class="eyebrow">آخر 7 أيام</span><h2>نتائج التأكيد</h2></div><strong id="completionRate">0%</strong></div>
+            <div class="donut-wrap"><div class="donut" id="donut"><span id="donutLabel">0</span></div><div class="legend" id="legend"></div></div>
+          </article>
+          <article class="panel saving-panel">
+            <span class="eyebrow">الأثر المتوقع</span><h2>تكلفة شحن تم تجنبها</h2>
+            <strong id="savedAmount">0 ر.س</strong>
+            <p>تقدير مبني على الطلبات الملغاة × 28 ر.س كتكلفة شحن افتراضية.</p>
+            <button class="text-button" data-view-target="orders">راجع الطلبات ←</button>
+          </article>
+        </div>
+        <article class="panel recent-panel">
+          <div class="panel-head"><div><span class="eyebrow">مباشر</span><h2>أحدث الطلبات</h2></div><button class="text-button" data-view-target="orders">عرض الكل</button></div>
+          <div class="table-wrap"><table><thead><tr><th>الطلب</th><th>العميل</th><th>القيمة</th><th>الحالة</th><th>آخر تحديث</th></tr></thead><tbody id="recentOrders"></tbody></table></div>
+        </article>
+      </section>
+
+      <section class="view" id="ordersView">
+        <article class="panel">
+          <div class="orders-toolbar">
+            <div><span class="eyebrow">إدارة التجربة</span><h2>طلبات الدفع عند الاستلام</h2></div>
+            <div class="toolbar-actions">
+              <button class="btn secondary" id="exportBtn">تصدير النتائج</button>
+              <label class="btn primary" for="csvInput">+ استيراد CSV</label>
+              <input id="csvInput" type="file" accept=".csv,text/csv" hidden>
+            </div>
+          </div>
+          <div class="filters"><input id="searchInput" type="search" placeholder="ابحث برقم الطلب أو اسم العميل…"><select id="statusFilter"><option value="all">كل الحالات</option><option value="queued">بانتظار الاتصال</option><option value="calling">جاري الاتصال</option><option value="confirmed">مؤكد</option><option value="cancelled">ملغي</option><option value="human_follow_up">متابعة بشرية</option></select></div>
+          <div class="table-wrap"><table><thead><tr><th>الطلب</th><th>العميل</th><th>الهاتف</th><th>القيمة</th><th>الحالة</th><th></th></tr></thead><tbody id="ordersTable"></tbody></table></div>
+          <div class="empty" id="emptyState" hidden><span>⌁</span><h3>لا توجد نتائج</h3><p>غيّر البحث أو الفلتر لعرض الطلبات.</p></div>
+        </article>
+      </section>
+
+      <section class="view" id="callsView">
+        <div class="call-layout">
+          <article class="panel queue-panel">
+            <div class="panel-head"><div><span class="eyebrow">قائمة الانتظار</span><h2>طلبات جاهزة للاتصال</h2></div><span class="count-pill" id="queueCount">0</span></div>
+            <div id="callQueue" class="call-queue"></div>
+          </article>
+          <article class="panel simulator-panel">
+            <span class="eyebrow">محاكاة المكالمة</span><h2 id="callCustomer">اختر طلباً للبدء</h2><p id="callMeta">يمكنك سماع الرسالة وتسجيل استجابة العميل يدوياً.</p>
+            <div class="phone-visual"><span class="pulse-ring"></span><span>☎</span></div>
+            <audio id="callAudio" preload="metadata" src="../sample.mp3"></audio>
+            <button class="btn primary full" id="playAudio" disabled>▶ تشغيل رسالة التأكيد</button>
+            <div class="result-buttons">
+              <button data-outcome="confirmed" disabled>✓ أكد الطلب</button>
+              <button data-outcome="cancelled" disabled>× ألغى الطلب</button>
+              <button data-outcome="human_follow_up" disabled>↗ يحتاج متابعة</button>
+            </div>
+            <small class="disclaimer">المكالمة الحقيقية تتطلب ربط حساب SIP أو مزوّد اتصال معتمد.</small>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>

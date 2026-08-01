@@ -16,6 +16,10 @@ This file records the deployable interpretation of those specifications. It prev
 - GCC-specific offer architecture: free 50-order pilot, Starter, Growth, and Scale intent.
 - Measured-pilot guarantee and explicit non-guarantee of fabricated revenue outcomes.
 - Plan selection captured with each first-party lead for qualification and AOV analysis.
+- Server-confirmed lifecycle events and a protected conversion report for visitor-to-paid measurement.
+- Durable onboarding email jobs with welcome and 40/50 pilot triggers.
+- Shopify OAuth plus signed order and uninstall webhooks.
+- Authenticated data export and scheduled account deletion with a cancellation window.
 
 ## Explicitly gated
 
@@ -32,13 +36,12 @@ This file records the deployable interpretation of those specifications. It prev
 
 ## Next production gates
 
-1. Configure and test Salla/Zid production credentials and callbacks.
-2. Configure Creem products and verify checkout/webhook events end to end.
-3. Complete the customer-data deletion workflow and retention schedule (the public request page is live; backend execution remains operational/manual).
-4. Implement onboarding email delivery and the 40/50 upgrade trigger.
-5. Add Shopify OAuth and verified webhook subscription.
-6. Add server-side Meta CAPI only after the production dataset/token is configured.
-7. Enable Embedded Signup only after Meta approval.
+1. Inject and test Salla/Zid production credentials and callbacks in their partner portals.
+2. Activate Creem live payments, create the three recurring products, and inject their IDs and secrets.
+3. Configure a verified SMTP sender and monitor the durable email worker.
+4. Create the Shopify partner app and inject its production credentials.
+5. Configure production MaxMind and the approved Meta CAPI dataset/token.
+6. Enable Embedded Signup only after Meta approval.
 
 ## Conversion decisions from the August 2026 re-audit
 

@@ -4,7 +4,7 @@ import uuid
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import get_current_user
@@ -18,6 +18,7 @@ from app.schemas import (
     CustomOrderInput,
     RiskInput,
 )
+from app.services.lifecycle import enqueue_email, record_lifecycle_event
 from app.services.quota import enforce_order_allowance
 from app.services.risk import calculate_risk
 
@@ -167,5 +168,26 @@ async def receive_custom_order(
         ),
     )
     session.add(order)
+    await session.flush()
+    await record_lifecycle_event(
+        session,
+        "order_received",
+        store_id=api_key.store_id,
+        properties={"source": "custom", "risk_level": risk.level.value},
+    )
+    order_count = await session.scalar(
+        select(func.count(Order.id)).where(Order.store_id == api_key.store_id)
+    )
+    if order_count == 40:
+        store = await session.scalar(select(Store).where(Store.id == api_key.store_id))
+        owner = await session.scalar(select(User).where(User.id == store.owner_id)) if store else None
+        if owner and store:
+            await enqueue_email(
+                session,
+                dedupe_key=f"pilot-40:{store.id}",
+                kind="pilot_40",
+                recipient=owner.email,
+                payload={"name": owner.full_name, "store": store.name, "remaining": 10},
+            )
     await session.commit()
     return {"status": "accepted", "mujeeb_order_id": str(order.id), "risk": risk.model_dump()}

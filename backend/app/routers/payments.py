@@ -13,6 +13,7 @@ from app.config import get_settings
 from app.database import get_session
 from app.models import Store, Subscription, User, WebhookEvent
 from app.schemas import CheckoutInput, UrlOut
+from app.services.lifecycle import record_lifecycle_event
 
 router = APIRouter(prefix="/api/payments", tags=["payments"])
 settings = get_settings()
@@ -39,6 +40,7 @@ async def create_checkout(
         raise HTTPException(status_code=503, detail="This billing plan is not configured")
     body = {
         "product_id": product_id,
+        "request_id": str(store.id),
         "success_url": f"{settings.frontend_origin}/dashboard/billing?checkout=success",
         "metadata": {"store_id": str(store.id), "plan": payload.plan},
         "customer": {"email": user.email},
@@ -54,6 +56,11 @@ async def create_checkout(
     checkout_url = response.json().get("checkout_url")
     if not checkout_url:
         raise HTTPException(status_code=502, detail="Billing provider returned no checkout URL")
+    await record_lifecycle_event(
+        session, "checkout_started", user_id=user.id, store_id=store.id,
+        properties={"plan": payload.plan},
+    )
+    await session.commit()
     return UrlOut(url=checkout_url)
 
 
@@ -81,7 +88,7 @@ async def creem_webhook(
         )
     ):
         return {"received": True, "duplicate": True}
-    event_type = event.get("eventType")
+    event_type = event.get("eventType") or event.get("event_type") or event.get("type")
     record = WebhookEvent(
         provider="creem",
         event_key=event_key,
@@ -91,9 +98,18 @@ async def creem_webhook(
     )
     session.add(record)
 
-    obj = event.get("object") or {}
+    obj = event.get("object") or event.get("data") or {}
     metadata = obj.get("metadata") or {}
-    store_id = metadata.get("store_id")
+    store_id = metadata.get("store_id") or obj.get("request_id")
+    if not store_id and isinstance(obj.get("subscription"), dict):
+        store_id = (obj["subscription"].get("metadata") or {}).get("store_id")
+    product = obj.get("product") or {}
+    product_id = product.get("id") if isinstance(product, dict) else product
+    plan_by_product = {
+        settings.creem_product_starter: "starter",
+        settings.creem_product_growth: "growth",
+        settings.creem_product_scale: "scale",
+    }
     if store_id:
         try:
             parsed_store_id = uuid.UUID(store_id)
@@ -103,13 +119,25 @@ async def creem_webhook(
             select(Subscription).where(Subscription.store_id == parsed_store_id)
         ) if parsed_store_id else None
         if subscription:
-            if event_type in {"subscription.paid", "checkout.completed"}:
-                subscription.plan = metadata.get("plan", subscription.plan)
+            was_paid_active = subscription.status == "active" and subscription.plan != "free"
+            if event_type in {
+                "subscription.active", "subscription.paid", "subscription.trialing",
+                "subscription.update", "checkout.completed",
+            }:
+                subscription.plan = metadata.get("plan") or plan_by_product.get(product_id) or subscription.plan
                 subscription.status = "active"
-                subscription.creem_subscription_id = obj.get("id") or subscription.creem_subscription_id
+                subscription_object = obj if str(event_type).startswith("subscription.") else (obj.get("subscription") or {})
+                subscription.creem_subscription_id = subscription_object.get("id") or subscription.creem_subscription_id
                 subscription.creem_customer_id = (obj.get("customer") or {}).get("id") or subscription.creem_customer_id
+                if not was_paid_active:
+                    await record_lifecycle_event(
+                        session, "subscription_activated", store_id=parsed_store_id,
+                        properties={"plan": subscription.plan, "provider": "creem", "event": event_type},
+                    )
             elif event_type in {"subscription.canceled", "subscription.expired", "subscription.paused"}:
                 subscription.status = "inactive"
+            elif event_type in {"subscription.past_due", "subscription.scheduled_cancel"}:
+                subscription.status = "past_due" if event_type == "subscription.past_due" else "cancel_scheduled"
             record.status = "processed"
     await session.commit()
     return {"received": True}

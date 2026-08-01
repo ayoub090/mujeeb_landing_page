@@ -10,6 +10,7 @@ from app.crypto import encrypt_text
 from app.database import get_session
 from app.models import Store, User, WhatsAppAccount
 from app.schemas import EmbeddedSignupInput
+from app.services.lifecycle import record_lifecycle_event
 
 router = APIRouter(prefix="/api/whatsapp", tags=["whatsapp"])
 settings = get_settings()
@@ -26,6 +27,8 @@ async def complete_embedded_signup(
     )
     if not store:
         raise HTTPException(status_code=404, detail="Store not found")
+    if not settings.meta_embedded_signup_enabled:
+        raise HTTPException(status_code=423, detail="Embedded Signup is awaiting Meta approval")
     if not settings.meta_app_id or not settings.meta_app_secret:
         raise HTTPException(status_code=503, detail="Meta integration is not configured")
 
@@ -55,6 +58,14 @@ async def complete_embedded_signup(
         phone = phone_response.json()
         if str(phone.get("id")) != payload.phone_number_id:
             raise HTTPException(status_code=400, detail="WhatsApp phone ownership check failed")
+        waba_response = await client.get(
+            f"https://graph.facebook.com/{settings.meta_graph_version}/{payload.waba_id}/phone_numbers",
+            params={"fields": "id", "access_token": access_token},
+        )
+        if waba_response.is_error or payload.phone_number_id not in {
+            str(item.get("id")) for item in (waba_response.json().get("data") or [])
+        }:
+            raise HTTPException(status_code=400, detail="WhatsApp business account ownership check failed")
 
     account = await session.scalar(
         select(WhatsAppAccount).where(
@@ -76,5 +87,8 @@ async def complete_embedded_signup(
         account.status = "connected"
     if phone.get("display_phone_number"):
         account.display_phone_encrypted = encrypt_text(phone["display_phone_number"])
+    await record_lifecycle_event(
+        session, "whatsapp_connected", user_id=user.id, store_id=store.id
+    )
     await session.commit()
     return {"status": "connected", "phone_number_id": payload.phone_number_id}

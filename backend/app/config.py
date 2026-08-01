@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     meta_pixel_id: str = ""
     meta_capi_access_token: str = ""
     meta_embedded_signup_redirect_uri: str = ""
+    meta_embedded_signup_enabled: bool = False
 
     salla_client_id: str = ""
     salla_client_secret: str = ""
@@ -38,6 +39,12 @@ class Settings(BaseSettings):
     zid_redirect_uri: str = "http://localhost:8000/api/integrations/zid/callback"
     zid_webhook_secret: str = ""
 
+    shopify_client_id: str = ""
+    shopify_client_secret: str = ""
+    shopify_redirect_uri: str = "http://localhost:8000/api/integrations/shopify/callback"
+    shopify_api_version: str = "2026-07"
+    shopify_scopes: str = "read_orders,read_customers"
+
     creem_api_key: str = ""
     creem_webhook_secret: str = ""
     creem_api_base: str = "https://test-api.creem.io"
@@ -45,6 +52,16 @@ class Settings(BaseSettings):
     creem_product_growth: str = ""
     creem_product_scale: str = ""
     app_base_url: AnyHttpUrl = "http://localhost:8000"
+
+    analytics_admin_key: str = ""
+    smtp_host: str = ""
+    smtp_port: int = Field(default=587, ge=1, le=65535)
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_from_email: str = ""
+    smtp_from_name: str = "Mujeeb"
+    smtp_use_tls: bool = True
+    privacy_deletion_grace_days: int = Field(default=7, ge=1, le=30)
 
     access_token_minutes: int = Field(default=30, ge=5, le=1440)
     refresh_token_days: int = Field(default=14, ge=1, le=90)

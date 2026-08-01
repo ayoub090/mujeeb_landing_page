@@ -6,6 +6,8 @@ import pytest
 from pydantic import ValidationError
 
 from app.models import RiskLevel
+from app.routers.integrations import settings as integration_settings
+from app.routers.integrations import verify_shopify_callback
 from app.routers.webhooks import signature_ok
 from app.schemas import (
     BusinessLeadInput,
@@ -13,7 +15,9 @@ from app.schemas import (
     FunnelEventInput,
     RegisterInput,
     RiskInput,
+    ShopifyStartInput,
 )
+from app.services.email import render_email
 from app.services.quota import FREE_PILOT_ORDER_LIMIT
 from app.services.risk import calculate_risk
 
@@ -105,3 +109,30 @@ def test_funnel_event_allowlist():
 
 def test_free_pilot_contract():
     assert FREE_PILOT_ORDER_LIMIT == 50
+
+
+def test_shopify_domain_and_callback_hmac():
+    normalized = ShopifyStartInput(
+        store_id="d5c8f190-e39d-4e16-acf3-5c74025a0cc3", shop="gcc-brand"
+    )
+    assert normalized.shop == "gcc-brand.myshopify.com"
+    params = {
+        "code": "code-1",
+        "shop": normalized.shop,
+        "state": "state-1",
+        "timestamp": "1785542400",
+    }
+    secret = "shopify-test-secret"
+    integration_settings.shopify_client_secret = secret
+    message = "&".join(f"{key}={value}" for key, value in sorted(params.items()))
+    params["hmac"] = hmac.new(secret.encode(), message.encode(), hashlib.sha256).hexdigest()
+    assert verify_shopify_callback(params)
+    params["code"] = "tampered"
+    assert not verify_shopify_callback(params)
+
+
+def test_operational_email_templates_are_transactional():
+    subject, plain, html = render_email("pilot_40", {"store": "GCC Store", "remaining": 10})
+    assert "10" in plain
+    assert "GCC Store" in html
+    assert "تقرير" in subject

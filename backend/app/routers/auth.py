@@ -1,5 +1,5 @@
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -17,7 +17,9 @@ from app.crypto import encrypt_text
 from app.database import get_session
 from app.models import Store, Subscription, User
 from app.schemas import LoginInput, RegisterInput, UserOut
+from app.services.capi import send_capi_event
 from app.services.geoip import verify_signup_ip
+from app.services.lifecycle import enqueue_email, record_lifecycle_event
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -36,6 +38,7 @@ async def register(
     payload: RegisterInput,
     request: Request,
     response: Response,
+    background_tasks: BackgroundTasks,
     session: AsyncSession = Depends(get_session),
 ):
     await verify_signup_ip(source_ip(request))
@@ -58,8 +61,32 @@ async def register(
     store.subscription = Subscription(plan="free", status="active")
     user.stores.append(store)
     session.add(user)
+    await session.flush()
+    await record_lifecycle_event(
+        session,
+        "signup_completed",
+        user_id=user.id,
+        store_id=store.id,
+        properties={"platform": payload.platform.value, "country": payload.country_code},
+    )
+    await enqueue_email(
+        session,
+        dedupe_key=f"welcome:{user.id}",
+        kind="welcome",
+        recipient=email,
+        payload={"name": user.full_name, "store": store.name},
+    )
     await session.commit()
     await session.refresh(user, attribute_names=["stores"])
+    background_tasks.add_task(
+        send_capi_event,
+        "CompleteRegistration",
+        f"signup-{user.id}",
+        email=user.email,
+        phone=payload.phone,
+        client_ip=source_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
     set_auth_cookies(response, user.id)
     return user
 
@@ -101,4 +128,3 @@ async def me(
         select(User).options(selectinload(User.stores)).where(User.id == user.id)
     )
     return hydrated
-

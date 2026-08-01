@@ -105,6 +105,20 @@ class OAuthStartInput(BaseModel):
     store_id: uuid.UUID
 
 
+class ShopifyStartInput(OAuthStartInput):
+    shop: str = Field(min_length=3, max_length=120)
+
+    @field_validator("shop")
+    @classmethod
+    def valid_shop_domain(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if normalized.endswith(".myshopify.com"):
+            normalized = normalized.removesuffix(".myshopify.com")
+        if not normalized.replace("-", "").isalnum() or normalized.startswith("-") or normalized.endswith("-"):
+            raise ValueError("Use the shop name or its .myshopify.com domain")
+        return f"{normalized}.myshopify.com"
+
+
 class UrlOut(BaseModel):
     url: str
 
@@ -171,6 +185,7 @@ class BusinessLeadInput(BaseModel):
     platform: str
     monthly_orders: str
     selected_plan: str = "pilot"
+    session_id: str | None = Field(default=None, min_length=8, max_length=64)
     contact_consent: bool
     consent_timestamp: datetime
     utm_source: str | None = Field(default=None, max_length=120)
@@ -239,6 +254,7 @@ class FunnelEventInput(BaseModel):
     utm_content: str | None = Field(default=None, max_length=160)
     utm_term: str | None = Field(default=None, max_length=160)
     referrer: str | None = Field(default=None, max_length=2000)
+    properties: dict[str, str | int | float | bool] = Field(default_factory=dict)
 
     @field_validator("event_name")
     @classmethod
@@ -252,3 +268,7 @@ class FunnelEventInput(BaseModel):
         }:
             raise ValueError("Unsupported funnel event")
         return value
+
+
+class DataDeletionInput(BaseModel):
+    password: str = Field(min_length=1, max_length=128)

@@ -1406,16 +1406,16 @@
       utm_term: document.getElementById('utmTerm').value,
       referrer: document.getElementById('leadReferrer').value
     });
-    const sendFunnelEvent = eventName => fetch(`${MARKETING_API}/events`, {
+    const sendFunnelEvent = (eventName, properties = {}) => fetch(`${MARKETING_API}/events`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event_name: eventName, ...funnelContext() }),
+      body: JSON.stringify({ event_name: eventName, properties, ...funnelContext() }),
       keepalive: true
     }).catch(() => {});
     sendFunnelEvent('page_view');
     document.querySelectorAll('.plan-cta').forEach(link => link.addEventListener('click', () => {
       document.getElementById('selectedPlan').value = link.dataset.plan || 'pilot';
-      sendFunnelEvent('pricing_select');
+      sendFunnelEvent('pricing_select', { plan: link.dataset.plan || 'pilot' });
       window.dataLayer = window.dataLayer || [];
       window.dataLayer.push({ event: 'select_plan', plan: link.dataset.plan || 'pilot' });
     }));
@@ -1438,12 +1438,14 @@
         const formData = new FormData(leadForm);
         const payload = Object.fromEntries(formData.entries());
         payload.contact_consent = formData.has('contact_consent');
+        payload.session_id = funnelSessionId;
         const res = await fetch(`${MARKETING_API}/leads`, {
           method: 'POST',
           body: JSON.stringify(payload),
           headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
         });
         if (!res.ok) throw new Error('Lead API error: ' + res.status);
+        const lead = await res.json();
         window.dataLayer = window.dataLayer || [];
         window.dataLayer.push({
           event: 'generate_lead',
@@ -1451,6 +1453,7 @@
           lead_campaign: document.getElementById('utmCampaign').value
         });
         sendFunnelEvent('lead_submit');
+        if (typeof window.fbq === 'function') window.fbq('track', 'Lead', {}, { eventID: `lead-${lead.id}` });
         leadForm.style.display = 'none';
         document.getElementById('successBox').style.display = 'block';
         // Scroll to success

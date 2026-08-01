@@ -254,6 +254,7 @@ class BusinessLead(Base):
     platform: Mapped[str] = mapped_column(String(32))
     monthly_orders: Mapped[str] = mapped_column(String(32))
     selected_plan: Mapped[str] = mapped_column(String(32), default="pilot", index=True)
+    session_id: Mapped[str | None] = mapped_column(String(64), index=True)
     attribution: Mapped[dict] = mapped_column(JSON, default=dict)
     referrer: Mapped[str | None] = mapped_column(Text)
     landing_page: Mapped[str | None] = mapped_column(Text)
@@ -272,8 +273,48 @@ class FunnelEvent(Base):
     event_name: Mapped[str] = mapped_column(String(48), index=True)
     session_id: Mapped[str] = mapped_column(String(64), index=True)
     path: Mapped[str] = mapped_column(String(500))
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), index=True
+    )
+    store_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("stores.id", ondelete="SET NULL"), index=True
+    )
+    source: Mapped[str] = mapped_column(String(32), default="client", index=True)
+    properties: Mapped[dict] = mapped_column(JSON, default=dict)
     attribution: Mapped[dict] = mapped_column(JSON, default=dict)
     referrer: Mapped[str | None] = mapped_column(Text)
     ip_hash: Mapped[str | None] = mapped_column(String(64))
     user_agent_hash: Mapped[str | None] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+
+class EmailJob(Base):
+    __tablename__ = "email_jobs"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    dedupe_key: Mapped[str] = mapped_column(String(180), unique=True, index=True)
+    kind: Mapped[str] = mapped_column(String(64), index=True)
+    recipient_encrypted: Mapped[str] = mapped_column(Text)
+    recipient_hash: Mapped[str] = mapped_column(String(64), index=True)
+    payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    status: Mapped[str] = mapped_column(String(32), default="queued", index=True)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    next_attempt_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+    last_error: Mapped[str | None] = mapped_column(Text)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class DataDeletionRequest(Base):
+    __tablename__ = "data_deletion_requests"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), index=True
+    )
+    email_hash: Mapped[str] = mapped_column(String(64), index=True)
+    status: Mapped[str] = mapped_column(String(32), default="scheduled", index=True)
+    scheduled_for: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

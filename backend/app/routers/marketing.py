@@ -1,6 +1,18 @@
+import hmac
 import uuid
+from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    Header,
+    HTTPException,
+    Query,
+    Request,
+    status,
+)
+from sqlalchemy import distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
@@ -8,6 +20,7 @@ from app.crypto import encrypt_text, stable_hash
 from app.database import get_session
 from app.models import BusinessLead, FunnelEvent
 from app.schemas import BusinessLeadCreated, BusinessLeadInput, FunnelEventInput
+from app.services.capi import send_capi_event
 
 router = APIRouter(prefix="/api/marketing", tags=["marketing"])
 
@@ -39,6 +52,7 @@ def _attribution(payload: BusinessLeadInput | FunnelEventInput) -> dict[str, str
 async def create_lead(
     payload: BusinessLeadInput,
     request: Request,
+    background_tasks: BackgroundTasks,
     session: AsyncSession = Depends(get_session),
 ):
     # Silently accept honeypot submissions so bots cannot tune around the filter.
@@ -56,6 +70,7 @@ async def create_lead(
         platform=payload.platform,
         monthly_orders=payload.monthly_orders,
         selected_plan=payload.selected_plan,
+        session_id=payload.session_id,
         attribution=_attribution(payload),
         referrer=payload.referrer,
         landing_page=payload.landing_page,
@@ -64,7 +79,29 @@ async def create_lead(
         user_agent_hash=user_agent_hash,
     )
     session.add(lead)
+    session.add(
+        FunnelEvent(
+            event_name="lead_created",
+            session_id=payload.session_id or f"lead-{lead.id.hex}",
+            path=payload.landing_page or "/",
+            source="server",
+            properties={"plan": payload.selected_plan, "platform": payload.platform},
+            attribution=_attribution(payload),
+            referrer=payload.referrer,
+            ip_hash=ip_hash,
+            user_agent_hash=user_agent_hash,
+        )
+    )
     await session.commit()
+    background_tasks.add_task(
+        send_capi_event,
+        "Lead",
+        f"lead-{lead.id}",
+        email=str(payload.email),
+        phone=payload.whatsapp,
+        client_ip=_source_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
     return BusinessLeadCreated(id=lead.id)
 
 
@@ -82,9 +119,58 @@ async def create_funnel_event(
             path=payload.path,
             attribution=_attribution(payload),
             referrer=payload.referrer,
+            properties=payload.properties,
             ip_hash=ip_hash,
             user_agent_hash=user_agent_hash,
         )
     )
     await session.commit()
     return {"status": "accepted"}
+
+
+@router.get("/metrics")
+async def conversion_metrics(
+    days: int = Query(default=30, ge=1, le=365),
+    x_mujeeb_analytics_key: str | None = Header(default=None),
+    session: AsyncSession = Depends(get_session),
+):
+    settings = get_settings()
+    if not settings.analytics_admin_key or not x_mujeeb_analytics_key or not hmac.compare_digest(
+        settings.analytics_admin_key, x_mujeeb_analytics_key
+    ):
+        raise HTTPException(status_code=401, detail="Analytics access denied")
+    since = datetime.now(UTC) - timedelta(days=days)
+    rows = (await session.execute(
+        select(FunnelEvent.event_name, func.count(FunnelEvent.id), func.count(distinct(FunnelEvent.session_id)))
+        .where(FunnelEvent.created_at >= since)
+        .group_by(FunnelEvent.event_name)
+    )).all()
+    by_event = {name: {"events": count, "sessions": sessions} for name, count, sessions in rows}
+    page_sessions = by_event.get("page_view", {}).get("sessions", 0)
+    leads = by_event.get("lead_created", {}).get("events", 0)
+    signups = by_event.get("signup_completed", {}).get("events", 0)
+    connected = by_event.get("store_connected", {}).get("events", 0)
+    paid = by_event.get("subscription_activated", {}).get("events", 0)
+
+    def rate(value: int, base: int) -> float:
+        return round(value / base * 100, 2) if base else 0
+
+    return {
+        "window_days": days,
+        "events": by_event,
+        "funnel": {
+            "visitor_sessions": page_sessions,
+            "leads": leads,
+            "signups": signups,
+            "connected_stores": connected,
+            "paid_subscriptions": paid,
+        },
+        "conversion_rates": {
+            "visitor_to_lead": rate(leads, page_sessions),
+            "lead_to_signup": rate(signups, leads),
+            "signup_to_connected": rate(connected, signups),
+            "connected_to_paid": rate(paid, connected),
+            "visitor_to_paid": rate(paid, page_sessions),
+        },
+        "generated_at": datetime.now(UTC),
+    }

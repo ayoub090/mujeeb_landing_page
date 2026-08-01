@@ -10,6 +10,7 @@ from app.routers import (
     marketing,
     orders,
     payments,
+    privacy,
     webhooks,
     whatsapp,
 )
@@ -29,7 +30,7 @@ app.add_middleware(
     ),
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "X-CSRF-Token"],
+    allow_headers=["Content-Type", "X-CSRF-Token", "X-Mujeeb-Analytics-Key"],
 )
 
 for api_router in (
@@ -39,6 +40,7 @@ for api_router in (
     integrations.router,
     whatsapp.router,
     payments.router,
+    privacy.router,
     webhooks.router,
     custom_orders.router,
     marketing.router,

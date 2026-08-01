@@ -238,6 +238,31 @@
       margin-bottom: 56px
     }
 
+    .hero-visual {
+      width: min(1120px, calc(100% - 32px));
+      margin: 48px auto 0;
+      overflow: hidden;
+      border-radius: 28px;
+      border: 1px solid rgba(255,255,255,.18);
+      box-shadow: 0 28px 80px rgba(3,18,31,.32);
+      background: #f4f1ed;
+    }
+
+    .hero-visual img {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      display: block;
+    }
+
+    .hero-visual figcaption {
+      padding: 12px 18px;
+      background: rgba(255,255,255,.96);
+      color: #385064;
+      font-size: 13px;
+      text-align: center;
+    }
+
     .trust {
       display: flex;
       gap: 34px;
@@ -829,7 +854,7 @@
         <a href="#features">المميزات</a>
         <a href="#how">كيف يعمل</a>
         <a href="#demo">عينة الصوت</a>
-        <a href="/app/">لوحة التجربة</a>
+        <a href="https://app.usemujeeb.com">لوحة مجيب</a>
       </div>
       <a href="#book" class="btn small">اطلب تجربة ٥٠ طلباً</a>
     </div>
@@ -843,7 +868,7 @@
       <p class="sub">«مجيب» يتواصل مع العميل لتأكيد الطلب أو إلغائه قبل التجهيز، عبر القناة المناسبة له، ثم يعيد النتيجة
         لفريق المتجر. ابدأ بعينة من ٥٠ طلباً وقارنها بمسارك الحالي قبل أي توسع.</p>
       <div class="hero-cta">
-        <a href="/app/" class="btn">جرّب لوحة مجيب الآن</a>
+        <a href="https://app.usemujeeb.com" class="btn">ابدأ مجاناً</a>
         <a href="#book" class="btn">اطلب تجربة مجانية على ٥٠ طلباً
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
             stroke-linecap="round" stroke-linejoin="round" style="transform:scaleX(-1)">
@@ -869,6 +894,12 @@
             <path d="M12 22a10 10 0 110-20 10 10 0 010 20zm1-10V6h-2v8h6v-2z" />
           </svg> لا حاجة لتغيير شركة الشحن</span>
       </div>
+
+      <figure class="hero-visual reveal">
+        <img src="assets/mujeeb-gcc-merchant-hero-v1.png" width="1680" height="945"
+          alt="تاجر إلكتروني خليجي يدير طلباته من الحاسوب والهاتف" fetchpriority="high" decoding="async">
+        <figcaption>من الطلب الجديد إلى قرار واضح داخل مسار عمل واحد.</figcaption>
+      </figure>
 
       <!-- Audio sample -->
       <div class="audio-wrap reveal" id="demo">

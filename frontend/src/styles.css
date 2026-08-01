@@ -1,0 +1,7 @@
+@import "tailwindcss";
+@theme { --font-sans: "Tajawal", "Inter", ui-sans-serif, system-ui; --color-ink: #071c2c; --color-mint: #17b890; --color-sky: #2563eb; }
+* { box-sizing: border-box; }
+body { margin: 0; background: #f5f8fb; color: #071c2c; }
+button, input, select { font: inherit; }
+.glass { background: rgba(255,255,255,.86); backdrop-filter: blur(18px); border: 1px solid rgba(7,28,44,.08); }
+.mesh { background: radial-gradient(circle at 90% 0%, rgba(37,99,235,.12), transparent 30%), radial-gradient(circle at 0% 100%, rgba(23,184,144,.12), transparent 35%), #f5f8fb; }

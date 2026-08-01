@@ -1,0 +1,70 @@
+from functools import lru_cache
+from typing import Literal
+
+from pydantic import AnyHttpUrl, Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    environment: Literal["development", "test", "production"] = "development"
+    database_url: str = "sqlite+aiosqlite:///./mujeeb.sqlite3"
+    redis_url: str = "redis://localhost:6379/0"
+    frontend_url: AnyHttpUrl = "http://localhost:5173"
+    cookie_domain: str | None = None
+    jwt_secret: str = "development-only-change-me-32-characters"
+    data_encryption_key: str = ""
+    trust_proxy_headers: bool = False
+    gcc_only_signups: bool = False
+    maxmind_account_id: str = ""
+    maxmind_license_key: str = ""
+
+    meta_app_id: str = ""
+    meta_app_secret: str = ""
+    meta_config_id: str = ""
+    meta_graph_version: str = "v23.0"
+    meta_webhook_verify_token: str = ""
+    meta_pixel_id: str = ""
+    meta_capi_access_token: str = ""
+    meta_embedded_signup_redirect_uri: str = ""
+
+    salla_client_id: str = ""
+    salla_client_secret: str = ""
+    salla_redirect_uri: str = "http://localhost:8000/api/integrations/salla/callback"
+    salla_webhook_secret: str = ""
+    zid_client_id: str = ""
+    zid_client_secret: str = ""
+    zid_redirect_uri: str = "http://localhost:8000/api/integrations/zid/callback"
+    zid_webhook_secret: str = ""
+
+    creem_api_key: str = ""
+    creem_webhook_secret: str = ""
+    creem_api_base: str = "https://test-api.creem.io"
+    creem_product_starter: str = ""
+    creem_product_growth: str = ""
+    creem_product_scale: str = ""
+    app_base_url: AnyHttpUrl = "http://localhost:8000"
+
+    access_token_minutes: int = Field(default=30, ge=5, le=1440)
+    refresh_token_days: int = Field(default=14, ge=1, le=90)
+
+    @field_validator("jwt_secret")
+    @classmethod
+    def strong_production_secret(cls, value: str, info):
+        if len(value) < 32:
+            raise ValueError("JWT_SECRET must contain at least 32 characters")
+        return value
+
+    @property
+    def secure_cookies(self) -> bool:
+        return self.environment == "production"
+
+    @property
+    def frontend_origin(self) -> str:
+        return str(self.frontend_url).rstrip("/")
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()

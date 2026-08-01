@@ -1,17 +1,17 @@
 # Mujeeb Growth Funnel — objectif 1 000 000 SAR
 
 ## Modèle cible
-- Offre pilote: 0 SAR pendant 7 jours sur un échantillon limité.
-- Starter: 999 SAR/mois.
-- Growth: 2 499 SAR/mois.
-- Scale: 5 999 SAR/mois + usage.
-- Scénario 1 M SAR ARR: 20 Scale + 30 Growth = 1 079 400 SAR/an.
+- Offre pilote: 0 SAR sur les 50 premières commandes mesurées.
+- Starter: 399 SAR/mois, jusqu’à 1 000 commandes.
+- Growth: 799 SAR/mois, jusqu’à 5 000 commandes.
+- Scale: 1 499 SAR/mois, volume élevé sous politique d’usage équitable.
+- Scénario 1 M SAR ARR: 30 Scale + 50 Growth = 1 019 040 SAR/an, hors expansion multi-boutiques.
 
 ## Funnel
 1. Awareness: pages SEO/GEO, Reddit, Medium, GitHub, X, Meta.
 2. Intent: CTA unique vers la démonstration gratuite avec UTM.
 3. Qualification: boutique saoudienne, 300+ commandes/mois, COD ou suivi manuel.
-4. Activation: test de 50 commandes en 7 jours.
+4. Activation: test des 50 premières commandes sur un échantillon représentatif.
 5. Conversion: rapport avant/après et abonnement adapté au volume.
 6. Expansion: plus de boutiques, langues, canaux et volume.
 

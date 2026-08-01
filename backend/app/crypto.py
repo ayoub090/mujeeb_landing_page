@@ -11,7 +11,8 @@ def _key() -> bytes:
     raw = get_settings().data_encryption_key
     if raw:
         try:
-            key = base64.urlsafe_b64decode(raw)
+            padded = raw + "=" * (-len(raw) % 4)
+            key = base64.urlsafe_b64decode(padded)
         except Exception as exc:
             raise RuntimeError("DATA_ENCRYPTION_KEY must be URL-safe base64") from exc
         if len(key) != 32:
@@ -35,4 +36,3 @@ def decrypt_text(value: str) -> str:
 
 def stable_hash(value: str) -> str:
     return hashlib.sha256(value.strip().lower().encode()).hexdigest()
-

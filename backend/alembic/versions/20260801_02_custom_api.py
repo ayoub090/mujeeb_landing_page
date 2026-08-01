@@ -12,25 +12,37 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.create_table(
-        "store_api_keys",
-        sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("store_id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("name", sa.String(length=80), nullable=False),
-        sa.Column("prefix", sa.String(length=20), nullable=False),
-        sa.Column("secret_hash", sa.String(length=64), nullable=False),
-        sa.Column("last_used_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("revoked_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-        sa.ForeignKeyConstraint(["store_id"], ["stores.id"], ondelete="CASCADE"),
-        sa.PrimaryKeyConstraint("id"),
-    )
-    op.create_index("ix_store_api_keys_store_id", "store_api_keys", ["store_id"])
-    op.create_index("ix_store_api_keys_prefix", "store_api_keys", ["prefix"])
-    op.create_index("ix_store_api_keys_secret_hash", "store_api_keys", ["secret_hash"], unique=True)
-    op.add_column("orders", sa.Column("items", sa.JSON(), nullable=False, server_default="[]"))
-    op.add_column("orders", sa.Column("shipping_city", sa.String(length=120), nullable=True))
-    op.add_column("orders", sa.Column("shipping_address_encrypted", sa.Text(), nullable=True))
+    inspector = sa.inspect(op.get_bind())
+    if "store_api_keys" not in inspector.get_table_names():
+        op.create_table(
+            "store_api_keys",
+            sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
+            sa.Column("store_id", postgresql.UUID(as_uuid=True), nullable=False),
+            sa.Column("name", sa.String(length=80), nullable=False),
+            sa.Column("prefix", sa.String(length=20), nullable=False),
+            sa.Column("secret_hash", sa.String(length=64), nullable=False),
+            sa.Column("last_used_at", sa.DateTime(timezone=True), nullable=True),
+            sa.Column("revoked_at", sa.DateTime(timezone=True), nullable=True),
+            sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+            sa.ForeignKeyConstraint(["store_id"], ["stores.id"], ondelete="CASCADE"),
+            sa.PrimaryKeyConstraint("id"),
+        )
+
+    existing_indexes = {index["name"] for index in sa.inspect(op.get_bind()).get_indexes("store_api_keys")}
+    if "ix_store_api_keys_store_id" not in existing_indexes:
+        op.create_index("ix_store_api_keys_store_id", "store_api_keys", ["store_id"])
+    if "ix_store_api_keys_prefix" not in existing_indexes:
+        op.create_index("ix_store_api_keys_prefix", "store_api_keys", ["prefix"])
+    if "ix_store_api_keys_secret_hash" not in existing_indexes:
+        op.create_index("ix_store_api_keys_secret_hash", "store_api_keys", ["secret_hash"], unique=True)
+
+    order_columns = {column["name"] for column in sa.inspect(op.get_bind()).get_columns("orders")}
+    if "items" not in order_columns:
+        op.add_column("orders", sa.Column("items", sa.JSON(), nullable=False, server_default="[]"))
+    if "shipping_city" not in order_columns:
+        op.add_column("orders", sa.Column("shipping_city", sa.String(length=120), nullable=True))
+    if "shipping_address_encrypted" not in order_columns:
+        op.add_column("orders", sa.Column("shipping_address_encrypted", sa.Text(), nullable=True))
 
 
 def downgrade() -> None:

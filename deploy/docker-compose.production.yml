@@ -1,0 +1,92 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mujeeb
+      POSTGRES_USER: mujeeb
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mujeeb"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes: [redis_data:/data]
+  api:
+    image: ghcr.io/ayoub090/mujeeb-api:latest
+    restart: unless-stopped
+    environment: &api-environment
+      ENVIRONMENT: production
+      DATABASE_URL: postgresql+asyncpg://mujeeb:${POSTGRES_PASSWORD}@postgres:5432/mujeeb
+      REDIS_URL: redis://redis:6379/0
+      FRONTEND_URL: https://app.usemujeeb.com
+      COOKIE_DOMAIN: .usemujeeb.com
+      JWT_SECRET: ${JWT_SECRET}
+      DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY}
+      TRUST_PROXY_HEADERS: "true"
+      GCC_ONLY_SIGNUPS: ${GCC_ONLY_SIGNUPS:-false}
+      MAXMIND_ACCOUNT_ID: ${MAXMIND_ACCOUNT_ID:-}
+      MAXMIND_LICENSE_KEY: ${MAXMIND_LICENSE_KEY:-}
+      META_APP_ID: ${META_APP_ID:-}
+      META_APP_SECRET: ${META_APP_SECRET:-}
+      META_CONFIG_ID: ${META_CONFIG_ID:-}
+      META_GRAPH_VERSION: ${META_GRAPH_VERSION:-v23.0}
+      META_WEBHOOK_VERIFY_TOKEN: ${META_WEBHOOK_VERIFY_TOKEN:-}
+      META_PIXEL_ID: ${META_PIXEL_ID:-}
+      META_CAPI_ACCESS_TOKEN: ${META_CAPI_ACCESS_TOKEN:-}
+      META_EMBEDDED_SIGNUP_REDIRECT_URI: ${META_EMBEDDED_SIGNUP_REDIRECT_URI:-}
+      META_EMBEDDED_SIGNUP_ENABLED: ${META_EMBEDDED_SIGNUP_ENABLED:-false}
+      SALLA_CLIENT_ID: ${SALLA_CLIENT_ID:-}
+      SALLA_CLIENT_SECRET: ${SALLA_CLIENT_SECRET:-}
+      SALLA_REDIRECT_URI: https://api.usemujeeb.com/api/integrations/salla/callback
+      SALLA_WEBHOOK_SECRET: ${SALLA_WEBHOOK_SECRET:-}
+      ZID_CLIENT_ID: ${ZID_CLIENT_ID:-}
+      ZID_CLIENT_SECRET: ${ZID_CLIENT_SECRET:-}
+      ZID_REDIRECT_URI: https://api.usemujeeb.com/api/integrations/zid/callback
+      ZID_WEBHOOK_SECRET: ${ZID_WEBHOOK_SECRET:-}
+      SHOPIFY_CLIENT_ID: ${SHOPIFY_CLIENT_ID:-}
+      SHOPIFY_CLIENT_SECRET: ${SHOPIFY_CLIENT_SECRET:-}
+      SHOPIFY_REDIRECT_URI: https://api.usemujeeb.com/api/integrations/shopify/callback
+      SHOPIFY_API_VERSION: ${SHOPIFY_API_VERSION:-2026-07}
+      CREEM_API_KEY: ${CREEM_API_KEY:-}
+      CREEM_WEBHOOK_SECRET: ${CREEM_WEBHOOK_SECRET:-}
+      CREEM_API_BASE: ${CREEM_API_BASE:-https://api.creem.io}
+      CREEM_PRODUCT_STARTER: ${CREEM_PRODUCT_STARTER:-}
+      CREEM_PRODUCT_GROWTH: ${CREEM_PRODUCT_GROWTH:-}
+      CREEM_PRODUCT_SCALE: ${CREEM_PRODUCT_SCALE:-}
+      APP_BASE_URL: https://api.usemujeeb.com
+      ANALYTICS_ADMIN_KEY: ${ANALYTICS_ADMIN_KEY}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Mujeeb}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
+      PRIVACY_DELETION_GRACE_DAYS: ${PRIVACY_DELETION_GRACE_DAYS:-7}
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_started}
+    command: ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='*'"]
+    ports: ["127.0.0.1:18000:8000"]
+  worker:
+    image: ghcr.io/ayoub090/mujeeb-api:latest
+    restart: unless-stopped
+    environment: *api-environment
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_started}
+    command: ["python", "-m", "app.worker"]
+  dashboard:
+    image: ghcr.io/ayoub090/mujeeb-dashboard:latest
+    restart: unless-stopped
+    depends_on: [api]
+    ports: ["127.0.0.1:13000:80"]
+volumes:
+  postgres_data:
+  redis_data:

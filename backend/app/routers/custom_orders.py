@@ -18,10 +18,10 @@ from app.schemas import (
     CustomOrderInput,
     RiskInput,
 )
+from app.services.quota import enforce_order_allowance
 from app.services.risk import calculate_risk
 
 router = APIRouter(prefix="/api", tags=["custom-store-api"])
-
 
 def key_hash(value: str) -> str:
     return hashlib.sha256(value.encode()).hexdigest()
@@ -118,6 +118,8 @@ async def receive_custom_order(
     if existing:
         await session.commit()
         return {"status": "duplicate", "mujeeb_order_id": str(existing.id)}
+
+    await enforce_order_allowance(api_key.store_id, session)
 
     phone_hash = stable_hash(payload.customer_phone)
     customer = await session.scalar(

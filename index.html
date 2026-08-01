@@ -16,18 +16,19 @@
     rel="stylesheet">
   <style>
     :root {
-      --bg: #FAF8F4;
-      --bg-soft: #F3EFE7;
-      --ink: #141210;
-      --ink-soft: #5C564D;
-      --gold: #B8862B;
-      --gold-deep: #8F6516;
-      --gold-soft: #E9D9B8;
+      --bg: #F8FAFC;
+      --bg-soft: #EFF6FF;
+      --ink: #0F172A;
+      --ink-soft: #475569;
+      --gold: #10B981;
+      --gold-deep: #047857;
+      --gold-soft: #D1FAE5;
       --cream: #FFFFFF;
-      --line: #E7E0D2;
-      --green: #1E7A54;
+      --line: #E2E8F0;
+      --green: #10B981;
+      --blue: #1E40AF;
       --radius: 20px;
-      --shadow: 0 20px 60px -20px rgba(80, 60, 20, .18);
+      --shadow: 0 20px 60px -20px rgba(15, 23, 42, .18);
     }
 
     * {
@@ -76,7 +77,7 @@
       top: 0;
       z-index: 50;
       backdrop-filter: blur(14px);
-      background: rgba(250, 248, 244, .82);
+      background: rgba(248, 250, 252, .88);
       border-bottom: 1px solid var(--line);
     }
 
@@ -471,7 +472,7 @@
 
     /* problem strip */
     .strip {
-      background: #171410;
+      background: #0F172A;
       color: #F5EFE2;
       border-radius: 28px;
       padding: 56px 48px;
@@ -670,6 +671,99 @@
       font-size: clamp(25px, 4vw, 38px)
     }
 
+    /* offer and trust */
+    .offer-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      margin-top: 46px;
+      align-items: stretch
+    }
+
+    .offer-card {
+      background: var(--cream);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 30px 25px;
+      text-align: right;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 14px 40px -28px rgba(15, 23, 42, .35)
+    }
+
+    .offer-card.featured {
+      border: 2px solid var(--green);
+      transform: translateY(-8px);
+      box-shadow: 0 24px 60px -24px rgba(16, 185, 129, .38)
+    }
+
+    .offer-badge {
+      position: absolute;
+      top: -14px;
+      right: 22px;
+      background: var(--blue);
+      color: #fff;
+      padding: 5px 13px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700
+    }
+
+    .offer-name { font-size: 20px; font-weight: 700 }
+    .offer-for { color: var(--ink-soft); font-size: 13px; min-height: 46px; margin-top: 4px }
+    .offer-price { font-size: 34px; color: var(--blue); font-weight: 700; margin: 18px 0 2px }
+    .offer-price small { font-size: 13px; color: var(--ink-soft); font-weight: 400 }
+    .offer-list { list-style: none; margin: 20px 0 26px; display: grid; gap: 10px; font-size: 14px }
+    .offer-list li::before { content: "✓"; color: var(--green); font-weight: 800; margin-left: 8px }
+    .offer-card .btn { margin-top: auto; width: 100% }
+
+    .guarantee {
+      margin: 52px auto 0;
+      max-width: 920px;
+      border: 1px solid #BFDBFE;
+      background: linear-gradient(135deg, #FFFFFF, #EFF6FF);
+      border-radius: 24px;
+      padding: 30px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 22px;
+      text-align: right;
+      align-items: center
+    }
+
+    .guarantee-icon {
+      width: 62px;
+      height: 62px;
+      border-radius: 18px;
+      background: #DBEAFE;
+      color: var(--blue);
+      display: grid;
+      place-items: center;
+      font-size: 28px
+    }
+
+    .guarantee h3 { font-size: 20px; margin-bottom: 5px }
+    .guarantee p { color: var(--ink-soft); font-size: 14.5px }
+
+    .confidence-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 24px
+    }
+
+    .proof-point {
+      border: 1px solid var(--line);
+      background: var(--cream);
+      border-radius: 14px;
+      padding: 15px;
+      font-size: 13px;
+      color: var(--ink-soft)
+    }
+
+    .proof-point b { color: var(--ink); display: block; margin-bottom: 3px }
+
     /* form */
     .form-sec {
       background: var(--bg-soft);
@@ -777,6 +871,17 @@
       border-radius: 9px
     }
 
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin: 18px 0
+    }
+
+    .footer-links a { color: var(--ink-soft); text-decoration: none }
+    .footer-links a:hover { color: var(--blue) }
+
     /* reveal on scroll */
     .reveal {
       opacity: 0;
@@ -801,9 +906,16 @@
       }
 
       .grid3,
-      .steps {
+      .steps,
+      .offer-grid,
+      .confidence-grid {
         grid-template-columns: 1fr
       }
+
+      .offer-card.featured { transform: none }
+
+      .guarantee { grid-template-columns: 1fr; text-align: center }
+      .guarantee-icon { margin: 0 auto }
 
       .strip-grid {
         grid-template-columns: 1fr
@@ -853,7 +965,8 @@
       <div class="nav-links">
         <a href="#features">المميزات</a>
         <a href="#how">كيف يعمل</a>
-        <a href="#demo">عينة الصوت</a>
+        <a href="#calculator">حاسبة القرار</a>
+        <a href="#pricing">الأسعار</a>
         <a href="https://app.usemujeeb.com">لوحة مجيب</a>
       </div>
       <a href="#book" class="btn small">اطلب تجربة ٥٠ طلباً</a>
@@ -863,23 +976,21 @@
   <header class="hero">
     <div class="pattern"></div>
     <div class="container">
-      <div class="badge"><span class="dot"></span> باب التجربة التجريبية مفتوح الآن</div>
-      <h1>أكد أو ألغِ طلبات متجرك قبل الشحن..<br><span class="gold">ودع بيانات عملائك تقرر</span></h1>
-      <p class="sub">«مجيب» يتواصل مع العميل لتأكيد الطلب أو إلغائه قبل التجهيز، عبر القناة المناسبة له، ثم يعيد النتيجة
-        لفريق المتجر. ابدأ بعينة من ٥٠ طلباً وقارنها بمسارك الحالي قبل أي توسع.</p>
+      <div class="badge"><span class="dot"></span> لمتاجر سلة وزد وشوبيفاي التي تشحن COD في الخليج</div>
+      <h1>اعرف أي طلب دفع عند الاستلام يستحق الشحن<br><span class="gold">قبل أن تدفع تكلفة الخطأ</span></h1>
+      <p class="sub">مجيب يحول رد العميل إلى قرار واضح لفريق التجهيز: مؤكد، ملغى، أو يحتاج متابعة. اختبره على أول ٥٠ طلباً حقيقياً في السعودية والإمارات وبقية الخليج، ثم اشترك فقط إذا أثبتت أرقام متجرك القيمة.</p>
       <div class="hero-cta">
-        <a href="https://app.usemujeeb.com" class="btn">ابدأ مجاناً</a>
-        <a href="#book" class="btn">اطلب تجربة مجانية على ٥٠ طلباً
+        <a href="#book" class="btn">اختبر ٥٠ طلباً مجاناً
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
             stroke-linecap="round" stroke-linejoin="round" style="transform:scaleX(-1)">
             <path d="M5 12h14M12 5l7 7-7 7" />
           </svg>
         </a>
-        <a href="#demo" class="btn ghost">
+        <a href="#calculator" class="btn ghost">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
             <path d="M8 5v14l11-7z" />
           </svg>
-          استمع إلى صوت البوت
+          احسب تكلفة القرارات الخاطئة
         </a>
       </div>
       <div class="trust">
@@ -912,8 +1023,8 @@
               </svg>
             </div>
             <div class="who">
-              <b>مجيب — الموظف الصوتي الذكي</b>
-              <span>عينة صوت لتأكيد طلب</span>
+              <b>مجيب — نموذج رسالة صوتية مسجلة مسبقاً</b>
+              <span>مثال توضيحي، وليس مكالمة من وكيل بشري</span>
             </div>
           </div>
           <div class="player" id="player">
@@ -1045,9 +1156,61 @@
           <span>الخسارة الشهرية المقدّرة</span>
           <strong id="monthlyLoss">—</strong>
           <span>الجزء القابل للقياس وفق افتراضك: <b id="addressableLoss">—</b></span>
+          <span id="planRecommendation" style="display:block;margin-top:8px;font-weight:600;color:var(--blue)"></span>
           <p class="form-note">اختبر الافتراض على ٥٠ طلباً قبل اتخاذ قرار شراء أو توسع.</p>
           <a href="#book" class="btn small">اطلب تجربة ٥٠ طلباً</a>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing and measured guarantee -->
+  <section id="pricing" class="center">
+    <div class="container">
+      <span class="sec-tag">ابدأ بالبرهان ثم اختر الحجم</span>
+      <h2>لا تدفع قبل أن ترى قراراً أوضح على طلباتك</h2>
+      <p class="sec-sub">كل متجر يبدأ بنفس التجربة المقاسة. بعد التقرير، اختر الخطة حسب حجم الطلبات الفعلي — لا حسب وعود عامة.</p>
+      <div class="offer-grid">
+        <article class="offer-card reveal">
+          <div class="offer-name">Pilot</div>
+          <p class="offer-for">لإثبات القيمة على بيانات متجرك</p>
+          <div class="offer-price">٠ <small>ريال</small></div>
+          <ul class="offer-list"><li>أول ٥٠ طلباً حقيقياً</li><li>خط أساس قبل التجربة</li><li>تقرير قرار بعد العينة</li><li>بدون بطاقة أو التزام</li></ul>
+          <a href="#book" class="btn ghost plan-cta" data-plan="pilot">ابدأ الاختبار</a>
+        </article>
+        <article class="offer-card reveal">
+          <div class="offer-name">Starter</div>
+          <p class="offer-for">للمتاجر الناشئة والفِرق الصغيرة</p>
+          <div class="offer-price">٣٩٩ <small>ريال / شهر</small></div>
+          <ul class="offer-list"><li>حتى ١٬٠٠٠ طلب شهرياً</li><li>لوحة حالات الطلبات</li><li>تكامل متجر واحد</li><li>دعم الإعداد الأساسي</li></ul>
+          <a href="#book" class="btn ghost plan-cta" data-plan="starter">اختر Starter</a>
+        </article>
+        <article class="offer-card featured reveal">
+          <span class="offer-badge">الأفضل للنمو</span>
+          <div class="offer-name">Growth</div>
+          <p class="offer-for">للمتاجر التي تريد تشغيل القرار على نطاق أكبر</p>
+          <div class="offer-price">٧٩٩ <small>ريال / شهر</small></div>
+          <ul class="offer-list"><li>حتى ٥٬٠٠٠ طلب شهرياً</li><li>تحليل حسب المدينة والمصدر</li><li>مسارات متابعة متقدمة</li><li>أولوية في الدعم والتفعيل</li></ul>
+          <a href="#book" class="btn plan-cta" data-plan="growth">اختر Growth</a>
+        </article>
+        <article class="offer-card reveal">
+          <div class="offer-name">Scale</div>
+          <p class="offer-for">للعلامات متعددة المتاجر وفرق العمليات</p>
+          <div class="offer-price">١٬٤٩٩ <small>ريال / شهر</small></div>
+          <ul class="offer-list"><li>حجم مرتفع وفق الاستخدام العادل</li><li>أكثر من متجر وقناة</li><li>تقارير تشغيل للإدارة</li><li>تهيئة ودعم بأولوية</li></ul>
+          <a href="#book" class="btn ghost plan-cta" data-plan="scale">ناقش Scale</a>
+        </article>
+      </div>
+
+      <div class="guarantee reveal">
+        <div class="guarantee-icon">✓</div>
+        <div><h3>ضمان التجربة القابلة للقرار</h3><p>لن نطلب منك الترقية قبل تسليم تقرير يقارن عينة الـ٥٠ طلباً بخط الأساس المتفق عليه. إذا لم تكتمل العينة بسبب خلل من مجيب، نعيد تشغيل الجزء المتأثر دون رسوم. النتائج التجارية تعتمد على بيانات متجرك ولا نضمن نسبة إيراد أو تسليم مصطنعة.</p></div>
+      </div>
+      <div class="confidence-grid">
+        <div class="proof-point"><b>بيانات محدودة</b>نستخدم فقط ما يلزم لتشغيل الطلب والتقرير.</div>
+        <div class="proof-point"><b>حق الحذف</b>طلب واضح لحذف الحساب وبيانات العملاء.</div>
+        <div class="proof-point"><b>موافقة قبل التواصل</b>لا رسائل تسويقية دون اشتراك صريح.</div>
+        <div class="proof-point"><b>مشغل الشحن باختيارك</b>مجيب طبقة قرار ولا يفرض ناقلاً أو مشغلاً.</div>
       </div>
     </div>
   </section>
@@ -1068,6 +1231,7 @@
           <input type="hidden" name="utm_term" id="utmTerm">
           <input type="hidden" name="referrer" id="leadReferrer">
           <input type="hidden" name="landing_page" id="landingPage">
+          <input type="hidden" name="selected_plan" id="selectedPlan" value="pilot">
           <input type="hidden" name="consent_timestamp" id="consentTimestamp">
           <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
           <div class="field">
@@ -1135,6 +1299,12 @@
     <div class="container">
       <a class="logo" href="#"><span class="logo-mark">مـ</span> مجيب</a>
       <p>خدمة تأكيد وإلغاء طلبات المتاجر قبل الشحن</p>
+      <div class="footer-links">
+        <a href="privacy.html">الخصوصية</a><a href="terms.html">الشروط</a><a href="data-deletion.html">حذف البيانات</a>
+        <a href="blog/index.html">الأدلة</a><a href="https://x.com/DigiClub09" rel="noopener">X</a>
+        <a href="https://www.instagram.com/leocreativehub4/" rel="noopener">Instagram</a>
+        <a href="https://www.pinterest.com/ldfaziz/" rel="noopener">Pinterest</a>
+      </div>
       <p style="margin-top:8px;opacity:.7">© ٢٠٢٦ مجيب — جميع الحقوق محفوظة</p>
     </div>
   </footer>
@@ -1202,6 +1372,8 @@
       const addressableLoss = monthlyLoss * (preventableRate / 100);
       document.getElementById('monthlyLoss').textContent = money.format(monthlyLoss);
       document.getElementById('addressableLoss').textContent = money.format(addressableLoss);
+      const recommendedPlan = orders < 1000 ? 'Starter' : orders < 5000 ? 'Growth' : 'Scale';
+      document.getElementById('planRecommendation').textContent = `الخطة الأقرب لحجمك: ${recommendedPlan} — القرار النهائي بعد تقرير التجربة.`;
       document.getElementById('calcResult').hidden = false;
       window.dataLayer = window.dataLayer || [];
       window.dataLayer.push({ event: 'calculate_roi', monthly_orders: orders, rto_rate: rtoRate });
@@ -1241,6 +1413,12 @@
       keepalive: true
     }).catch(() => {});
     sendFunnelEvent('page_view');
+    document.querySelectorAll('.plan-cta').forEach(link => link.addEventListener('click', () => {
+      document.getElementById('selectedPlan').value = link.dataset.plan || 'pilot';
+      sendFunnelEvent('pricing_select');
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({ event: 'select_plan', plan: link.dataset.plan || 'pilot' });
+    }));
     let leadFormStarted = false;
     leadForm.addEventListener('input', () => {
       if (!leadFormStarted) {

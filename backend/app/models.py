@@ -253,6 +253,7 @@ class BusinessLead(Base):
     email_hash: Mapped[str] = mapped_column(String(64), index=True)
     platform: Mapped[str] = mapped_column(String(32))
     monthly_orders: Mapped[str] = mapped_column(String(32))
+    selected_plan: Mapped[str] = mapped_column(String(32), default="pilot", index=True)
     attribution: Mapped[dict] = mapped_column(JSON, default=dict)
     referrer: Mapped[str | None] = mapped_column(Text)
     landing_page: Mapped[str | None] = mapped_column(Text)

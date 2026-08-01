@@ -72,11 +72,13 @@ def test_business_lead_normalizes_phone_and_requires_consent():
         email="owner@example.com",
         platform="Shopify",
         monthly_orders="100_299",
+        selected_plan="growth",
         contact_consent=True,
         consent_timestamp=datetime.now(UTC),
     )
     assert payload.whatsapp == "+212602689935"
     assert payload.platform == "shopify"
+    assert payload.selected_plan == "growth"
 
     with pytest.raises(ValidationError):
         BusinessLeadInput(
@@ -96,6 +98,9 @@ def test_funnel_event_allowlist():
     assert event.event_name == "page_view"
     with pytest.raises(ValidationError):
         FunnelEventInput(event_name="arbitrary_event", session_id="session-123", path="/")
+    assert FunnelEventInput(
+        event_name="pricing_select", session_id="session-123", path="/"
+    ).event_name == "pricing_select"
 
 
 def test_free_pilot_contract():

@@ -55,6 +55,7 @@ async def create_lead(
         email_hash=stable_hash(str(payload.email)),
         platform=payload.platform,
         monthly_orders=payload.monthly_orders,
+        selected_plan=payload.selected_plan,
         attribution=_attribution(payload),
         referrer=payload.referrer,
         landing_page=payload.landing_page,

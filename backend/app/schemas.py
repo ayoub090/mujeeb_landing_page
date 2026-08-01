@@ -170,6 +170,7 @@ class BusinessLeadInput(BaseModel):
     email: EmailStr
     platform: str
     monthly_orders: str
+    selected_plan: str = "pilot"
     contact_consent: bool
     consent_timestamp: datetime
     utm_source: str | None = Field(default=None, max_length=120)
@@ -208,6 +209,14 @@ class BusinessLeadInput(BaseModel):
             raise ValueError("Unsupported monthly order range")
         return normalized
 
+    @field_validator("selected_plan")
+    @classmethod
+    def valid_selected_plan(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if normalized not in {"pilot", "starter", "growth", "scale"}:
+            raise ValueError("Unsupported selected plan")
+        return normalized
+
     @model_validator(mode="after")
     def consent_is_required(self):
         if not self.contact_consent:
@@ -234,6 +243,12 @@ class FunnelEventInput(BaseModel):
     @field_validator("event_name")
     @classmethod
     def supported_event(cls, value: str) -> str:
-        if value not in {"page_view", "calculator_complete", "lead_form_start", "lead_submit"}:
+        if value not in {
+            "page_view",
+            "calculator_complete",
+            "pricing_select",
+            "lead_form_start",
+            "lead_submit",
+        }:
             raise ValueError("Unsupported funnel event")
         return value

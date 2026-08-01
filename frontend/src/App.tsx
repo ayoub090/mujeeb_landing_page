@@ -45,6 +45,22 @@ function DeveloperApi({storeId}:{storeId:string}) {
     <article className="glass rounded-2xl p-6"><h3 className="font-black">أرسل أول طلب</h3><pre dir="ltr" className="mt-4 overflow-auto rounded-xl bg-slate-950 p-4 text-[11px] leading-5 text-slate-200">{snippet}</pre><button onClick={()=>navigator.clipboard.writeText(snippet)} className="mt-3 flex items-center gap-2 text-sky font-bold"><Clipboard size={16}/> نسخ المثال</button></article></div></section>;
 }
 
+function Billing({storeId}:{storeId:string}) {
+  const [checkingOut,setCheckingOut]=useState("");
+  const [message,setMessage]=useState("");
+  const plans=[
+    {id:"starter",name:"Starter",price:"399",orders:"حتى 1,000 طلب شهرياً",detail:"لمتجر واحد وفريق صغير"},
+    {id:"growth",name:"Growth",price:"799",orders:"حتى 5,000 طلب شهرياً",detail:"تحليل أعمق ودعم بأولوية",featured:true},
+    {id:"scale",name:"Scale",price:"1,499",orders:"حجم مرتفع وفق الاستخدام العادل",detail:"للعلامات متعددة المتاجر"},
+  ];
+  const checkout=async(plan:string)=>{
+    setCheckingOut(plan); setMessage("");
+    try { const r=await api.post("/api/payments/checkout",{store_id:storeId,plan}); location.href=r.data.url; }
+    catch(err:any){ setMessage(err.response?.status===503?"الدفع الإلكتروني لهذه الخطة قيد التفعيل. تواصل معنا لتثبيت عرض المؤسسين.":"تعذر فتح صفحة الدفع الآمنة. حاول مرة أخرى."); setCheckingOut(""); }
+  };
+  return <section className="mt-8 max-w-5xl"><p className="text-sm font-bold text-sky">ادفع بعد تحقق القيمة</p><h2 className="text-3xl font-black mt-2">اختر الحجم الذي تبرره أرقام متجرك.</h2><p className="text-slate-500 mt-3">ابدأ بـ50 طلباً مجاناً. الترقية تمر عبر صفحة Creem الآمنة، ولا نخزن بيانات بطاقتك.</p><div className="grid md:grid-cols-3 gap-4 mt-7">{plans.map(plan=><article key={plan.id} className={`glass rounded-2xl p-6 relative ${plan.featured?"ring-2 ring-emerald-500":""}`}>{plan.featured&&<span className="absolute -top-3 right-5 rounded-full bg-emerald-600 px-3 py-1 text-xs font-bold text-white">الأفضل للنمو</span>}<p className="font-black text-xl">{plan.name}</p><p className="mt-4 text-3xl font-black text-sky">{plan.price} <span className="text-sm font-medium text-slate-500">ريال/شهر</span></p><p className="mt-4 font-bold">{plan.orders}</p><p className="mt-2 min-h-10 text-sm text-slate-500">{plan.detail}</p><button onClick={()=>checkout(plan.id)} disabled={!!checkingOut} className={`mt-6 w-full rounded-xl p-3 font-bold disabled:opacity-50 ${plan.featured?"bg-emerald-600 text-white":"bg-ink text-white"}`}>{checkingOut===plan.id?"جارٍ فتح الدفع…":`اختيار ${plan.name}`}</button></article>)}</div>{message&&<p className="mt-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-800">{message}</p>}<p className="mt-5 text-xs text-slate-500">لا نضمن نسبة إيراد محددة. قرار الترقية يعتمد على تقرير التجربة ونتائج متجرك الفعلية.</p></section>;
+}
+
 function Dashboard({user,onLogout}:{user:User;onLogout:()=>void}) {
   const store=user.stores[0]; const [tab,setTab]=useState("overview");
   const summary=useQuery({queryKey:["summary",store.id],queryFn:async()=> (await api.get<Summary>("/api/orders/summary",{params:{store_id:store.id}})).data});
@@ -58,7 +74,7 @@ function Dashboard({user,onLogout}:{user:User;onLogout:()=>void}) {
   {tab==="orders"&&<section className="glass rounded-2xl p-5 mt-8 overflow-auto"><h2 className="text-xl font-black mb-5">الطلبات</h2>{orders.isLoading?<p>جاري التحميل…</p>:orders.data?.length?<table className="w-full text-sm"><thead className="text-slate-500"><tr><th className="text-right p-3">الطلب</th><th>القيمة</th><th>الحالة</th><th>المخاطرة</th><th>التاريخ</th></tr></thead><tbody>{orders.data.map(o=><tr key={o.id} className="border-t border-slate-100"><td className="p-3 font-bold">#{o.external_order_number||o.id.slice(0,8)}</td><td className="text-center">{o.amount} {o.currency}</td><td className="text-center">{statusLabel[o.status]||o.status}</td><td className="text-center"><span className={`rounded-full px-2 py-1 text-xs ${o.risk_level==="high"?"bg-red-100 text-red-700":o.risk_level==="medium"?"bg-amber-100 text-amber-700":"bg-emerald-100 text-emerald-700"}`}>{o.risk_score}/100</span></td><td className="text-center text-slate-500">{new Date(o.created_at).toLocaleDateString("ar-SA")}</td></tr>)}</tbody></table>:<p className="py-16 text-center text-slate-500">ستظهر الطلبات هنا بعد ربط المنصة أو إرسال أول طلب عبر API.</p>}</section>}
   {tab==="integrations"&&<section className="mt-8"><h2 className="text-xl font-black">اربط منظومة البيع</h2><p className="text-slate-500 mt-1">نبدأ بالمتجر. فريق مجيب يدير قناة واتساب التجريبية خلال مرحلة المؤسسين.</p><div className="grid md:grid-cols-3 gap-4 mt-5">{[["سلة","استيراد الطلبات وإرجاع الحالة",()=>connect("salla")],["زد","مزامنة الطلبات والعملاء",()=>connect("zid")]].map(([name,desc,fn]:any)=><article className="glass rounded-2xl p-6" key={name}><Link2 className="text-mint"/><h3 className="font-black text-lg mt-5">{name}</h3><p className="text-sm text-slate-500 mt-2 min-h-10">{desc}</p><button onClick={fn} className="mt-5 w-full rounded-xl border border-sky text-sky p-2 font-bold hover:bg-blue-50">ربط آمن</button></article>)}<article className="glass rounded-2xl p-6"><MessageCircle className="text-mint"/><h3 className="font-black text-lg mt-5">WhatsApp Pilot</h3><p className="text-sm text-slate-500 mt-2 min-h-10">رقم مجيب المُدار لأول 50 طلباً. ربط رقم العميل الذاتي ينتظر اعتماد Meta.</p><button disabled className="mt-5 w-full rounded-xl bg-slate-100 text-slate-500 p-2 font-bold flex items-center justify-center gap-2"><LockKeyhole size={16}/> يُفعّل بواسطة فريق مجيب</button></article></div></section>}
   {tab==="developer"&&<DeveloperApi storeId={store.id}/>} 
-  {tab==="billing"&&<section className="glass rounded-2xl p-6 mt-8 max-w-2xl"><p className="text-sm font-bold text-sky">باقة المؤسسين</p><h2 className="text-3xl font-black mt-2">ابدأ مجاناً، وادفع بعد تحقق القيمة.</h2><p className="text-slate-500 mt-3">الترقية عبر صفحة Creem الآمنة. لا نخزن بيانات بطاقتك.</p><button onClick={async()=>{const r=await api.post("/api/payments/checkout",{store_id:store.id,plan:"starter"});location.href=r.data.url}} className="mt-6 rounded-xl bg-ink text-white px-6 py-3 font-bold">اختيار Starter</button></section>}
+  {tab==="billing"&&<Billing storeId={store.id}/>}
   </main></div>;
 }
 

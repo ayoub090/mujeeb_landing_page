@@ -27,7 +27,18 @@ async def process_email_jobs() -> None:
             await session.flush()
             try:
                 await send_email(decrypt_text(job.recipient_encrypted), job.kind, job.payload)
-            except (OSError, RuntimeError, ValueError, smtplib.SMTPException) as exc:
+            except RuntimeError as exc:
+                if str(exc) == "SMTP is not configured":
+                    job.status = "queued"
+                    job.last_error = str(exc)
+                    job.next_attempt_at = datetime.now(UTC) + timedelta(hours=1)
+                    continue
+                job.attempts += 1
+                job.last_error = str(exc)[:1000]
+                job.status = "failed" if job.attempts >= 8 else "queued"
+                if job.status == "queued":
+                    job.next_attempt_at = datetime.now(UTC) + timedelta(minutes=2 ** job.attempts)
+            except (OSError, ValueError, smtplib.SMTPException) as exc:
                 job.attempts += 1
                 job.last_error = str(exc)[:1000]
                 if job.attempts >= 8:

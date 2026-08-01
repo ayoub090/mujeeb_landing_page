@@ -24,6 +24,10 @@ The pilot is intentionally small: a merchant tests Mujeeb on 50 real orders over
 
 - [Book a free pilot](https://usemujeeb.com/#book)
 - [Order-confirmation guides by store type](https://usemujeeb.com/solutions/)
+- [COD operations knowledge base](https://usemujeeb.com/blog/)
+- [Seven order-confirmation KPIs](https://usemujeeb.com/blog/cod-confirmation-kpis.html)
+- [WhatsApp opt-in checklist for GCC stores](https://usemujeeb.com/blog/whatsapp-opt-in-checklist-gcc.html)
+- [Salla, Zid, and Shopify integration guide](https://usemujeeb.com/blog/salla-zid-shopify-integration-guide.html)
 - [Privacy policy](https://usemujeeb.com/privacy.html)
 
 ## Operating documents

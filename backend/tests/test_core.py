@@ -1,12 +1,19 @@
 import hashlib
 import hmac
+from datetime import UTC, datetime
 
 import pytest
 from pydantic import ValidationError
 
 from app.models import RiskLevel
 from app.routers.webhooks import signature_ok
-from app.schemas import CustomOrderInput, RegisterInput, RiskInput
+from app.schemas import (
+    BusinessLeadInput,
+    CustomOrderInput,
+    FunnelEventInput,
+    RegisterInput,
+    RiskInput,
+)
 from app.services.risk import calculate_risk
 
 
@@ -54,3 +61,37 @@ def test_custom_order_normalizes_customer_phone_and_currency():
     )
     assert payload.customer_phone == "+966501234567"
     assert payload.currency == "SAR"
+
+
+def test_business_lead_normalizes_phone_and_requires_consent():
+    payload = BusinessLeadInput(
+        name="Merchant Owner",
+        company="GCC Store",
+        whatsapp="+212602689935",
+        email="owner@example.com",
+        platform="Shopify",
+        monthly_orders="100_299",
+        contact_consent=True,
+        consent_timestamp=datetime.now(UTC),
+    )
+    assert payload.whatsapp == "+212602689935"
+    assert payload.platform == "shopify"
+
+    with pytest.raises(ValidationError):
+        BusinessLeadInput(
+            name="Merchant Owner",
+            company="GCC Store",
+            whatsapp="+212602689935",
+            email="owner@example.com",
+            platform="shopify",
+            monthly_orders="100_299",
+            contact_consent=False,
+            consent_timestamp=datetime.now(UTC),
+        )
+
+
+def test_funnel_event_allowlist():
+    event = FunnelEventInput(event_name="page_view", session_id="session-123", path="/")
+    assert event.event_name == "page_view"
+    with pytest.raises(ValidationError):
+        FunnelEventInput(event_name="arbitrary_event", session_id="session-123", path="/")

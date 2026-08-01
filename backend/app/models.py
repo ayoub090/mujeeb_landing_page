@@ -239,3 +239,40 @@ class ConsentLog(Base):
     ip_hash: Mapped[str | None] = mapped_column(String(64))
     granted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     withdrawn_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class BusinessLead(Base):
+    __tablename__ = "business_leads"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    full_name_encrypted: Mapped[str] = mapped_column(Text)
+    company: Mapped[str] = mapped_column(String(180))
+    whatsapp_encrypted: Mapped[str] = mapped_column(Text)
+    whatsapp_hash: Mapped[str] = mapped_column(String(64), index=True)
+    email_encrypted: Mapped[str] = mapped_column(Text)
+    email_hash: Mapped[str] = mapped_column(String(64), index=True)
+    platform: Mapped[str] = mapped_column(String(32))
+    monthly_orders: Mapped[str] = mapped_column(String(32))
+    attribution: Mapped[dict] = mapped_column(JSON, default=dict)
+    referrer: Mapped[str | None] = mapped_column(Text)
+    landing_page: Mapped[str | None] = mapped_column(Text)
+    consent_text_version: Mapped[str] = mapped_column(String(32), default="lead-v1")
+    consent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    ip_hash: Mapped[str | None] = mapped_column(String(64))
+    user_agent_hash: Mapped[str | None] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(32), default="new", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+
+class FunnelEvent(Base):
+    __tablename__ = "funnel_events"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    event_name: Mapped[str] = mapped_column(String(48), index=True)
+    session_id: Mapped[str] = mapped_column(String(64), index=True)
+    path: Mapped[str] = mapped_column(String(500))
+    attribution: Mapped[dict] = mapped_column(JSON, default=dict)
+    referrer: Mapped[str | None] = mapped_column(Text)
+    ip_hash: Mapped[str | None] = mapped_column(String(64))
+    user_agent_hash: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)

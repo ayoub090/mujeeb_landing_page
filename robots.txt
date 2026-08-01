@@ -1,3 +1,4 @@
 User-agent: *
 Allow: /
 Sitemap: https://usemujeeb.com/sitemap.xml
+Sitemap: https://usemujeeb.com/blog/sitemap.xml

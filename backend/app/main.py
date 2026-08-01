@@ -7,6 +7,7 @@ from app.routers import (
     custom_orders,
     health,
     integrations,
+    marketing,
     orders,
     payments,
     webhooks,
@@ -17,7 +18,15 @@ settings = get_settings()
 app = FastAPI(title="Mujeeb API", version="0.1.0", docs_url="/api/docs")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_origin],
+    allow_origins=list(
+        dict.fromkeys(
+            [
+                settings.frontend_origin,
+                "https://usemujeeb.com",
+                "https://www.usemujeeb.com",
+            ]
+        )
+    ),
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "X-CSRF-Token"],
@@ -32,5 +41,6 @@ for api_router in (
     payments.router,
     webhooks.router,
     custom_orders.router,
+    marketing.router,
 ):
     app.include_router(api_router)

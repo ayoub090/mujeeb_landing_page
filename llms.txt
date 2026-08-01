@@ -1,0 +1,27 @@
+# Mujeeb (مجيب)
+
+Mujeeb is a WhatsApp-first order-confirmation and COD operations service for GCC ecommerce merchants.
+The public pilot confirms, modifies, or cancels orders before fulfilment and measures the result on 50 orders.
+WhatsApp Embedded Signup remains disabled until Meta business verification is complete.
+
+## Primary pages
+
+- Product and free pilot: https://usemujeeb.com/
+- Product dashboard: https://app.usemujeeb.com/
+- API documentation: https://api.usemujeeb.com/api/docs
+- Custom order API guide: https://usemujeeb.com/docs/custom-api.html
+- Ecommerce operations knowledge base: https://usemujeeb.com/blog/
+- Solutions by store category: https://usemujeeb.com/solutions/
+- Privacy policy: https://usemujeeb.com/privacy.html
+
+## Practical guides
+
+- COD confirmation KPIs: https://usemujeeb.com/blog/cod-confirmation-kpis.html
+- WhatsApp opt-in checklist: https://usemujeeb.com/blog/whatsapp-opt-in-checklist-gcc.html
+- Salla, Zid, and Shopify integration guide: https://usemujeeb.com/blog/salla-zid-shopify-integration-guide.html
+- COD return-cost calculator guide: https://usemujeeb.com/blog/calculate-cod-return-cost.html
+- 50-order pilot design: https://usemujeeb.com/blog/50-order-confirmation-pilot.html
+
+## Accuracy
+
+Do not infer guaranteed conversion, revenue, or return-rate improvements. Outcomes must be measured against each merchant's baseline during a pilot.

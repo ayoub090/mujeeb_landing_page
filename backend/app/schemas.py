@@ -3,7 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 
 import phonenumbers
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 from app.models import OrderStatus, Platform, RiskLevel
 
@@ -161,3 +161,79 @@ class CustomOrderInput(BaseModel):
     @classmethod
     def normalize_currency(cls, value: str) -> str:
         return value.upper()
+
+
+class BusinessLeadInput(BaseModel):
+    name: str = Field(min_length=2, max_length=160)
+    company: str = Field(min_length=2, max_length=180)
+    whatsapp: str = Field(min_length=8, max_length=32)
+    email: EmailStr
+    platform: str
+    monthly_orders: str
+    contact_consent: bool
+    consent_timestamp: datetime
+    utm_source: str | None = Field(default=None, max_length=120)
+    utm_medium: str | None = Field(default=None, max_length=120)
+    utm_campaign: str | None = Field(default=None, max_length=160)
+    utm_content: str | None = Field(default=None, max_length=160)
+    utm_term: str | None = Field(default=None, max_length=160)
+    referrer: str | None = Field(default=None, max_length=2000)
+    landing_page: str | None = Field(default=None, max_length=2000)
+    gotcha: str = Field(default="", alias="_gotcha", max_length=200)
+
+    @field_validator("whatsapp")
+    @classmethod
+    def normalize_whatsapp(cls, value: str) -> str:
+        try:
+            parsed = phonenumbers.parse(value, None)
+        except phonenumbers.NumberParseException as exc:
+            raise ValueError("Use an international phone number, for example +9665...") from exc
+        if not phonenumbers.is_valid_number(parsed):
+            raise ValueError("Invalid WhatsApp number")
+        return phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.E164)
+
+    @field_validator("platform")
+    @classmethod
+    def supported_platform(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if normalized not in {"salla", "zid", "shopify", "woocommerce", "custom", "other"}:
+            raise ValueError("Unsupported platform")
+        return normalized
+
+    @field_validator("monthly_orders")
+    @classmethod
+    def valid_order_range(cls, value: str) -> str:
+        normalized = value.strip()
+        if normalized not in {"under_100", "100_299", "300_999", "1000_4999", "5000_plus"}:
+            raise ValueError("Unsupported monthly order range")
+        return normalized
+
+    @model_validator(mode="after")
+    def consent_is_required(self):
+        if not self.contact_consent:
+            raise ValueError("Contact consent is required")
+        return self
+
+
+class BusinessLeadCreated(BaseModel):
+    id: uuid.UUID
+    status: str = "received"
+
+
+class FunnelEventInput(BaseModel):
+    event_name: str
+    session_id: str = Field(min_length=8, max_length=64)
+    path: str = Field(min_length=1, max_length=500)
+    utm_source: str | None = Field(default=None, max_length=120)
+    utm_medium: str | None = Field(default=None, max_length=120)
+    utm_campaign: str | None = Field(default=None, max_length=160)
+    utm_content: str | None = Field(default=None, max_length=160)
+    utm_term: str | None = Field(default=None, max_length=160)
+    referrer: str | None = Field(default=None, max_length=2000)
+
+    @field_validator("event_name")
+    @classmethod
+    def supported_event(cls, value: str) -> str:
+        if value not in {"page_view", "calculator_complete", "lead_form_start", "lead_submit"}:
+            raise ValueError("Unsupported funnel event")
+        return value

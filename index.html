@@ -1178,7 +1178,13 @@
       timeEl.textContent = `0:00 / ${fmt(audio.duration)}`;
     });
 
-    const FORMSPREE_ID = 'mrewnovv';
+    const MARKETING_API = 'https://api.usemujeeb.com/api/marketing';
+    const FUNNEL_SESSION_KEY = 'mujeeb_funnel_session';
+    let funnelSessionId = sessionStorage.getItem(FUNNEL_SESSION_KEY);
+    if (!funnelSessionId) {
+      funnelSessionId = self.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      sessionStorage.setItem(FUNNEL_SESSION_KEY, funnelSessionId);
+    }
 
     const calculateBtn = document.getElementById('calculateBtn');
     const money = new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR', maximumFractionDigits: 0 });
@@ -1199,6 +1205,7 @@
       document.getElementById('calcResult').hidden = false;
       window.dataLayer = window.dataLayer || [];
       window.dataLayer.push({ event: 'calculate_roi', monthly_orders: orders, rto_rate: rtoRate });
+      sendFunnelEvent('calculator_complete');
     });
 
     const leadForm = document.getElementById('leadForm');
@@ -1217,33 +1224,55 @@
     document.getElementById('utmTerm').value = storedAttribution.utm_term || 'none';
     document.getElementById('leadReferrer').value = document.referrer || 'direct';
     document.getElementById('landingPage').value = window.location.href;
+    const funnelContext = () => ({
+      session_id: funnelSessionId,
+      path: `${window.location.pathname}${window.location.search}`,
+      utm_source: document.getElementById('utmSource').value,
+      utm_medium: document.getElementById('utmMedium').value,
+      utm_campaign: document.getElementById('utmCampaign').value,
+      utm_content: document.getElementById('utmContent').value,
+      utm_term: document.getElementById('utmTerm').value,
+      referrer: document.getElementById('leadReferrer').value
+    });
+    const sendFunnelEvent = eventName => fetch(`${MARKETING_API}/events`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_name: eventName, ...funnelContext() }),
+      keepalive: true
+    }).catch(() => {});
+    sendFunnelEvent('page_view');
+    let leadFormStarted = false;
+    leadForm.addEventListener('input', () => {
+      if (!leadFormStarted) {
+        leadFormStarted = true;
+        sendFunnelEvent('lead_form_start');
+      }
+    });
     leadForm.addEventListener('submit', async e => {
       e.preventDefault();
       document.getElementById('consentTimestamp').value = new Date().toISOString();
-
-      // Validation: check ID beddel
-      if (FORMSPREE_ID === 'YOUR_FORM_ID') {
-        alert('⚠️ Dev mode: Formspree ID mabddelch ba3d.\n\nSir l formspree.io, dir form jdid, w 7ot l-ID f l-code (ligne 475).');
-        return;
-      }
 
       const btn = leadForm.querySelector('button[type=submit]');
       btn.disabled = true;
       btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:10px">جارٍ الإرسال <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 11-9-9"/></svg></span>';
 
       try {
-        const res = await fetch(`https://formspree.io/f/${FORMSPREE_ID}`, {
+        const formData = new FormData(leadForm);
+        const payload = Object.fromEntries(formData.entries());
+        payload.contact_consent = formData.has('contact_consent');
+        const res = await fetch(`${MARKETING_API}/leads`, {
           method: 'POST',
-          body: new FormData(leadForm),
-          headers: { 'Accept': 'application/json' }
+          body: JSON.stringify(payload),
+          headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
         });
-        if (!res.ok) throw new Error('Formspree error: ' + res.status);
+        if (!res.ok) throw new Error('Lead API error: ' + res.status);
         window.dataLayer = window.dataLayer || [];
         window.dataLayer.push({
           event: 'generate_lead',
           lead_source: document.getElementById('utmSource').value,
           lead_campaign: document.getElementById('utmCampaign').value
         });
+        sendFunnelEvent('lead_submit');
         leadForm.style.display = 'none';
         document.getElementById('successBox').style.display = 'block';
         // Scroll to success

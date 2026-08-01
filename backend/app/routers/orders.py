@@ -8,7 +8,7 @@ from app.auth import get_current_user
 from app.database import get_session
 from app.models import Order, OrderStatus, Store, Subscription, User
 from app.schemas import OrderOut, RiskInput, RiskResult
-from app.services.quota import FREE_PILOT_ORDER_LIMIT, utc_month_start
+from app.services.quota import FREE_PILOT_ORDER_LIMIT
 from app.services.risk import calculate_risk
 
 router = APIRouter(prefix="/api/orders", tags=["orders"])
@@ -51,11 +51,6 @@ async def order_summary(
     counts = {status.value: count for status, count in rows}
     total = sum(counts.values())
     confirmed = counts.get(OrderStatus.confirmed.value, 0)
-    monthly_total = await session.scalar(
-        select(func.count(Order.id)).where(
-            Order.store_id == store_id, Order.created_at >= utc_month_start()
-        )
-    ) or 0
     subscription = await session.scalar(
         select(Subscription).where(Subscription.store_id == store_id)
     )
@@ -67,9 +62,9 @@ async def order_summary(
         "human_follow_up": counts.get(OrderStatus.human_follow_up.value, 0),
         "confirmation_rate": round((confirmed / total * 100), 1) if total else 0,
         "plan": plan,
-        "orders_this_month": monthly_total,
+        "pilot_orders_used": total if plan == "free" else None,
         "free_pilot_limit": FREE_PILOT_ORDER_LIMIT if plan == "free" else None,
-        "free_pilot_remaining": max(FREE_PILOT_ORDER_LIMIT - monthly_total, 0)
+        "free_pilot_remaining": max(FREE_PILOT_ORDER_LIMIT - total, 0)
         if plan == "free" else None,
     }
 

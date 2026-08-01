@@ -17,7 +17,7 @@ This file records the deployable interpretation of those specifications. It prev
 ## Explicitly gated
 
 - Customer WhatsApp Embedded Signup remains disabled until Meta business verification and production approval are complete.
-- Paid-plan quotas remain unlimited at the API layer until the final commercial limits are approved. The free plan is limited to 50 new orders per calendar month; duplicate webhook retries do not consume quota.
+- Paid-plan quotas remain unlimited at the API layer until the final commercial limits are approved. The pilot is limited to the first 50 new orders in total; duplicate webhook retries do not consume quota.
 - Automated WhatsApp messaging requires explicit opt-in, an approved template when applicable, and official Meta APIs.
 
 ## Safety and positioning rules

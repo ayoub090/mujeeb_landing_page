@@ -14,7 +14,7 @@ from app.schemas import (
     RegisterInput,
     RiskInput,
 )
-from app.services.quota import FREE_PILOT_ORDER_LIMIT, utc_month_start
+from app.services.quota import FREE_PILOT_ORDER_LIMIT
 from app.services.risk import calculate_risk
 
 
@@ -98,7 +98,5 @@ def test_funnel_event_allowlist():
         FunnelEventInput(event_name="arbitrary_event", session_id="session-123", path="/")
 
 
-def test_free_pilot_contract_and_month_boundary():
+def test_free_pilot_contract():
     assert FREE_PILOT_ORDER_LIMIT == 50
-    moment = datetime(2026, 8, 31, 23, 59, tzinfo=UTC)
-    assert utc_month_start(moment) == datetime(2026, 8, 1, tzinfo=UTC)

@@ -54,6 +54,10 @@ class Settings(BaseSettings):
     app_base_url: AnyHttpUrl = "http://localhost:8000"
 
     analytics_admin_key: str = ""
+    resend_api_key: str = ""
+    resend_api_base: str = "https://api.resend.com"
+    resend_from_email: str = ""
+    resend_from_name: str = "Mujeeb"
     smtp_host: str = ""
     smtp_port: int = Field(default=587, ge=1, le=65535)
     smtp_username: str = ""

@@ -3,6 +3,8 @@ import smtplib
 from email.message import EmailMessage
 from html import escape
 
+import httpx
+
 from app.config import get_settings
 
 
@@ -22,28 +24,61 @@ def render_email(kind: str, payload: dict) -> tuple[str, str, str]:
             f"<p>حلّل مجيب 40 طلباً لـ<strong>{store}</strong>.</p><p>بقي <strong>{remaining or 10}</strong> طلبات قبل تقرير التجربة ومقارنة النتائج بخط الأساس.</p>",
         ),
         "deletion_scheduled": (
-            "تم جدولة حذف حساب مجيب",
-            "تم جدولة حذف الحساب والبيانات المرتبطة. يمكنك إلغاء الطلب من لوحة الحساب قبل موعد التنفيذ.",
-            "<p>تم جدولة حذف حسابك والبيانات المرتبطة به.</p><p>يمكنك إلغاء الطلب من لوحة الحساب قبل موعد التنفيذ الموضح هناك.</p>",
+            "تمت جدولة حذف حساب مجيب",
+            "تمت جدولة حذف الحساب والبيانات المرتبطة. يمكنك إلغاء الطلب من لوحة الحساب قبل موعد التنفيذ.",
+            "<p>تمت جدولة حذف حسابك والبيانات المرتبطة به.</p><p>يمكنك إلغاء الطلب من لوحة الحساب قبل موعد التنفيذ الموضح هناك.</p>",
         ),
     }
-    return templates.get(kind, ("إشعار من مجيب", "لديك إشعار جديد من مجيب.", "<p>لديك إشعار جديد من مجيب.</p>"))
+    return templates.get(
+        kind,
+        ("إشعار من مجيب", "لديك إشعار جديد من مجيب.", "<p>لديك إشعار جديد من مجيب.</p>"),
+    )
+
+
+def _html_document(content: str) -> str:
+    return (
+        "<!doctype html><html lang='ar' dir='rtl'><body style='font-family:Arial;"
+        "line-height:1.8;color:#172033;max-width:620px;margin:auto;padding:24px'>"
+        f"{content}<p><a href='https://app.usemujeeb.com'>فتح لوحة مجيب</a></p>"
+        "<hr><small>رسالة تشغيلية مرتبطة بحسابك في مجيب، الذي يديره Ayoub Fadil.</small>"
+        "</body></html>"
+    )
+
+
+async def _send_with_resend(recipient: str, subject: str, plain: str, html: str) -> None:
+    settings = get_settings()
+    async with httpx.AsyncClient(timeout=20) as client:
+        response = await client.post(
+            f"{settings.resend_api_base.rstrip('/')}/emails",
+            headers={"Authorization": f"Bearer {settings.resend_api_key}"},
+            json={
+                "from": f"{settings.resend_from_name} <{settings.resend_from_email}>",
+                "to": [recipient],
+                "subject": subject,
+                "text": plain,
+                "html": html,
+            },
+        )
+        response.raise_for_status()
 
 
 async def send_email(recipient: str, kind: str, payload: dict) -> None:
     settings = get_settings()
+    subject, plain, content = render_email(kind, payload)
+    html = _html_document(content)
+
+    if settings.resend_api_key and settings.resend_from_email:
+        await _send_with_resend(recipient, subject, plain, html)
+        return
     if not settings.smtp_host or not settings.smtp_from_email:
-        raise RuntimeError("SMTP is not configured")
-    subject, plain, html = render_email(kind, payload)
+        raise RuntimeError("Email provider is not configured")
+
     message = EmailMessage()
     message["Subject"] = subject
     message["From"] = f"{settings.smtp_from_name} <{settings.smtp_from_email}>"
     message["To"] = recipient
     message.set_content(plain)
-    message.add_alternative(
-        f"<!doctype html><html lang='ar' dir='rtl'><body style='font-family:Arial;line-height:1.8;color:#172033;max-width:620px;margin:auto;padding:24px'>{html}<p><a href='https://app.usemujeeb.com'>فتح لوحة مجيب</a></p><hr><small>رسالة تشغيلية مرتبطة بحسابك في مجيب.</small></body></html>",
-        subtype="html",
-    )
+    message.add_alternative(html, subtype="html")
 
     def deliver() -> None:
         with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=20) as client:

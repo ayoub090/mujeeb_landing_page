@@ -28,7 +28,7 @@ async def process_email_jobs() -> None:
             try:
                 await send_email(decrypt_text(job.recipient_encrypted), job.kind, job.payload)
             except RuntimeError as exc:
-                if str(exc) == "SMTP is not configured":
+                if str(exc) == "Email provider is not configured":
                     job.status = "queued"
                     job.last_error = str(exc)
                     job.next_attempt_at = datetime.now(UTC) + timedelta(hours=1)

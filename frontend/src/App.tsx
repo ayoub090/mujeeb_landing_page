@@ -18,10 +18,16 @@ const statusLabel: Record<string,string> = {
 function Auth({onDone}:{onDone:()=>void}) {
   const [mode,setMode]=useState<"login"|"register">("login");
   const [error,setError]=useState("");
-  const submit=async(e:React.FormEvent<HTMLFormElement>)=>{
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); setError("");
-    try { await api.post(`/api/auth/${mode}`,Object.fromEntries(new FormData(e.currentTarget))); onDone(); }
-    catch(err:any){ setError(err.response?.data?.detail||"تعذر إكمال الطلب"); }
+    try { 
+      await api.post(`/api/auth/${mode}`, Object.fromEntries(new FormData(e.currentTarget))); 
+      onDone(); 
+    }
+    catch (err: any) { 
+      const detail = err.response?.data?.detail;
+      setError(Array.isArray(detail) ? detail[0].msg : (typeof detail === 'string' ? detail : "تأكد من صحة البيانات المدخلة"));
+    }
   };
   return <main className="mesh min-h-screen grid place-items-center p-5"><section className="glass w-full max-w-5xl overflow-hidden rounded-[2rem] shadow-2xl shadow-slate-900/10 grid lg:grid-cols-2">
     <div className="bg-ink p-10 text-white min-h-[520px] flex flex-col justify-between"><div><div className="text-3xl font-black">مُجيب <span className="text-mint">Mujeeb</span></div><p className="mt-5 text-4xl font-black leading-tight">حوّل واتساب إلى<br/>محرك إيرادات لمتجرك.</p><p className="mt-5 text-slate-300 leading-7">تأكيد الطلبات، حماية الدفع عند الاستلام، واستعادة المبيعات — من لوحة واحدة.</p></div><div className="grid grid-cols-3 gap-3 text-center text-xs"><span className="rounded-xl bg-white/5 p-3">Salla</span><span className="rounded-xl bg-white/5 p-3">Zid</span><span className="rounded-xl bg-white/5 p-3">Custom API</span></div></div>

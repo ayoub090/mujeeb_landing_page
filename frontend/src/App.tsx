@@ -426,7 +426,7 @@ function Auth({onDone}:{onDone:()=>void}) {
               <div>
                 <p className="font-black text-xl text-blue-deep">الباقة المبتدئة (Starter)</p>
                 <p className="text-slate-400 text-sm mt-1">للمتاجر الجديدة والناشئة</p>
-                <strong className="text-3xl font-black text-sky block mt-6">399 ريال <span className="text-xs font-normal text-slate-400">/شهرياً</span></strong>
+                <strong className="text-3xl font-black text-sky block mt-6">299 ريال <span className="text-xs font-normal text-slate-400">/شهرياً</span></strong>
                 <ul className="mt-8 space-y-3 text-sm text-slate-600">
                   <li className="flex items-center gap-2">✓ تأكيد تلقائي حتى 300 طلب/شهر</li>
                   <li className="flex items-center gap-2 font-bold text-emerald-800">✓ ميزة التحقق من موقع GPS مشمولة</li>
@@ -442,7 +442,7 @@ function Auth({onDone}:{onDone:()=>void}) {
               <div>
                 <p className="font-black text-xl text-blue-deep">باقة النمو (Growth)</p>
                 <p className="text-slate-400 text-sm mt-1">تأكيد متقدم وذكاء اصطناعي كامل</p>
-                <strong className="text-3xl font-black text-sky block mt-6">799 ريال <span className="text-xs font-normal text-slate-400">/شهرياً</span></strong>
+                <strong className="text-3xl font-black text-sky block mt-6">599 ريال <span className="text-xs font-normal text-slate-400">/شهرياً</span></strong>
                 <ul className="mt-8 space-y-3 text-sm text-slate-600">
                   <li className="flex items-center gap-2">✓ تأكيد تلقائي حتى 5,000 طلب/شهر</li>
                   <li className="flex items-center gap-2 font-bold text-emerald-800">✓ حماية التوصيل الكاملة (GPS + فحص العناوين)</li>
@@ -457,7 +457,7 @@ function Auth({onDone}:{onDone:()=>void}) {
               <div>
                 <p className="font-black text-xl text-blue-deep">باقة التوسع (Scale)</p>
                 <p className="text-slate-400 text-sm mt-1">للماركات الكبرى ومتعددة المتاجر</p>
-                <strong className="text-3xl font-black text-sky block mt-6">1,499 ريال <span className="text-xs font-normal text-slate-400">/شهرياً</span></strong>
+                <strong className="text-3xl font-black text-sky block mt-6">1,199 ريال <span className="text-xs font-normal text-slate-400">/شهرياً</span></strong>
                 <ul className="mt-8 space-y-3 text-sm text-slate-600">
                   <li className="flex items-center gap-2">✓ تأكيد تلقائي غير محدود</li>
                   <li className="flex items-center gap-2">✓ ربط متاجر متعددة بلوحة واحدة</li>
@@ -608,9 +608,9 @@ function Billing({storeId}:{storeId:string}) {
   const [checkingOut,setCheckingOut]=useState("");
   const [message,setMessage]=useState("");
   const plans=[
-    {id:"starter",name:"Starter",price:"399",orders:"حتى 1,000 طلب شهرياً",detail:"لمتجر واحد وفريق صغير"},
-    {id:"growth",name:"Growth",price:"799",orders:"حتى 5,000 طلب شهرياً",detail:"تحليل أعمق ودعم بأولوية",featured:true},
-    {id:"scale",name:"Scale",price:"1,499",orders:"حجم مرتفع وفق الاستخدام العادل",detail:"للعلامات متعددة المتاجر"},
+    {id:"starter",name:"Starter",price:"299",orders:"حتى 1,000 طلب شهرياً",detail:"لمتجر واحد وفريق صغير"},
+    {id:"growth",name:"Growth",price:"599",orders:"حتى 5,000 طلب شهرياً",detail:"تحليل أعمق ودعم بأولوية",featured:true},
+    {id:"scale",name:"Scale",price:"1,199",orders:"حجم مرتفع وفق الاستخدام العادل",detail:"للعلامات متعددة المتاجر"},
   ];
   const checkout=async(plan:string)=>{
     setCheckingOut(plan); setMessage("");

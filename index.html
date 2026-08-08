@@ -274,6 +274,28 @@
       text-align: center;
     }
 
+    .generated-visual {
+      width: min(1120px, calc(100% - 32px));
+      margin: 28px auto 0;
+      overflow: hidden;
+      border-radius: 24px;
+      border: 1px solid rgba(34, 69, 126, .12);
+      box-shadow: 0 18px 50px rgba(17, 45, 92, .12);
+      background: #f5f8fd;
+    }
+
+    .generated-visual img {
+      width: 100%;
+      display: block;
+    }
+
+    .generated-visual figcaption {
+      padding: 12px 18px 15px;
+      color: #385064;
+      font-size: 13px;
+      text-align: center;
+    }
+
     .trust {
       display: flex;
       gap: 34px;
@@ -1028,6 +1050,12 @@
         <img src="assets/mujeeb-gcc-merchant-hero-v1.png" width="1680" height="945"
           alt="تاجر إلكتروني خليجي يدير طلباته من الحاسوب والهاتف" fetchpriority="high" decoding="async">
         <figcaption>من الطلب الجديد إلى قرار واضح داخل مسار عمل واحد.</figcaption>
+      </figure>
+
+      <figure class="generated-visual reveal">
+        <img src="assets/generated/mujeeb-gps-confirmation-hero.png" width="1536" height="1024"
+          alt="Mujeeb order confirmation with verified GPS location" loading="lazy" decoding="async">
+        <figcaption>Verified order confirmation and delivery location before shipment.</figcaption>
       </figure>
 
       <!-- Audio sample -->

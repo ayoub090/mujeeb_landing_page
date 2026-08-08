@@ -296,6 +296,34 @@
       text-align: center;
     }
 
+    .faq-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 22px;
+      text-align: start;
+    }
+
+    .faq-list details {
+      border: 1px solid rgba(34, 69, 126, .12);
+      border-radius: 14px;
+      background: rgba(255,255,255,.78);
+      padding: 0 18px;
+    }
+
+    .faq-list summary {
+      cursor: pointer;
+      list-style: none;
+      padding: 16px 28px 16px 0;
+      font-weight: 700;
+      color: var(--blue);
+      position: relative;
+    }
+
+    .faq-list summary::-webkit-details-marker { display: none; }
+    .faq-list summary::after { content: '+'; position: absolute; right: 0; top: 13px; font-size: 22px; color: var(--green); }
+    .faq-list details[open] summary::after { content: '−'; }
+    .faq-list details p { margin: 0 0 16px; color: #385064; line-height: 1.7; }
+
     .trust {
       display: flex;
       gap: 34px;
@@ -1147,6 +1175,31 @@
           <p>تظهر نتائج العينة: الوصول، التأكيد، الإلغاء، الحالات المحولة للفريق، والنتيجة بعد الشحن، لتقرر من بياناتك
             إن كان التوسع يستحق التكلفة.</p>
         </div>
+        <div class="card reveal">
+          <div class="icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 017 7c0 5-7 13-7 13S5 14 5 9a7 7 0 017-7zm0 4a3 3 0 100 6 3 3 0 000-6z"/></svg></div>
+          <h3>Verified GPS &amp; Salla/Zid address sync</h3>
+          <p>Mujeeb writes the verified GPS location directly back into Salla/Zid's shipping details so you can print shipping labels with one click.</p>
+        </div>
+        <div class="card reveal">
+          <div class="icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h16v12H7l-3 3V4zm3 4h10V6H7v2zm0 4h7v-2H7v2z"/></svg></div>
+          <h3>Smart Agent Handover &amp; Shared Inbox</h3>
+          <p>If the customer asks a complex question or requests changes, the chatbot automatically pauses and forwards the conversation to your team's Shared Inbox.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="center feature-proof" aria-label="Operational trust features">
+    <div class="container">
+      <div class="grid3">
+        <div class="card reveal">
+          <h3>PDPL-aware location handling</h3>
+          <p>Location sharing is consent-based, limited to the order workflow, and covered by deletion controls so your legal team can review the process before launch.</p>
+        </div>
+        <div class="card reveal">
+          <h3>Reliable Google Sheets sync</h3>
+          <p>Use a ready template, map order ID, phone, status and GPS columns, and retry failed syncs from a queue instead of losing operational data.</p>
+        </div>
       </div>
     </div>
   </section>
@@ -1266,6 +1319,29 @@
           <div><b>تدخل الفريق</b><p>عند سؤال معقد أو طلب تعديل، يتوقف البوت ويحوّل المحادثة إلى صندوق فريقك المشترك ليتدخل موظف الدعم.</p></div>
           <div><b>GPS في Starter</b><p>التحقق من GPS متاح من أول يوم في Starter حتى ٣٠٠ طلب شهرياً، لتختبر القيمة الأساسية قبل التوسع.</p></div>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="faq-section" aria-label="Merchant FAQ and billing transparency">
+    <div class="container">
+      <div class="faq-list">
+        <details>
+          <summary>Who pays Meta WhatsApp conversation fees?</summary>
+          <p>Mujeeb links your store to your own WhatsApp Business Account (WABA). Meta conversation fees are billed directly to your Meta Business Manager account, separately and transparently from the Mujeeb subscription.</p>
+        </details>
+        <details>
+          <summary>Does the verified address reach my shipping label?</summary>
+          <p>With customer consent, Mujeeb writes the verified GPS location directly into the Salla/Zid shipping details so your team can print the shipping label with one click instead of copying coordinates manually.</p>
+        </details>
+        <details>
+          <summary>What happens when a customer asks a complex question?</summary>
+          <p>The bot pauses automatically and forwards the conversation to your team's Shared Inbox for human handover. It does not silently confirm or cancel an ambiguous order.</p>
+        </details>
+        <details>
+          <summary>Is GPS included in Starter?</summary>
+          <p>Yes. GPS Location Verification is included in Starter up to 300 orders per month, so merchants can test the core value before scaling to Growth.</p>
+        </details>
       </div>
     </div>
   </section>

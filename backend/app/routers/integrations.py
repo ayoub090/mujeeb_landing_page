@@ -16,7 +16,7 @@ from app.config import get_settings
 from app.crypto import encrypt_text
 from app.database import get_session
 from app.models import Integration, OAuthState, Platform, Store, User
-from app.schemas import OAuthStartInput, ShopifyStartInput, UrlOut
+from app.schemas import OAuthStartInput, ShopifyStartInput, UrlOut, GoogleSheetsConnectInput
 from app.services.lifecycle import record_lifecycle_event
 
 router = APIRouter(prefix="/api/integrations", tags=["integrations"])
@@ -258,6 +258,8 @@ async def shopify_callback(
     return RedirectResponse(f"{settings.frontend_origin}/dashboard/integrations?connected=shopify")
 
 
+
+
 async def register_shopify_webhooks(shop: str, access_token: str) -> None:
     endpoint = f"https://{shop}/admin/api/{settings.shopify_api_version}/graphql.json"
     mutation = """
@@ -346,11 +348,19 @@ async def integration_status(
             Integration.store_id == store_id, Integration.is_connected.is_(True)
         )
     )).all())
+    google_sheets_connected = await session.scalar(
+        select(Integration.is_connected).where(
+            Integration.store_id == store_id,
+            Integration.platform == Platform.custom,
+            Integration.external_store_id == "google_sheets"
+        )
+    )
     return {
         "salla": {"configured": bool(settings.salla_client_id and settings.salla_client_secret and settings.salla_webhook_secret), "connected": Platform.salla in connected},
         "zid": {"configured": bool(settings.zid_client_id and settings.zid_client_secret and settings.zid_webhook_secret), "connected": Platform.zid in connected},
         "shopify": {"configured": bool(settings.shopify_client_id and settings.shopify_client_secret), "connected": Platform.shopify in connected},
         "whatsapp": {"enabled": settings.meta_embedded_signup_enabled, "configured": bool(settings.meta_app_id and settings.meta_config_id)},
+        "google_sheets": {"configured": True, "connected": bool(google_sheets_connected)},
     }
 
 
@@ -380,3 +390,56 @@ async def upsert_integration(
             setattr(existing, key, value)
     else:
         session.add(Integration(store_id=store_id, platform=platform, **values))
+
+
+@router.post("/google-sheets/connect")
+async def connect_google_sheets(
+    payload: GoogleSheetsConnectInput,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    await ensure_owned_store(payload.store_id, user.id, session)
+    existing = await session.scalar(
+        select(Integration).where(
+            Integration.store_id == payload.store_id,
+            Integration.platform == Platform.custom,
+            Integration.external_store_id == "google_sheets"
+        )
+    )
+    values = {
+        "access_token_encrypted": encrypt_text(payload.url),
+        "is_connected": True,
+    }
+    if existing:
+        existing.access_token_encrypted = values["access_token_encrypted"]
+        existing.is_connected = True
+    else:
+        session.add(Integration(
+            store_id=payload.store_id,
+            platform=Platform.custom,
+            external_store_id="google_sheets",
+            **values
+        ))
+    await session.commit()
+    return {"status": "connected"}
+
+
+@router.post("/google-sheets/disconnect")
+async def disconnect_google_sheets(
+    payload: OAuthStartInput,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    await ensure_owned_store(payload.store_id, user.id, session)
+    existing = await session.scalar(
+        select(Integration).where(
+            Integration.store_id == payload.store_id,
+            Integration.platform == Platform.custom,
+            Integration.external_store_id == "google_sheets"
+        )
+    )
+    if existing:
+        existing.is_connected = False
+        await session.commit()
+    return {"status": "disconnected"}
+

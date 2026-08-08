@@ -86,7 +86,15 @@ class OrderOut(BaseModel):
     risk_score: int
     risk_level: RiskLevel
     risk_reasons: dict
+    gps_lat: Decimal | None = None
+    gps_lng: Decimal | None = None
+    items: list = []
     created_at: datetime
+
+
+class GoogleSheetsConnectInput(BaseModel):
+    store_id: uuid.UUID
+    url: str = Field(min_length=10)
 
 
 class EmbeddedSignupInput(BaseModel):

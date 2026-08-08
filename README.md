@@ -32,6 +32,8 @@ The pilot is intentionally small: a merchant tests Mujeeb on 50 real orders over
 
 ## Operating documents
 
+- [Brand Book & Guidelines Document](BRAND_BOOK.md)
+- [Interactive Brand Portal Dashboard](brand-book.html)
 - [Low-cost Micro-SaaS delivery plan](MICRO_SAAS_DELIVERY_PLAN.md)
 - [Organic social launch pack](SOCIAL_LAUNCH_PACK.md)
 - [Multichannel campaign playbook](CAMPAIGN_PLAYBOOK.md)

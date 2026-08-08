@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mujeeb | Brand Portal & Design Guidelines</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;600;700;800&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      /* Theme System */
+      --bg-dark: #090F1C;
+      --bg-panel: rgba(15, 23, 42, 0.65);
+      --bg-active: rgba(30, 41, 59, 0.8);
+      --border-light: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(37, 99, 235, 0.2);
+      --text-main: #F8FAFC;
+      --text-muted: #94A3B8;
+
+      /* Mujeeb Brand Colors - Marketing System */
+      --brand-navy: #1E3A8A;
+      --brand-blue: #2563EB;
+      --brand-emerald: #059669;
+
+      /* Mujeeb Brand Colors - Product System */
+      --brand-forest: #116149;
+      --brand-mint: #DCEEE7;
+      --brand-gold: #E7AA51;
+      --brand-sand: #F3E9D6;
+      --brand-charcoal: #17231F;
+      --brand-crimson: #B74F4A;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+    }
+
+    body {
+      background: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(5, 150, 105, 0.08) 0%, transparent 40%);
+      color: var(--text-main);
+      font-family: 'Outfit', 'Inter', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.5;
+    }
+
+    /* Layout structure */
+    .portal-container {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      min-height: 100vh;
+    }
+
+    /* Sidebar Styling */
+    aside {
+      background: rgba(11, 17, 32, 0.85);
+      border-right: 1px solid var(--border-light);
+      padding: 36px 24px;
+      display: flex;
+      flex-direction: column;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      backdrop-filter: blur(12px);
+    }
+
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text-main);
+      text-decoration: none;
+      margin-bottom: 40px;
+    }
+
+    .brand-icon-placeholder {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--brand-blue), var(--brand-emerald));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-family: 'IBM Plex Sans Arabic', sans-serif;
+      font-weight: 700;
+      color: #FFF;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    nav {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .nav-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-weight: 500;
+      font-size: 15px;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .nav-link:hover, .nav-link.active {
+      color: var(--text-main);
+      background: var(--bg-active);
+      box-shadow: inset 0 0 0 1px var(--border-light);
+    }
+
+    .nav-link.active {
+      border-left: 3px solid var(--brand-blue);
+      border-radius-top-left: 0;
+      border-radius-bottom-left: 0;
+    }
+
+    /* Main Area */
+    main {
+      padding: 48px 64px;
+      max-width: 1300px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    header {
+      margin-bottom: 48px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-light);
+      padding-bottom: 24px;
+    }
+
+    h1 {
+      font-size: 36px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #FFFFFF 0%, #94A3B8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -1px;
+    }
+
+    .brand-subhead {
+      color: var(--brand-emerald);
+      font-weight: 600;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+    }
+
+    /* Sections */
+    section {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-light);
+      border-radius: 20px;
+      padding: 40px;
+      margin-bottom: 40px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    }
+
+    .section-title {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border-light);
+      padding-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .arabic-title {
+      font-family: 'IBM Plex Sans Arabic', sans-serif;
+      font-size: 20px;
+      color: var(--brand-emerald);
+    }
+
+    .intro-p {
+      color: var(--text-muted);
+      font-size: 16px;
+      margin-bottom: 24px;
+      max-width: 800px;
+    }
+
+    /* Color Grid */
+    .palette-container {
+      margin-top: 24px;
+    }
+
+    .palette-heading {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border-left: 3px solid var(--brand-blue);
+      padding-left: 10px;
+    }
+
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .color-card {
+      background: rgba(30, 41, 59, 0.4);
+      border: 1px solid var(--border-light);
+      border-radius: 14px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .color-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--border-glow);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .color-block {
+      height: 110px;
+      width: 100%;
+      position: relative;
+    }
+
+    .color-card-info {
+      padding: 14px;
+    }
+
+    .color-name {
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .color-hex {
+      font-family: monospace;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .color-copied-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      color: var(--brand-emerald);
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+      border-radius: 14px;
+    }
+
+    .color-card.copied .color-copied-overlay {
+      opacity: 1;
+    }
+
+    /* Logo Vault */
+    .logo-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 24px;
+    }
+
+    @media (max-width: 900px) {
+      .logo-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .logo-card {
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid var(--border-light);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .logo-preview-box {
+      background: rgba(15, 23, 42, 0.8);
+      border-radius: 12px;
+      height: 160px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      border: 1px dashed rgba(255,255,255,0.05);
+    }
+
+    .logo-preview-box.light-mode {
+      background: #F8FAFC;
+    }
+
+    .logo-preview-box.product-mode {
+      background: #102a22;
+    }
+
+    .logo-preview-box svg {
+      max-height: 100%;
+      max-width: 100%;
+    }
+
+    .logo-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo-title {
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .logo-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-action {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border-light);
+      color: var(--text-main);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-action:hover {
+      background: rgba(255,255,255,0.1);
+      border-color: var(--brand-blue);
+    }
+
+    /* Typography Playground */
+    .typo-playground {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 32px;
+      margin-top: 24px;
+    }
+
+    @media (max-width: 950px) {
+      .typo-playground {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .typo-controls {
+      background: rgba(15, 23, 42, 0.3);
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid var(--border-light);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .control-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .typo-select, .typo-input {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--border-light);
+      color: var(--text-main);
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 14px;
+    }
+
+    .typo-select:focus, .typo-input:focus {
+      outline: none;
+      border-color: var(--brand-blue);
+    }
+
+    .typo-slider-val {
+      font-size: 12px;
+      font-family: monospace;
+      color: var(--brand-emerald);
+      float: right;
+    }
+
+    .typo-preview-box {
+      border: 1px solid var(--border-light);
+      background: rgba(15, 23, 42, 0.8);
+      border-radius: 12px;
+      padding: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 240px;
+      direction: rtl; /* Default Arabic friendly */
+    }
+
+    .typo-preview-text {
+      width: 100%;
+      text-align: center;
+      outline: none;
+      word-break: break-word;
+    }
+
+    /* UI Component Library */
+    .component-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border-light);
+      padding-bottom: 10px;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 8px 16px;
+      position: relative;
+    }
+
+    .tab-btn.active {
+      color: var(--text-main);
+    }
+
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -11px;
+      left: 0; right: 0;
+      height: 3px;
+      background: var(--brand-blue);
+    }
+
+    .component-layout {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 24px;
+      display: none;
+    }
+
+    .component-layout.active {
+      display: grid;
+    }
+
+    @media (max-width: 900px) {
+      .component-layout.active {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .component-preview {
+      background: rgba(15, 23, 42, 0.4);
+      border: 1px solid var(--border-light);
+      border-radius: 12px;
+      padding: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 180px;
+    }
+
+    .component-code-panel {
+      background: rgba(11, 17, 32, 0.9);
+      border: 1px solid var(--border-light);
+      border-radius: 12px;
+      padding: 20px;
+      position: relative;
+    }
+
+    .code-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .code-content {
+      font-family: 'Fira Code', 'Courier New', Courier, monospace;
+      font-size: 13px;
+      color: #A5F3FC;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      max-height: 240px;
+    }
+
+    /* Messaging Sandbox */
+    .sandbox-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+      margin-top: 24px;
+    }
+
+    .sandbox-card {
+      background: rgba(15, 23, 42, 0.4);
+      border: 1px solid var(--border-light);
+      border-radius: 14px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+    }
+
+    .sandbox-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .sandbox-tag {
+      background: rgba(37, 99, 235, 0.15);
+      color: #60A5FA;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .sandbox-lang {
+      color: var(--brand-emerald);
+    }
+
+    .sandbox-body {
+      font-size: 14px;
+      color: var(--text-main);
+      background: rgba(11, 17, 32, 0.6);
+      padding: 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.03);
+      line-height: 1.6;
+      white-space: pre-line;
+      flex-grow: 1;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #059669;
+      color: #FFF;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-weight: 600;
+      box-shadow: 0 8px 24px rgba(5, 150, 105, 0.3);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 9999;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .portal-container {
+        grid-template-columns: 1fr;
+      }
+      aside {
+        display: none; /* simple mobile drawer could be added, but for devs desktop is primary */
+      }
+      main {
+        padding: 24px;
+      }
+    }
+
+    /* Embedded Component Styles (to render properly in the sandbox preview) */
+    .preview-btn-marketing {
+      background: var(--brand-emerald);
+      color: #FFFFFF;
+      font-weight: 700;
+      font-size: 15px;
+      padding: 12px 28px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
+      font-family: sans-serif;
+    }
+
+    .preview-btn-product {
+      background: var(--brand-forest);
+      color: #FFFFFF;
+      font-weight: 700;
+      font-size: 15px;
+      padding: 12px 28px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-family: 'Alexandria', sans-serif;
+    }
+
+    .preview-badge-confirmed {
+      background: #e1f2ea;
+      color: #187056;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: 'IBM Plex Sans Arabic', sans-serif;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .preview-badge-confirmed::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .preview-metric-panel {
+      background: #FFFFFF;
+      border: 1px solid #e2e8e4;
+      border-radius: 20px;
+      padding: 20px;
+      width: 220px;
+      color: var(--brand-charcoal);
+      font-family: 'Inter', 'Alexandria', sans-serif;
+      direction: rtl;
+    }
+    .preview-metric-panel h3 {
+      font-size: 12px;
+      color: #6d7974;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    .preview-metric-panel strong {
+      display: block;
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--brand-forest);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="portal-container">
+    
+    <!-- Sidebar -->
+    <aside>
+      <a href="#" class="sidebar-brand">
+        <div class="brand-icon-placeholder">م</div>
+        Mujeeb Brand
+      </a>
+      <nav>
+        <a href="#overview" class="nav-link active" onclick="activateLink(this)">Brand Overview</a>
+        <a href="#colors" class="nav-link" onclick="activateLink(this)">Color Systems</a>
+        <a href="#typography" class="nav-link" onclick="activateLink(this)">Typography</a>
+        <a href="#logos" class="nav-link" onclick="activateLink(this)">Logo Vault</a>
+        <a href="#components" class="nav-link" onclick="activateLink(this)">UI Patterns</a>
+        <a href="#messaging" class="nav-link" onclick="activateLink(this)">Voice & Messaging</a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main>
+      <header>
+        <div>
+          <div class="brand-subhead">SaaS Identity Portal</div>
+          <h1>Mujeeb Brand Guidelines</h1>
+        </div>
+        <div>
+          <button class="btn-action" onclick="showToast('Guidelines version 1.0.0')">v1.0.0</button>
+        </div>
+      </header>
+
+      <!-- Overview Section -->
+      <section id="overview">
+        <div class="section-title">
+          <span>Brand Strategy & Overview</span>
+          <span class="arabic-title">الهوية والرؤية</span>
+        </div>
+        <p class="intro-p">
+          Mujeeb (مجيب - Responder) is an Arabic AI-driven order confirmation service built for e-commerce stores in the GCC. By shifting COD confirmation from manual phone calls to conversational WhatsApp interfaces, Mujeeb eliminates shipping waste and streamlines post-checkout logic.
+        </p>
+        <p class="intro-p">
+          Our identity stands on four pillars: <strong>Empirical Integrity</strong>, <strong>Cultural Fluency</strong>, <strong>Respectful Boundaries</strong>, and <strong>Seamless Operations</strong>. We present a reliable, modern, and localized tool that honors the merchant’s systems and the customer's time.
+        </p>
+      </section>
+
+      <!-- Colors Section -->
+      <section id="colors">
+        <div class="section-title">
+          <span>Color Systems</span>
+          <span class="arabic-title">نظام الألوان</span>
+        </div>
+        <p class="intro-p">
+          Mujeeb bridges high-technology marketing with calming operational productivity. Hover and click any swatch to copy the hexadecimal code instantly.
+        </p>
+
+        <div class="palette-container">
+          <div class="palette-heading">System A: Marketing & Trust (Sleek Tech)</div>
+          <div class="color-grid">
+            <div class="color-card" onclick="copyColor('#1E3A8A', this)">
+              <div class="color-block" style="background: #1E3A8A;"></div>
+              <div class="color-card-info">
+                <div class="color-name">Deep Navy</div>
+                <div class="color-hex">#1E3A8A</div>
+              </div>
+              <div class="color-copied-overlay">Copied!</div>
+            </div>
+            
+            <div class="color-card" onclick="copyColor('#2563EB', this)">
+              <div class="color-block" style="background: #2563EB;"></div>
+              <div class="color-card-info">
+                <div class="color-name">Tech Blue</div>
+                <div class="color-hex">#2563EB</div>
+              </div>
+              <div class="color-copied-overlay">Copied!</div>
+            </div>
+
+            <div class="color-card" onclick="copyColor('#059669', this)">
+              <div class="color-block" style="background: #059669;"></div>
+              <div class="color-card-info">
+                <div class="color-name">Vibrant Emerald</div>
+                <div class="color-hex">#059669</div>
+              </div>
+              <div class="color-copied-overlay">Copied!</div>
+            </div>
+
+            <div class="color-card" onclick="copyColor('#475569', this)">
+              <div class="color-block" style="background: #475569;"></div>
+              <div class="color-card-info">
+                <div class="color-name">Slate Text</div>
+                <div class="color-hex">#475569</div>
+              </div>
+              <div class="color-copied-overlay">Copied!</div>
+            </div>
+          </div>
+
+          <div class="palette-heading">System B: Product & Dashboard (Arabic Heritage)</div>
+          <div class="color-grid">
+            <div class="color-card" onclick="copyColor('#116149', this)">
+              <div class="color-block" style="background: #116149;"></div>
+              <div class="color-card-info">
+                <div class="color-name">Forest Green</div>
+                <div class="color-hex">#116149</div>
+              </div>
+              <div class="color-copied-overlay">Copied!</div>
+            </div>
+
+            <div class="color-card" onclick="copyColor('#DCEEE7', this)">
+              <div class="color-block" style="background: #DCEEE7;"></div>
+              <div class="color-card-info">
+                <div class="color-name">Warm Mint</div>
+                <div class="color-hex">#DCEEE7</div>
+              </div>
+              <div class="color-copied-overlay">Copied!</div>
+            </div>
+
+            <div class="color-card" onclick="copyColor('#E7AA51', this)">
+              <div class="color-block" style="background: #E7AA51;"></div>
+              <div class="color-card-info">
+                <div class="color-name">Desert Gold</div>
+                <div class="color-hex">#E7AA51</div>
+              </div>
+              <div class="color-copied-overlay">Copied!</div>
+            </div>
+
+            <div class="color-card" onclick="copyColor('#F3E9D6', this)">
+              <div class="color-block" style="background: #F3E9D6;"></div>
+              <div class="color-card-info">
+                <div class="color-name">Warm Sand</div>
+                <div class="color-hex">#F3E9D6</div>
+              </div>
+              <div class="color-copied-overlay">Copied!</div>
+            </div>
+
+            <div class="color-card" onclick="copyColor('#17231F', this)">
+              <div class="color-block" style="background: #17231F;"></div>
+              <div class="color-card-info">
+                <div class="color-name">Charcoal Ink</div>
+                <div class="color-hex">#17231F</div>
+              </div>
+              <div class="color-copied-overlay">Copied!</div>
+            </div>
+
+            <div class="color-card" onclick="copyColor('#B74F4A', this)">
+              <div class="color-block" style="background: #B74F4A;"></div>
+              <div class="color-card-info">
+                <div class="color-name">RTO Crimson</div>
+                <div class="color-hex">#B74F4A</div>
+              </div>
+              <div class="color-copied-overlay">Copied!</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Typography Section -->
+      <section id="typography">
+        <div class="section-title">
+          <span>Typography Playground</span>
+          <span class="arabic-title">الخطوط وتنسيق النصوص</span>
+        </div>
+        <p class="intro-p">
+          We use high-readability digital fonts. Type your own text below to see how our type scale renders in both Arabic and English.
+        </p>
+
+        <div class="typo-playground">
+          <div class="typo-controls">
+            <div class="control-group">
+              <label class="control-label">Font Family</label>
+              <select class="typo-select" id="fontFamilySelect" onchange="updateTypoPreview()">
+                <option value="'IBM Plex Sans Arabic', sans-serif">IBM Plex Sans Arabic (Technical/Body)</option>
+                <option value="'Alexandria', sans-serif">Alexandria (Geometric Header)</option>
+                <option value="'Inter', sans-serif">Inter (Latin Numbers/Dashboard)</option>
+              </select>
+            </div>
+            <div class="control-group">
+              <label class="control-label">Font Size <span class="typo-slider-val" id="fontSizeVal">28px</span></label>
+              <input type="range" min="16" max="64" value="28" class="typo-slider" id="fontSizeRange" oninput="updateTypoPreview()">
+            </div>
+            <div class="control-group">
+              <label class="control-label">Font Weight <span class="typo-slider-val" id="fontWeightVal">600</span></label>
+              <input type="range" min="300" max="800" step="100" value="600" class="typo-slider" id="fontWeightRange" oninput="updateTypoPreview()">
+            </div>
+            <div class="control-group">
+              <label class="control-label">Quick Presets</label>
+              <button class="btn-action" onclick="setTypoPreset('ar-header')">Arabic Headings</option>
+              <button class="btn-action" style="margin-top:6px;" onclick="setTypoPreset('lat-dashboard')">Latin Metrics</option>
+            </div>
+          </div>
+          
+          <div class="typo-preview-box">
+            <div class="typo-preview-text" id="typoPreviewText" contenteditable="true" style="font-family: 'IBM Plex Sans Arabic', sans-serif; font-size: 28px; font-weight: 600;">
+              مجيب | نظام التأكيد الذكي بالواتساب للخليج العربي.<br>
+              Mujeeb confirm rate: 94.2% in 2026.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Logo Vault Section -->
+      <section id="logos">
+        <div class="section-title">
+          <span>Logo Vault</span>
+          <span class="arabic-title">مستودع الشعارات</span>
+        </div>
+        <p class="intro-p">
+          Browse, copy, or download the official vector assets for Mujeeb branding. High-quality vector paths assure perfect rendering at any scale.
+        </p>
+
+        <div class="logo-grid">
+          <!-- Logo 1: Lettermark -->
+          <div class="logo-card">
+            <div class="logo-preview-box">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="46" fill="url(#vault-tech-gradient)" />
+                <circle cx="50" cy="50" r="44" fill="none" stroke="#FFFFFF" stroke-width="1.5" stroke-opacity="0.2" />
+                <path d="M 52 28 C 61.94 28 70 36.06 70 46 C 70 55.94 61.94 64 52 64 C 42.06 64 34 55.94 34 46 C 34 36.06 42.06 28 52 28 Z M 52 38 C 47.58 38 44 41.58 44 46 C 44 50.42 47.58 54 52 54 C 56.42 54 60 50.42 60 46 C 60 41.58 56.42 38 52 38 Z M 60 46 C 60 58 50.5 73 30 78 C 27.5 78.6 28 75.5 30 74 C 46.5 64.5 50 54.5 50 46 Z" fill="#FFFFFF" />
+                <defs>
+                  <linearGradient id="vault-tech-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#2563EB" />
+                    <stop offset="100%" stop-color="#059669" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+            <div class="logo-info">
+              <div class="logo-title">Mujeeb Lettermark (م)</div>
+              <div class="logo-actions">
+                <button class="btn-action" onclick="copyLogoCode('mark')">Copy SVG</button>
+                <button class="btn-action" onclick="downloadLogo('mark')">Download</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Logo 2: Tech Lockup -->
+          <div class="logo-card">
+            <div class="logo-preview-box">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 350 100">
+                <circle cx="40" cy="40" r="38" fill="url(#vault-tech-grad)" transform="translate(10,10)" />
+                <circle cx="40" cy="40" r="36" fill="none" stroke="#FFFFFF" stroke-width="1.2" stroke-opacity="0.25" transform="translate(10,10)" />
+                <path d="M 41.5 22 C 49.5 22 56 28.5 56 36.5 C 56 44.5 49.5 51 41.5 51 C 33.5 51 27 44.5 27 36.5 C 27 28.5 33.5 22 41.5 22 Z M 41.5 30 C 37.9 30 35 32.9 35 36.5 C 35 40.1 37.9 43 41.5 43 C 45.1 43 48 40.1 48 36.5 C 48 32.9 45.1 30 41.5 30 Z M 48 36.5 C 48 46.5 40.2 59 23.5 63 C 21.4 63.5 21.8 61 23.5 59.8 C 37 52 40 43.6 40 36.5 Z" fill="#FFFFFF" transform="translate(10,10)" />
+                <text x="105" y="52" fill="#1E3A8A" font-family="'Inter', sans-serif" font-weight="800" font-size="32">Mujeeb</text>
+                <text x="232" y="48" fill="#E2E8F0" font-family="sans-serif" font-size="24">|</text>
+                <text x="252" y="49" fill="#059669" font-family="'IBM Plex Sans Arabic', sans-serif" font-weight="700" font-size="26">مجيب</text>
+                <defs>
+                  <linearGradient id="vault-tech-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#2563EB" />
+                    <stop offset="100%" stop-color="#059669" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+            <div class="logo-info">
+              <div class="logo-title">Tech Horizontal Lockup</div>
+              <div class="logo-actions">
+                <button class="btn-action" onclick="copyLogoCode('tech')">Copy SVG</button>
+                <button class="btn-action" onclick="downloadLogo('tech')">Download</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Logo 3: Product Lockup -->
+          <div class="logo-card">
+            <div class="logo-preview-box product-mode">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 350 100">
+                <rect x="12" y="12" width="76" height="76" rx="20" ry="20" fill="#E7AA51" />
+                <path d="M 42 22 C 50 22 56.5 28.5 56.5 36.5 C 56.5 44.5 50 51 42 51 C 34 51 27.5 44.5 27.5 36.5 C 27.5 28.5 34 22 42 22 Z M 42 30 C 38.4 30 35.5 32.9 35.5 36.5 C 35.5 40.1 38.4 43 42 43 C 45.6 43 48.5 40.1 48.5 36.5 C 48.5 32.9 45.6 30 42 30 Z M 48.5 36.5 C 48.5 46.5 40.7 59 24 63 C 21.9 63.5 22.3 61 24 59.8 C 37.5 52 40.5 43.6 40.5 36.5 Z" fill="#102A22" />
+                <text x="105" y="52" fill="#FFFFFF" font-family="'Inter', sans-serif" font-weight="800" font-size="32">Mujeeb</text>
+                <text x="232" y="48" fill="#CBD5E1" font-family="sans-serif" font-size="24">|</text>
+                <text x="252" y="49" fill="#E7AA51" font-family="'Alexandria', sans-serif" font-weight="700" font-size="24">مجيب</text>
+              </svg>
+            </div>
+            <div class="logo-info">
+              <div class="logo-title">Product Horizontal Lockup</div>
+              <div class="logo-actions">
+                <button class="btn-action" onclick="copyLogoCode('product')">Copy SVG</button>
+                <button class="btn-action" onclick="downloadLogo('product')">Download</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Logo 4: Monochrome Black -->
+          <div class="logo-card">
+            <div class="logo-preview-box light-mode">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 350 100">
+                <circle cx="40" cy="40" r="38" fill="#000000" transform="translate(10,10)" />
+                <path d="M 41.5 22 C 49.5 22 56 28.5 56 36.5 C 56 44.5 49.5 51 41.5 51 C 33.5 51 27 44.5 27 36.5 C 27 28.5 33.5 22 41.5 22 Z M 41.5 30 C 37.9 30 35 32.9 35 36.5 C 35 40.1 37.9 43 41.5 43 C 45.1 43 48 40.1 48 36.5 C 48 32.9 45.1 30 41.5 30 Z M 48 36.5 C 48 46.5 40.2 59 23.5 63 C 21.4 63.5 21.8 61 23.5 59.8 C 37 52 40 43.6 40 36.5 Z" fill="#FFFFFF" transform="translate(10,10)" />
+                <text x="105" y="52" fill="#000000" font-family="'Inter', sans-serif" font-weight="800" font-size="32">Mujeeb</text>
+                <text x="232" y="48" fill="#000000" font-family="sans-serif" font-size="24">|</text>
+                <text x="252" y="49" fill="#000000" font-family="'IBM Plex Sans Arabic', sans-serif" font-weight="700" font-size="26">مجيب</text>
+              </svg>
+            </div>
+            <div class="logo-info">
+              <div class="logo-title">Monochrome Lockup</div>
+              <div class="logo-actions">
+                <button class="btn-action" onclick="copyLogoCode('monochrome')">Copy SVG</button>
+                <button class="btn-action" onclick="downloadLogo('monochrome')">Download</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- UI Components Section -->
+      <section id="components">
+        <div class="section-title">
+          <span>UI Component Library</span>
+          <span class="arabic-title">مكونات واجهة المستخدم</span>
+        </div>
+        <p class="intro-p">
+          Standard UI components coded exactly to specification. Copy the raw HTML or CSS code blocks to ensure styling compliance across products.
+        </p>
+
+        <div class="component-tabs">
+          <button class="tab-btn active" onclick="switchTab('btn-marketing')">Marketing Button</button>
+          <button class="tab-btn" onclick="switchTab('btn-product')">Product Button</button>
+          <button class="tab-btn" onclick="switchTab('badge-status')">Status Badge</button>
+          <button class="tab-btn" onclick="switchTab('panel-metric')">Metric Panel</button>
+        </div>
+
+        <!-- Tab 1: Marketing Button -->
+        <div class="component-layout active" id="tab-btn-marketing">
+          <div class="component-preview">
+            <button class="preview-btn-marketing">جرّب مجاناً</button>
+          </div>
+          <div class="component-code-panel">
+            <div class="code-header">
+              <span>HTML / CSS</span>
+              <button class="btn-action" onclick="copyCodeText('code-btn-marketing')">Copy</button>
+            </div>
+            <pre class="code-content" id="code-btn-marketing">&lt;button class="btn-primary"&gt;جرّب مجاناً&lt;/button&gt;
+
+&lt;style&gt;
+.btn-primary {
+  background: #059669;
+  color: #FFFFFF;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 12px 28px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.15);
+  transition: all 0.2s;
+}
+.btn-primary:hover {
+  background: #047857;
+  transform: translateY(-1px);
+}
+&lt;/style&gt;</pre>
+          </div>
+        </div>
+
+        <!-- Tab 2: Product Button -->
+        <div class="component-layout" id="tab-btn-product">
+          <div class="component-preview">
+            <button class="preview-btn-product">تأكيد الطلب</button>
+          </div>
+          <div class="component-code-panel">
+            <div class="code-header">
+              <span>HTML / CSS</span>
+              <button class="btn-action" onclick="copyCodeText('code-btn-product')">Copy</button>
+            </div>
+            <pre class="code-content" id="code-btn-product">&lt;button class="btn-product"&gt;تأكيد الطلب&lt;/button&gt;
+
+&lt;style&gt;
+.btn-product {
+  background: #116149;
+  color: #FFFFFF;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 12px 28px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-family: 'Alexandria', sans-serif;
+  transition: all 0.2s;
+}
+.btn-product:hover {
+  background: #1e8062;
+  transform: translateY(-1px);
+}
+&lt;/style&gt;</pre>
+          </div>
+        </div>
+
+        <!-- Tab 3: Status Badge -->
+        <div class="component-layout" id="tab-badge-status">
+          <div class="component-preview">
+            <span class="preview-badge-confirmed">مؤكد</span>
+          </div>
+          <div class="component-code-panel">
+            <div class="code-header">
+              <span>HTML / CSS</span>
+              <button class="btn-action" onclick="copyCodeText('code-badge-status')">Copy</button>
+            </div>
+            <pre class="code-content" id="code-badge-status">&lt;span class="status-confirmed"&gt;مؤكد&lt;/span&gt;
+
+&lt;style&gt;
+.status-confirmed {
+  background: #e1f2ea;
+  color: #187056;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.status-confirmed::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+&lt;/style&gt;</pre>
+          </div>
+        </div>
+
+        <!-- Tab 4: Metric Panel -->
+        <div class="component-layout" id="tab-panel-metric">
+          <div class="component-preview">
+            <div class="preview-metric-panel">
+              <h3>الوقت الموفر يدوياً</h3>
+              <strong>14.5 ساعة</strong>
+            </div>
+          </div>
+          <div class="component-code-panel">
+            <div class="code-header">
+              <span>HTML / CSS</span>
+              <button class="btn-action" onclick="copyCodeText('code-panel-metric')">Copy</button>
+            </div>
+            <pre class="code-content" id="code-panel-metric">&lt;div class="metric-card"&gt;
+  &lt;h3&gt;الوقت الموفر يدوياً&lt;/h3&gt;
+  &lt;strong&gt;14.5 ساعة&lt;/strong&gt;
+&lt;/div&gt;
+
+&lt;style&gt;
+.metric-card {
+  background: #FFFFFF;
+  border: 1px solid #e2e8e4;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 16px 45px rgba(26,55,44,.08);
+  font-family: 'Inter', 'Alexandria', sans-serif;
+  direction: rtl;
+}
+.metric-card h3 {
+  font-size: 12px;
+  color: #6d7974;
+  margin: 0 0 10px 0;
+  font-weight: 600;
+}
+.metric-card strong {
+  display: block;
+  font-size: 28px;
+  font-weight: 800;
+  color: #116149;
+}
+&lt;/style&gt;</pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- Messaging sandbox Section -->
+      <section id="messaging">
+        <div class="section-title">
+          <span>Voice & Copywriting Sandbox</span>
+          <span class="arabic-title">لهجة التخاطب ونصوص النظام</span>
+        </div>
+        <p class="intro-p">
+          Templates for automated customer outreach. Ensure compliance with tone requirements: permission-aware, respectful, and localized in proper Gulf dialect.
+        </p>
+
+        <div class="sandbox-grid">
+          <!-- Sandbox 1 -->
+          <div class="sandbox-card">
+            <div class="sandbox-meta">
+              <span class="sandbox-tag">WhatsApp confirmation</span>
+              <span class="sandbox-lang">AR-GCC</span>
+            </div>
+            <div class="sandbox-body" id="msg-wa-confirm">السلام عليكم من متجر [اسم المتجر].
+طلبك رقم [رقم الطلب] بقيمة [المبلغ] جاهز للشحن. لتأكيد الطلب اضغط «تأكيد»، للإلغاء اضغط «إلغاء». شكراً لك.</div>
+            <button class="btn-action" onclick="copyCodeText('msg-wa-confirm')">Copy Template</button>
+          </div>
+
+          <!-- Sandbox 2 -->
+          <div class="sandbox-card">
+            <div class="sandbox-meta">
+              <span class="sandbox-tag">Outbound Cold Intro</span>
+              <span class="sandbox-lang">AR</span>
+            </div>
+            <div class="sandbox-body" id="msg-outreach">السلام عليكم، أنا [الاسم] من مجيب. لاحظت أن متجركم يبيع [فئة المنتجات]. هل يؤكد فريقكم طلبات الدفع عند الاستلام يدوياً قبل الشحن؟ نبني تجربة صغيرة على 50 طلباً لقياس أثر التأكيد التلقائي.</div>
+            <button class="btn-action" onclick="copyCodeText('msg-outreach')">Copy Template</button>
+          </div>
+
+          <!-- Sandbox 3 -->
+          <div class="sandbox-card">
+            <div class="sandbox-meta">
+              <span class="sandbox-tag">Follow-up Call Pitch</span>
+              <span class="sandbox-lang">EN/AR</span>
+            </div>
+            <div class="sandbox-body" id="msg-pitch">نحتاج ثلاثة أرقام تقريبية فقط لتحديد خط الأساس وحساب المرتجعات: عدد الطلبات الشهري، نسبة الدفع عند الاستلام، وعدد الطلبات غير المستلمة. بعدها نقارن 50 طلباً فقط ونقيس الأثر.</div>
+            <button class="btn-action" onclick="copyCodeText('msg-pitch')">Copy Template</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast" id="toastBox">Value copied successfully!</div>
+
+  <script>
+    // Copy HEX colors to clipboard
+    function copyColor(hex, element) {
+      navigator.clipboard.writeText(hex).then(() => {
+        showToast(`Copied Hex: ${hex}`);
+        element.classList.add('copied');
+        setTimeout(() => {
+          element.classList.remove('copied');
+        }, 1500);
+      });
+    }
+
+    // Copy element text values directly
+    function copyCodeText(elementId) {
+      const el = document.getElementById(elementId);
+      let content = el.innerText || el.textContent;
+      navigator.clipboard.writeText(content).then(() => {
+        showToast('Copied content to clipboard!');
+      });
+    }
+
+    // Toggle active link states on scroll or click
+    function activateLink(element) {
+      document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
+      });
+      element.classList.add('active');
+    }
+
+    // Show custom alert toast
+    function showToast(message) {
+      const toast = document.getElementById('toastBox');
+      toast.innerText = message;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2500);
+    }
+
+    // Interactive typography controls
+    function updateTypoPreview() {
+      const font = document.getElementById('fontFamilySelect').value;
+      const size = document.getElementById('fontSizeRange').value;
+      const weight = document.getElementById('fontWeightRange').value;
+
+      document.getElementById('fontSizeVal').innerText = `${size}px`;
+      document.getElementById('fontWeightVal').innerText = weight;
+
+      const previewBox = document.getElementById('typoPreviewText');
+      previewBox.style.fontFamily = font;
+      previewBox.style.fontSize = `${size}px`;
+      previewBox.style.fontWeight = weight;
+      
+      // Toggle RTL class depending on font family selection
+      if (font.includes('Inter')) {
+        previewBox.parentElement.style.direction = 'ltr';
+      } else {
+        previewBox.parentElement.style.direction = 'rtl';
+      }
+    }
+
+    // Preset typography values
+    function setTypoPreset(presetType) {
+      const fontSelect = document.getElementById('fontFamilySelect');
+      const sizeSlider = document.getElementById('fontSizeRange');
+      const weightSlider = document.getElementById('fontWeightRange');
+
+      if (presetType === 'ar-header') {
+        fontSelect.value = "'Alexandria', sans-serif";
+        sizeSlider.value = "36";
+        weightSlider.value = "800";
+      } else if (presetType === 'lat-dashboard') {
+        fontSelect.value = "'Inter', sans-serif";
+        sizeSlider.value = "48";
+        weightSlider.value = "800";
+      }
+      updateTypoPreview();
+    }
+
+    // Copy SVG source codes to clipboard
+    const svgSources = {
+      mark: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%"><defs><linearGradient id="tech-gradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#2563EB" /><stop offset="100%" stop-color="#059669" /></linearGradient></defs><circle cx="50" cy="50" r="46" fill="url(#tech-gradient)" /><circle cx="50" cy="50" r="44" fill="none" stroke="#FFFFFF" stroke-width="1.5" stroke-opacity="0.2" /><path d="M 52 28 C 61.94 28 70 36.06 70 46 C 70 55.94 61.94 64 52 64 C 42.06 64 34 55.94 34 46 C 34 36.06 42.06 28 52 28 Z M 52 38 C 47.58 38 44 41.58 44 46 C 44 50.42 47.58 54 52 54 C 56.42 54 60 50.42 60 46 C 60 41.58 56.42 38 52 38 Z M 60 46 C 60 58 50.5 73 30 78 C 27.5 78.6 28 75.5 30 74 C 46.5 64.5 50 54.5 50 46 Z" fill="#FFFFFF" /></svg>`,
+      
+      tech: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 350 100" width="100%" height="100%"><defs><linearGradient id="tech-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#2563EB" /><stop offset="100%" stop-color="#059669" /></linearGradient></defs><style>@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@700&family=Inter:wght@800&display=swap'); .text-latin { font-family: 'Inter', sans-serif; font-weight: 800; font-size: 32px; fill: #1E3A8A; letter-spacing: -0.5px; } .text-arabic { font-family: 'IBM Plex Sans Arabic', sans-serif; font-weight: 700; font-size: 26px; fill: #059669; } .text-divider { fill: #E2E8F0; font-size: 24px; }</style><g transform="translate(10, 10)"><circle cx="40" cy="40" r="38" fill="url(#tech-grad)" /><circle cx="40" cy="40" r="36" fill="none" stroke="#FFFFFF" stroke-width="1.2" stroke-opacity="0.25" /><path d="M 41.5 22 C 49.5 22 56 28.5 56 36.5 C 56 44.5 49.5 51 41.5 51 C 33.5 51 27 44.5 27 36.5 C 27 28.5 33.5 22 41.5 22 Z M 41.5 30 C 37.9 30 35 32.9 35 36.5 C 35 40.1 37.9 43 41.5 43 C 45.1 43 48 40.1 48 36.5 C 48 32.9 45.1 30 41.5 30 Z M 48 36.5 C 48 46.5 40.2 59 23.5 63 C 21.4 63.5 21.8 61 23.5 59.8 C 37 52 40 43.6 40 36.5 Z" fill="#FFFFFF" /></g><text x="105" y="52" class="text-latin">Mujeeb</text><text x="232" y="48" class="text-divider">|</text><text x="252" y="49" class="text-arabic">مجيب</text></svg>`,
+      
+      product: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 350 100" width="100%" height="100%"><style>@import url('https://fonts.googleapis.com/css2?family=Alexandria:wght@700&family=Inter:wght@800&display=swap'); .prod-latin { font-family: 'Inter', sans-serif; font-weight: 800; font-size: 32px; fill: #FFFFFF; letter-spacing: -0.5px; } .prod-arabic { font-family: 'Alexandria', sans-serif; font-weight: 700; font-size: 24px; fill: #E7AA51; } .prod-divider { fill: #CBD5E1; font-size: 24px; }</style><g transform="translate(10, 10)"><rect x="2" y="2" width="76" height="76" rx="20" ry="20" fill="#E7AA51" /><path d="M 42 22 C 50 22 56.5 28.5 56.5 36.5 C 56.5 44.5 50 51 42 51 C 34 51 27.5 44.5 27.5 36.5 C 27.5 28.5 34 22 42 22 Z M 42 30 C 38.4 30 35.5 32.9 35.5 36.5 C 35.5 40.1 38.4 43 42 43 C 45.6 43 48.5 40.1 48.5 36.5 C 48.5 32.9 45.6 30 42 30 Z M 48.5 36.5 C 48.5 46.5 40.7 59 24 63 C 21.9 63.5 22.3 61 24 59.8 C 37.5 52 40.5 43.6 40.5 36.5 Z" fill="#102A22" /></g><text x="105" y="52" class="prod-latin">Mujeeb</text><text x="232" y="48" class="prod-divider">|</text><text x="252" y="49" class="prod-arabic">مجيب</text></svg>`,
+      
+      monochrome: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 350 100" width="100%" height="100%"><style>@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@700&family=Inter:wght@800&display=swap'); .mono-latin { font-family: 'Inter', sans-serif; font-weight: 800; font-size: 32px; fill: #000000; letter-spacing: -0.5px; } .mono-arabic { font-family: 'IBM Plex Sans Arabic', sans-serif; font-weight: 700; font-size: 26px; fill: #000000; } .mono-divider { fill: #000000; font-size: 24px; }</style><g transform="translate(10, 10)"><circle cx="40" cy="40" r="38" fill="#000000" /><path d="M 41.5 22 C 49.5 22 56 28.5 56 36.5 C 56 44.5 49.5 51 41.5 51 C 33.5 51 27 44.5 27 36.5 C 27 28.5 33.5 22 41.5 22 Z M 41.5 30 C 37.9 30 35 32.9 35 36.5 C 35 40.1 37.9 43 41.5 43 C 45.1 43 48 40.1 48 36.5 C 48 32.9 45.1 30 41.5 30 Z M 48 36.5 C 48 46.5 40.2 59 23.5 63 C 21.4 63.5 21.8 61 23.5 59.8 C 37 52 40 43.6 40 36.5 Z" fill="#FFFFFF" /></g><text x="105" y="52" class="mono-latin">Mujeeb</text><text x="232" y="48" class="mono-divider">|</text><text x="252" y="49" class="mono-arabic">مجيب</text></svg>`
+    };
+
+    function copyLogoCode(key) {
+      const code = svgSources[key];
+      navigator.clipboard.writeText(code).then(() => {
+        showToast(`SVG source code for "${key}" copied!`);
+      });
+    }
+
+    function downloadLogo(key) {
+      const code = svgSources[key];
+      const blob = new Blob([code], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `mujeeb-logo-${key}.svg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast(`Downloading mujeeb-logo-${key}.svg...`);
+    }
+
+    // Component sandbox tab switcher
+    function switchTab(tabId) {
+      document.querySelectorAll('.component-tabs .tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      document.querySelectorAll('.component-layout').forEach(panel => {
+        panel.classList.remove('active');
+      });
+
+      // Find trigger button and activate
+      event.target.classList.add('active');
+      document.getElementById(`tab-${tabId}`).classList.add('active');
+    }
+  </script>
+</body>
+</html>

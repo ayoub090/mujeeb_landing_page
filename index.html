@@ -667,12 +667,12 @@
     }
 
     .feature-grid {
-      grid-template-columns: repeat(6, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       align-items: stretch;
     }
-    .feature-grid .card { grid-column: span 2; }
-    .feature-grid .card:nth-child(4) { grid-column: 2 / span 2; }
-    .feature-grid .card:nth-child(5) { grid-column: 4 / span 2; }
+    .feature-grid .card,
+    .feature-grid .card:nth-child(4),
+    .feature-grid .card:nth-child(5) { grid-column: auto; }
     .feature-proof .grid3 { max-width: 900px; margin-inline: auto; }
 
     /* Retired product surface: keep legacy markup harmless while removing it from the public experience. */
@@ -1091,6 +1091,10 @@
       .calc-grid {
         grid-template-columns: 1fr 1fr
       }
+    }
+
+    @media (min-width: 861px) and (max-width: 1100px) {
+      .feature-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
 
     @media(max-width:520px) {

@@ -48,9 +48,11 @@ class Settings(BaseSettings):
     creem_api_key: str = ""
     creem_webhook_secret: str = ""
     creem_api_base: str = "https://test-api.creem.io"
-    creem_product_starter: str = ""
-    creem_product_growth: str = ""
-    creem_product_scale: str = ""
+    # Public Creem product IDs for the current GCC launch pricing. These remain
+    # overridable through environment variables in production.
+    creem_product_starter: str = "prod_2vqJ5mN9UsaIs92R0GGEGT"
+    creem_product_growth: str = "prod_7jta2efsRo349gYRj8401C"
+    creem_product_scale: str = "prod_6FvTUHYPbiKxTrai4rOZGP"
     app_base_url: AnyHttpUrl = "http://localhost:8000"
 
     analytics_admin_key: str = ""

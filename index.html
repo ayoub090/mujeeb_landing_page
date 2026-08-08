@@ -666,6 +666,19 @@
       margin-top: 52px
     }
 
+    .feature-grid {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      align-items: stretch;
+    }
+    .feature-grid .card { grid-column: span 2; }
+    .feature-grid .card:nth-child(4) { grid-column: 2 / span 2; }
+    .feature-grid .card:nth-child(5) { grid-column: 4 / span 2; }
+    .feature-proof .grid3 { max-width: 900px; margin-inline: auto; }
+
+    /* Retired product surface: keep legacy markup harmless while removing it from the public experience. */
+    .audio-wrap,
+    header + section { display: none !important; }
+
     .card {
       background: var(--cream);
       border: 1px solid var(--line);
@@ -1046,6 +1059,9 @@
       .transparency-grid {
         grid-template-columns: 1fr
       }
+      .feature-grid .card,
+      .feature-grid .card:nth-child(4),
+      .feature-grid .card:nth-child(5) { grid-column: auto; }
 
       .offer-card.featured { transform: none }
 
@@ -1215,7 +1231,7 @@
       <span class="sec-tag">المميزات</span>
       <h2>مسار واضح قبل تجهيز الطلب</h2>
       <p class="sec-sub">مجيب لا يغير شركة الشحن أو يفرض مشغل اتصال؛ هو طبقة خدمة تربط قرار العميل بفريق المتجر.</p>
-      <div class="grid3">
+      <div class="grid3 feature-grid">
         <div class="card reveal">
           <div class="icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
               <path

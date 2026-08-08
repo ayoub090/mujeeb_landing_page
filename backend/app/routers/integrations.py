@@ -75,7 +75,8 @@ async def start_salla(
         "client_id": settings.salla_client_id,
         "redirect_uri": settings.salla_redirect_uri,
         "response_type": "code",
-        "scope": "offline_access read_orders write_orders read_customers webhooks.read_write",
+        # Salla uses resource-based scopes in the current Merchant API.
+        "scope": "offline_access orders.read_write customers.read webhooks.read_write",
         "state": state,
     }
     return UrlOut(url=f"https://accounts.salla.sa/oauth2/auth?{urlencode(params)}")
@@ -271,7 +272,16 @@ async def register_shopify_webhooks(shop: str, access_token: str) -> None:
     """
     headers = {"X-Shopify-Access-Token": access_token, "Content-Type": "application/json"}
     async with httpx.AsyncClient(timeout=15) as client:
-        for topic in ("ORDERS_CREATE", "APP_UNINSTALLED"):
+        # The privacy topics are required for Shopify apps and registration is
+        # idempotent, so reconnecting a shop safely repairs missing webhooks.
+        for topic in (
+            "ORDERS_CREATE",
+            "ORDERS_UPDATED",
+            "APP_UNINSTALLED",
+            "CUSTOMERS_DATA_REQUEST",
+            "CUSTOMERS_REDACT",
+            "SHOP_REDACT",
+        ):
             response = await client.post(
                 endpoint,
                 headers=headers,
@@ -330,7 +340,10 @@ async def register_salla_webhooks(access_token: str) -> None:
                     "event": event,
                     "url": target,
                     "version": 2,
-                    "secret": settings.salla_webhook_secret,
+                    # Salla sends these headers verbatim with each webhook.
+                    "headers": [
+                        {"key": "Authorization", "value": settings.salla_webhook_secret},
+                    ],
                 },
             )
             response.raise_for_status()

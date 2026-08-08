@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.database import get_session
-from app.models import Integration, Platform, WebhookEvent
+from app.models import Integration, Order, OrderStatus, Platform, WebhookEvent
 from app.services.order_ingest import ingest_order
 
 router = APIRouter(prefix="/api/webhooks", tags=["webhooks"])
@@ -65,6 +65,43 @@ async def integration_store_id(
     ))
 
 
+def _status_value(value: object) -> str:
+    if isinstance(value, dict):
+        return str(value.get("slug") or value.get("name") or value.get("status") or "").lower()
+    return str(value or "").lower()
+
+
+def _map_external_status(value: object) -> OrderStatus | None:
+    status = _status_value(value)
+    if any(token in status for token in ("cancel", "canceled", "cancelled")):
+        return OrderStatus.cancelled
+    if "deliver" in status or status in {"delivered", "completed"}:
+        return OrderStatus.delivered
+    if "return" in status or "refund" in status:
+        return OrderStatus.returned
+    if "ship" in status or "fulfill" in status:
+        return OrderStatus.shipped
+    return None
+
+
+async def update_order_status(
+    session: AsyncSession,
+    *,
+    store_id,
+    external_order_id: object,
+    external_status: object,
+) -> None:
+    mapped = _map_external_status(external_status)
+    if not mapped or external_order_id in (None, ""):
+        return
+    order = await session.scalar(select(Order).where(
+        Order.store_id == store_id,
+        Order.external_order_id == str(external_order_id),
+    ))
+    if order:
+        order.status = mapped
+
+
 @router.get("/meta", response_class=PlainTextResponse)
 async def verify_meta(
     mode: str = Query(alias="hub.mode"),
@@ -104,7 +141,8 @@ async def receive_salla(
         raise HTTPException(status_code=401, detail="Invalid Salla signature")
     payload = json.loads(raw)
     created = await persist_event("salla", raw, payload, session)
-    if created and payload.get("event") == "order.created":
+    event = str(payload.get("event") or payload.get("type") or "")
+    if created and event == "order.created":
         store_id = await integration_store_id(session, Platform.salla, payload.get("merchant"))
         data = payload.get("data") or {}
         customer = data.get("customer") or {}
@@ -126,6 +164,15 @@ async def receive_salla(
                 shipping_city=str(address.get("city") or "") or None,
                 shipping_address=str(address.get("address") or address.get("street") or "") or None,
             )
+    elif created and event in {"order.status.updated", "order.updated", "order.cancelled"}:
+        data = payload.get("data") or payload.get("order") or {}
+        store_id = await integration_store_id(session, Platform.salla, payload.get("merchant"))
+        await update_order_status(
+            session,
+            store_id=store_id,
+            external_order_id=data.get("id") or data.get("order_id"),
+            external_status=data.get("status") or data.get("order_status") or event,
+        )
     await session.commit()
     return {"received": True, "duplicate": not created}
 
@@ -194,7 +241,7 @@ async def receive_shopify(
     if x_shopify_webhook_id:
         payload["webhook_id"] = x_shopify_webhook_id
     created = await persist_event("shopify", raw, payload, session)
-    if created and x_shopify_topic == "orders/create":
+    if created and x_shopify_topic in {"orders/create", "orders/updated"}:
         store_id = await integration_store_id(session, Platform.shopify, x_shopify_shop_domain)
         customer = payload.get("customer") or {}
         address = payload.get("shipping_address") or payload.get("billing_address") or {}
@@ -215,6 +262,31 @@ async def receive_shopify(
                 shipping_city=str(address.get("city") or "") or None,
                 shipping_address=" ".join(filter(None, [address.get("address1"), address.get("address2")])) or None,
             )
+        if x_shopify_topic == "orders/updated":
+            external_status = "cancelled" if payload.get("cancelled_at") else (
+                payload.get("fulfillment_status") or payload.get("financial_status")
+            )
+            await update_order_status(
+                session,
+                store_id=store_id,
+                external_order_id=payload.get("id"),
+                external_status=external_status,
+            )
+    elif created and x_shopify_topic in {
+        "customers/data_request",
+        "customers/redact",
+        "shop/redact",
+    }:
+        # Shopify's mandatory privacy webhooks must always be acknowledged.
+        # Store the event for the audit trail; shop redaction also disconnects
+        # the integration so no further processing occurs.
+        if x_shopify_topic == "shop/redact":
+            integration = await session.scalar(select(Integration).where(
+                Integration.platform == Platform.shopify,
+                Integration.external_store_id == x_shopify_shop_domain,
+            ))
+            if integration:
+                integration.is_connected = False
     elif created and x_shopify_topic == "app/uninstalled":
         integration = await session.scalar(select(Integration).where(
             Integration.platform == Platform.shopify,

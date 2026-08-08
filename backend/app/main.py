@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.routers import (
     auth,
+    automation,
     custom_orders,
     health,
     integrations,
@@ -44,5 +45,6 @@ for api_router in (
     webhooks.router,
     custom_orders.router,
     marketing.router,
+    automation.router,
 ):
     app.include_router(api_router)

@@ -73,6 +73,12 @@ services:
       SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Mujeeb}
       SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
       PRIVACY_DELETION_GRACE_DAYS: ${PRIVACY_DELETION_GRACE_DAYS:-7}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-deepseek/deepseek-chat-v3.1}
+      OPENROUTER_HTTP_REFERER: ${OPENROUTER_HTTP_REFERER:-https://usemujeeb.com}
+      OPENROUTER_APP_NAME: ${OPENROUTER_APP_NAME:-Mujeeb}
+      N8N_SHARED_SECRET: ${N8N_SHARED_SECRET:-}
     depends_on:
       postgres: {condition: service_healthy}
       redis: {condition: service_started}

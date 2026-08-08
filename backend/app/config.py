@@ -69,6 +69,16 @@ class Settings(BaseSettings):
     smtp_use_tls: bool = True
     privacy_deletion_grace_days: int = Field(default=7, ge=1, le=30)
 
+    # OpenRouter is deliberately optional: the core order pipeline keeps
+    # working when the provider is unavailable, while automation can opt in
+    # through the authenticated endpoint.
+    openrouter_api_key: str = ""
+    openrouter_base_url: AnyHttpUrl = "https://openrouter.ai/api/v1"
+    openrouter_model: str = "deepseek/deepseek-chat-v3.1"
+    openrouter_http_referer: str = "https://usemujeeb.com"
+    openrouter_app_name: str = "Mujeeb"
+    n8n_shared_secret: str = ""
+
     access_token_minutes: int = Field(default=30, ge=5, le=1440)
     refresh_token_days: int = Field(default=14, ge=1, le=90)
 

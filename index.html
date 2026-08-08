@@ -12,11 +12,35 @@
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "Organization",
-    "name": "Mujeeb",
-    "legalName": "Ayoub Fadil",
-    "url": "https://usemujeeb.com/",
-    "founder": {"@type": "Person", "name": "Ayoub Fadil"}
+    "@graph": [
+      {
+        "@type": "Organization",
+        "name": "Mujeeb",
+        "legalName": "Ayoub Fadil",
+        "url": "https://usemujeeb.com/",
+        "email": "support@usemujeeb.com",
+        "founder": {"@type": "Person", "name": "Ayoub Fadil"}
+      },
+      {
+        "@type": "SoftwareApplication",
+        "name": "Mujeeb",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "url": "https://usemujeeb.com/",
+        "offers": [
+          {"@type":"Offer","name":"Starter","price":"299","priceCurrency":"SAR","description":"300 COD orders per month with GPS verification"},
+          {"@type":"Offer","name":"Growth","price":"599","priceCurrency":"SAR","description":"5000 COD orders per month with shared inbox and human handover"}
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {"@type":"Question","name":"Who pays Meta WhatsApp conversation fees?","acceptedAnswer":{"@type":"Answer","text":"Meta conversation fees are billed directly to the merchant's own Meta Business Manager WABA account."}},
+          {"@type":"Question","name":"Is GPS included in Starter?","acceptedAnswer":{"@type":"Answer","text":"Yes. GPS Location Verification is included in Starter up to 300 orders per month."}},
+          {"@type":"Question","name":"What happens when a customer asks a complex question?","acceptedAnswer":{"@type":"Answer","text":"The chatbot pauses and forwards the conversation to the team's Shared Inbox for human handover."}}
+        ]
+      }
+    ]
   }
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -282,18 +306,36 @@
       border: 1px solid rgba(34, 69, 126, .12);
       box-shadow: 0 18px 50px rgba(17, 45, 92, .12);
       background: #f5f8fd;
+      display: grid;
+      grid-template-columns: .82fr 1.18fr;
+      align-items: stretch;
     }
 
     .generated-visual img {
       width: 100%;
       display: block;
+      height: 340px;
+      object-fit: cover;
+      grid-column: 2;
+      grid-row: 1;
     }
 
     .generated-visual figcaption {
-      padding: 12px 18px 15px;
+      padding: 30px;
       color: #385064;
       font-size: 13px;
-      text-align: center;
+      text-align: start;
+      display: flex;
+      align-items: center;
+      line-height: 1.8;
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    @media (max-width: 700px) {
+      .generated-visual { display: block; }
+      .generated-visual img { height: 240px; }
+      .generated-visual figcaption { padding: 16px 18px; text-align: center; display: block; }
     }
 
     .faq-list {
@@ -323,6 +365,31 @@
     .faq-list summary::after { content: '+'; position: absolute; right: 0; top: 13px; font-size: 22px; color: var(--green); }
     .faq-list details[open] summary::after { content: '−'; }
     .faq-list details p { margin: 0 0 16px; color: #385064; line-height: 1.7; }
+
+    .conversion-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: none;
+      place-items: center;
+      padding: 20px;
+      background: rgba(6, 20, 40, .58);
+      backdrop-filter: blur(5px);
+    }
+    .conversion-modal.is-open { display: grid; }
+    .conversion-dialog {
+      width: min(520px, 100%);
+      position: relative;
+      padding: 30px;
+      border-radius: 24px;
+      background: #fff;
+      box-shadow: 0 24px 80px rgba(3, 18, 31, .28);
+      text-align: center;
+    }
+    .conversion-dialog h2 { margin: 0 0 10px; color: var(--blue); font-size: clamp(1.35rem, 3vw, 1.9rem); }
+    .conversion-dialog p { margin: 0 auto 20px; max-width: 40ch; color: #385064; line-height: 1.7; }
+    .conversion-close { position: absolute; top: 10px; right: 14px; border: 0; background: transparent; font-size: 28px; color: #6c7a89; cursor: pointer; }
+    .conversion-note { display: block; margin-top: 12px; color: #6c7a89; font-size: 12px; }
 
     .trust {
       display: flex;
@@ -1441,7 +1508,35 @@
     </div>
   </footer>
 
+  <div class="conversion-modal" id="conversionModal" role="dialog" aria-modal="true" aria-labelledby="conversionTitle">
+    <div class="conversion-dialog">
+      <button class="conversion-close" id="conversionClose" type="button" aria-label="Close">×</button>
+      <h2 id="conversionTitle">Before you ship another COD order</h2>
+      <p>Run a measured 50-order pilot. See confirmation, cancellation and human-handover results before committing to a subscription.</p>
+      <a href="#book" class="btn" id="conversionCta">Start the free pilot</a>
+      <span class="conversion-note">No card. No carrier change. Meta conversation fees remain on your own WABA.</span>
+    </div>
+  </div>
+
   <script>
+    // conversion assist: show once per session, never interrupt a completed lead
+    const conversionModal = document.getElementById('conversionModal');
+    const conversionClose = document.getElementById('conversionClose');
+    const conversionCta = document.getElementById('conversionCta');
+    const conversionSeenKey = 'mujeeb_conversion_modal_seen';
+    const openConversionModal = () => {
+      if (sessionStorage.getItem(conversionSeenKey)) return;
+      conversionModal.classList.add('is-open');
+      sessionStorage.setItem(conversionSeenKey, '1');
+      sendFunnelEvent?.('conversion_modal_open');
+    };
+    const closeConversionModal = () => conversionModal.classList.remove('is-open');
+    conversionClose.addEventListener('click', closeConversionModal);
+    conversionModal.addEventListener('click', e => { if (e.target === conversionModal) closeConversionModal(); });
+    conversionCta.addEventListener('click', () => { closeConversionModal(); sendFunnelEvent?.('conversion_modal_cta'); });
+    setTimeout(() => { if (window.innerWidth < 760) openConversionModal(); }, 18000);
+    document.addEventListener('mouseout', e => { if (e.clientY <= 4) openConversionModal(); });
+
     // waveform bars
     const bars = document.getElementById('bars');
     const heights = [6, 14, 22, 30, 20, 12, 26, 34, 18, 10, 24, 32, 16, 8, 20, 28, 36, 22, 12, 18, 30, 24, 14, 26, 34, 20, 10, 16, 28, 22, 12, 24];

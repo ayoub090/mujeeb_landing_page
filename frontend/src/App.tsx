@@ -507,6 +507,13 @@ function Auth({onDone}:{onDone:()=>void}) {
                 نعم! قمنا بنقل ميزة التحقق من الـ GPS للباقة المبتدئة (Starter) بحد أقصى 300 طلب شهرياً لتتمكن من اختبار القيمة الفعلية للمنصة وتقليل المرتجعات قبل الحاجة لترقية باقتك.
               </p>
             </div>
+
+            <div className="space-y-3">
+              <h4 className="font-bold text-blue-deep text-base">هل بيانات الموقع آمنة ومتوافقة مع الخصوصية؟</h4>
+              <p className="text-slate-600 text-sm leading-relaxed">
+                يشارك العميل موقعه بموافقته الواضحة فقط. نستخدم أقل قدر لازم من البيانات، ونحميها أثناء النقل والتخزين، مع إمكانية طلب التصدير أو الحذف من لوحة الخصوصية. يظل التاجر مسؤولاً عن إشعار عملائه والالتزام بمتطلبات PDPL المحلية.
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -608,7 +615,7 @@ function Billing({storeId}:{storeId:string}) {
   const [checkingOut,setCheckingOut]=useState("");
   const [message,setMessage]=useState("");
   const plans=[
-    {id:"starter",name:"Starter",price:"299",orders:"حتى 1,000 طلب شهرياً",detail:"لمتجر واحد وفريق صغير"},
+    {id:"starter",name:"Starter",price:"299",orders:"حتى 300 طلب شهرياً",detail:"لمتجر واحد وفريق صغير"},
     {id:"growth",name:"Growth",price:"599",orders:"حتى 5,000 طلب شهرياً",detail:"تحليل أعمق ودعم بأولوية",featured:true},
     {id:"scale",name:"Scale",price:"1,199",orders:"حجم مرتفع وفق الاستخدام العادل",detail:"للعلامات متعددة المتاجر"},
   ];
@@ -761,7 +768,7 @@ function Dashboard({user,onLogout}:{user:User;onLogout:()=>void}) {
       <div className="absolute top-0 right-0 w-32 h-32 bg-gold/10 rounded-full blur-3xl"></div>
       <div className="z-10">
         <h3 className="text-lg font-black text-ink flex items-center gap-2"><Sparkles className="text-gold" size={18} /> حماية التوصيل (Protect) معطلة للمتاجر المجانية</h3>
-        <p className="text-slate-600 text-sm mt-1">رقٍّ باقتك إلى Growth لجمع مواقع GPS للعملاء تلقائياً والكشف عن العناوين الوهمية وتفادي الشُحن الخاسر.</p>
+        <p className="text-slate-600 text-sm mt-1">ميزة GPS مشمولة في Starter حتى 300 طلب شهرياً. رقٍّ إلى Growth عند الحاجة إلى 5,000 طلب، Shared Inbox وتسليم المحادثة لفريقك.</p>
       </div>
       <div className="flex gap-3 mt-4 sm:mt-0 z-10 w-full sm:w-auto">
         <button className="text-slate-500 text-sm font-bold px-3 hover:text-ink transition-colors" onClick={() => setShowUpsell(false)}>إخفاء التنبيه</button>

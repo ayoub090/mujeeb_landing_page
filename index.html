@@ -774,6 +774,13 @@
 
     .proof-point b { color: var(--ink); display: block; margin-bottom: 3px }
 
+    .transparency { margin-top: 28px; padding: 28px; border: 1px solid var(--line); border-radius: 18px; background: #fff }
+    .transparency h3 { margin: 0 0 16px; font-size: 20px }
+    .transparency-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px }
+    .transparency-grid > div { padding: 16px; border-radius: 14px; background: var(--bg-soft) }
+    .transparency-grid b { color: var(--ink); display: block; margin-bottom: 5px }
+    .transparency-grid p { color: var(--ink-soft); font-size: 13.5px; line-height: 1.7; margin: 0 }
+
     /* form */
     .form-sec {
       background: var(--bg-soft);
@@ -918,7 +925,8 @@
       .grid3,
       .steps,
       .offer-grid,
-      .confidence-grid {
+      .confidence-grid,
+      .transparency-grid {
         grid-template-columns: 1fr
       }
 
@@ -1191,22 +1199,22 @@
         <article class="offer-card reveal">
           <div class="offer-name">Starter</div>
           <p class="offer-for">للمتاجر الناشئة والفِرق الصغيرة</p>
-          <div class="offer-price">٣٩٩ <small>ريال / شهر</small></div>
-          <ul class="offer-list"><li>حتى ١٬٠٠٠ طلب شهرياً</li><li>لوحة حالات الطلبات</li><li>تكامل متجر واحد</li><li>دعم الإعداد الأساسي</li></ul>
+          <div class="offer-price">٢٩٩ <small>ريال / شهر</small></div>
+          <ul class="offer-list"><li>حتى ٣٠٠ طلب شهرياً</li><li>التحقق من موقع GPS مشمول</li><li>لوحة حالات الطلبات</li><li>تكامل متجر واحد</li></ul>
           <a href="#book" class="btn ghost plan-cta" data-plan="starter">اختر Starter</a>
         </article>
         <article class="offer-card featured reveal">
           <span class="offer-badge">الأفضل للنمو</span>
           <div class="offer-name">Growth</div>
           <p class="offer-for">للمتاجر التي تريد تشغيل القرار على نطاق أكبر</p>
-          <div class="offer-price">٧٩٩ <small>ريال / شهر</small></div>
-          <ul class="offer-list"><li>حتى ٥٬٠٠٠ طلب شهرياً</li><li>تحليل حسب المدينة والمصدر</li><li>مسارات متابعة متقدمة</li><li>أولوية في الدعم والتفعيل</li></ul>
+          <div class="offer-price">٥٩٩ <small>ريال / شهر</small></div>
+          <ul class="offer-list"><li>حتى ٥٬٠٠٠ طلب شهرياً</li><li>GPS وتحديث تفاصيل الشحن</li><li>صندوق وارد مشترك وتسليم بشري</li><li>أولوية في الدعم والتفعيل</li></ul>
           <a href="#book" class="btn plan-cta" data-plan="growth">اختر Growth</a>
         </article>
         <article class="offer-card reveal">
           <div class="offer-name">Scale</div>
           <p class="offer-for">للعلامات متعددة المتاجر وفرق العمليات</p>
-          <div class="offer-price">١٬٤٩٩ <small>ريال / شهر</small></div>
+          <div class="offer-price">١٬١٩٩ <small>ريال / شهر</small></div>
           <ul class="offer-list"><li>حجم مرتفع وفق الاستخدام العادل</li><li>أكثر من متجر وقناة</li><li>تقارير تشغيل للإدارة</li><li>تهيئة ودعم بأولوية</li></ul>
           <a href="#book" class="btn ghost plan-cta" data-plan="scale">ناقش Scale</a>
         </article>
@@ -1221,6 +1229,15 @@
         <div class="proof-point"><b>حق الحذف</b>طلب واضح لحذف الحساب وبيانات العملاء.</div>
         <div class="proof-point"><b>موافقة قبل التواصل</b>لا رسائل تسويقية دون اشتراك صريح.</div>
         <div class="proof-point"><b>مشغل الشحن باختيارك</b>مجيب طبقة قرار ولا يفرض ناقلاً أو مشغلاً.</div>
+      </div>
+      <div class="transparency reveal" aria-label="أسئلة الفوترة والخصوصية">
+        <h3>شفافية الفوترة والتشغيل</h3>
+        <div class="transparency-grid">
+          <div><b>رسوم Meta</b><p>يربط مجيب متجرك وحساب WABA الخاص بك. رسوم محادثات Meta تُحاسب مباشرة على حسابك في Meta Business Manager، وليست مخفية داخل اشتراك مجيب.</p></div>
+          <div><b>تحديث الشحن تلقائياً</b><p>بعد موافقة العميل على مشاركة موقعه، تُكتب الإحداثيات في تفاصيل شحن الطلب في سلة/زد لتطبع بوليصة الشحن دون نسخ يدوي.</p></div>
+          <div><b>تدخل الفريق</b><p>عند سؤال معقد أو طلب تعديل، يتوقف البوت ويحوّل المحادثة إلى صندوق فريقك المشترك ليتدخل موظف الدعم.</p></div>
+          <div><b>GPS في Starter</b><p>التحقق من GPS متاح من أول يوم في Starter حتى ٣٠٠ طلب شهرياً، لتختبر القيمة الأساسية قبل التوسع.</p></div>
+        </div>
       </div>
     </div>
   </section>

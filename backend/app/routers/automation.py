@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hmac
+import json
 import uuid
 from datetime import datetime, UTC
 from typing import Any
@@ -107,7 +108,29 @@ async def apply_decision(
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
 
-    order.status = _safe_status(payload.status)
+    # Accept both the normalized n8n object and the raw JSON string returned by
+    # OpenRouter. This keeps the workflow resilient when a provider wraps JSON
+    # in a markdown code fence.
+    decision = {}
+    if payload.action.strip().startswith("{") or "```json" in payload.action:
+        candidate = payload.action.replace("```json", "").replace("```", "").strip()
+        try:
+            parsed = json.loads(candidate)
+            if isinstance(parsed, dict):
+                decision = parsed
+        except json.JSONDecodeError:
+            decision = {}
+    resolved_status = str(decision.get("status") or payload.status)
+    order.status = _safe_status(resolved_status)
+    resolved_risk = decision.get("risk_score", payload.risk_score)
+    if resolved_risk is not None:
+        payload.risk_score = int(resolved_risk)
+    resolved_action = str(decision.get("action") or payload.action)
+    resolved_ar = decision.get("customer_message_ar", payload.customer_message_ar)
+    resolved_en = decision.get("customer_message_en", payload.customer_message_en)
+    resolved_location = decision.get("location_required", payload.location_required)
+    resolved_upsell = decision.get("upsell_offer", payload.upsell_offer)
+    resolved_note = decision.get("dashboard_note", payload.dashboard_note)
     if payload.risk_score is not None:
         order.risk_score = payload.risk_score
     if payload.gps_lat is not None and payload.gps_lng is not None:
@@ -118,13 +141,13 @@ async def apply_decision(
     # the existing dashboard OrderOut response.
     risk_reasons = dict(order.risk_reasons or {})
     risk_reasons["automation"] = {
-        "action": payload.action,
+        "action": resolved_action,
         "status": order.status.value,
-        "location_required": payload.location_required,
-        "customer_message_ar": payload.customer_message_ar,
-        "customer_message_en": payload.customer_message_en,
-        "upsell_offer": payload.upsell_offer,
-        "dashboard_note": payload.dashboard_note,
+        "location_required": resolved_location,
+        "customer_message_ar": resolved_ar,
+        "customer_message_en": resolved_en,
+        "upsell_offer": resolved_upsell,
+        "dashboard_note": resolved_note,
         "applied_at": datetime.now(UTC).isoformat(),
     }
     order.risk_reasons = risk_reasons

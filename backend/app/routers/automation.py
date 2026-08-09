@@ -13,7 +13,9 @@ router = APIRouter(prefix="/api/automation", tags=["automation"])
 
 
 class DraftMessageInput(BaseModel):
-    order: dict[str, Any] = Field(default_factory=dict)
+    # n8n can deliver the webhook body as an object or as a serialized value.
+    # Keep the boundary permissive and normalize it before sending to the LLM.
+    order: Any = Field(default_factory=dict)
     language: str = Field(default="ar", min_length=2, max_length=8)
 
 
@@ -28,7 +30,8 @@ async def draft_message(
     ):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid automation secret")
     try:
-        message = await draft_customer_message(order=payload.order, language=payload.language)
+        order = payload.order if isinstance(payload.order, dict) else {"raw": payload.order}
+        message = await draft_customer_message(order=order, language=payload.language)
     except LLMNotConfigured as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
     except RuntimeError as exc:

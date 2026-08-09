@@ -21,7 +21,7 @@ class DraftMessageInput(BaseModel):
 
 @router.post("/draft-message")
 async def draft_message(
-    payload: DraftMessageInput,
+    payload: dict[str, Any],
     x_n8n_secret: str | None = Header(default=None),
 ):
     settings = get_settings()
@@ -30,8 +30,10 @@ async def draft_message(
     ):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid automation secret")
     try:
-        order = payload.order if isinstance(payload.order, dict) else {"raw": payload.order}
-        message = await draft_customer_message(order=order, language=payload.language)
+        raw_order = payload.get("order", {})
+        order = raw_order if isinstance(raw_order, dict) else {"raw": raw_order}
+        language = str(payload.get("language", "ar"))[:8] or "ar"
+        message = await draft_customer_message(order=order, language=language)
     except LLMNotConfigured as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
     except RuntimeError as exc:

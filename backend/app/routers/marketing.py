@@ -16,7 +16,7 @@ from sqlalchemy import distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
-from app.crypto import encrypt_text, stable_hash
+from app.crypto import decrypt_text, encrypt_text, stable_hash
 from app.database import get_session
 from app.models import BusinessLead, FunnelEvent
 from app.schemas import BusinessLeadCreated, BusinessLeadInput, FunnelEventInput
@@ -173,4 +173,40 @@ async def conversion_metrics(
             "visitor_to_paid": rate(paid, page_sessions),
         },
         "generated_at": datetime.now(UTC),
+    }
+
+
+@router.get("/leads")
+async def list_leads(
+    limit: int = Query(default=100, ge=1, le=500),
+    x_mujeeb_analytics_key: str | None = Header(default=None),
+    session: AsyncSession = Depends(get_session),
+):
+    """Private lead inbox for the owner, protected by the analytics key."""
+    settings = get_settings()
+    if not settings.analytics_admin_key or not x_mujeeb_analytics_key or not hmac.compare_digest(
+        settings.analytics_admin_key, x_mujeeb_analytics_key
+    ):
+        raise HTTPException(status_code=401, detail="Analytics access denied")
+    leads = list((await session.scalars(
+        select(BusinessLead).order_by(BusinessLead.created_at.desc()).limit(limit)
+    )).all())
+    return {
+        "items": [
+            {
+                "id": str(lead.id),
+                "name": decrypt_text(lead.full_name_encrypted),
+                "company": lead.company,
+                "whatsapp": decrypt_text(lead.whatsapp_encrypted),
+                "email": decrypt_text(lead.email_encrypted),
+                "platform": lead.platform,
+                "monthly_orders": lead.monthly_orders,
+                "selected_plan": lead.selected_plan,
+                "status": lead.status,
+                "attribution": lead.attribution,
+                "created_at": lead.created_at,
+            }
+            for lead in leads
+        ],
+        "count": len(leads),
     }

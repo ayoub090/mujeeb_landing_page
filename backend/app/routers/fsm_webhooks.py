@@ -101,11 +101,17 @@ async def whatsapp_message(request: Request, session: AsyncSession = Depends(get
             order.address_data = address.model_dump()
         elif msg_type == "text":
             text = message.get("text", {}).get("body", "")
-            if text.lower() in {"confirm", "confirm_order", "yes"} and conversation.current_state == FSMState.awaiting_confirmation:
+            if conversation.current_state == FSMState.modify_variants:
+                conversation.session_data = {**conversation.session_data, "variant_request": text}
+                conversation.current_state = FSMState.awaiting_confirmation
+            elif text.lower() in {"confirm", "confirm_order", "yes"} and conversation.current_state == FSMState.awaiting_confirmation:
                 conversation.current_state = FSMState.awaiting_address_choice
             elif text.lower() in {"cancel", "cancel_order", "no"}:
                 conversation.current_state = FSMState.order_cancelled
                 order.status = OrderStatus.cancelled
+            elif text.lower() in {"where is my order", "فين طلبي", "tracking", "تتبع"}:
+                conversation.current_state = FSMState.tracking_active
+                conversation.session_data = {**conversation.session_data, "tracking_requested": True}
             elif conversation.current_state == FSMState.awaiting_address_choice:
                 address = await parse_manual_address(text)
                 conversation.current_state = transition(conversation.current_state, FSMState.confirm_address_text, "manual_address").target
@@ -127,6 +133,8 @@ async def whatsapp_message(request: Request, session: AsyncSession = Depends(get
                 conversation.current_state = FSMState.order_cancelled
                 order.status = OrderStatus.cancelled
                 await sync_order_to_store(order, "ORDER_CANCELLED")
+            elif action == "modify_order" and conversation.current_state == FSMState.awaiting_confirmation:
+                conversation.current_state = FSMState.modify_variants
             elif action == "confirm_address" and conversation.current_state == FSMState.confirm_address_text:
                 conversation.current_state = FSMState.upsell_pitch
                 order.upsell_status = "offered"

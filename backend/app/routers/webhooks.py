@@ -125,7 +125,20 @@ async def receive_meta(
     payload = json.loads(raw)
     created = await persist_event("meta", raw, payload, session)
     await session.commit()
-    return {"received": True, "duplicate": not created}
+    # Meta delivers inbound WhatsApp messages nested under entry/changes. Feed
+    # the same persisted FSM handler used by the test/custom webhook route so
+    # signature validation, deduplication, and state transitions stay aligned.
+    messages = payload.get("messages") or payload.get("entry", [{}])[0].get("changes", [{}])[0].get("value", {}).get("messages", [])
+    fsm_result = {"processed": 0}
+    if messages and created:
+        from app.routers.fsm_webhooks import whatsapp_message
+
+        class _MetaRequest:
+            async def json(self):
+                return {"messages": messages}
+
+        fsm_result = await whatsapp_message(_MetaRequest(), session=session)
+    return {"received": True, "duplicate": not created, "fsm": fsm_result}
 
 
 @router.post("/salla")

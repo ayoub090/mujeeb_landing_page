@@ -33,3 +33,53 @@ def confirmation_payload(order_number: str, amount: str, customer_name: str) -> 
             ]},
         },
     }
+
+
+def address_choice_payload() -> dict:
+    return {
+        "type": "interactive",
+        "interactive": {
+            "type": "button",
+            "body": {"text": "Where should we deliver your order? Send your location or type the address."},
+            "action": {"buttons": [
+                {"type": "reply", "reply": {"id": "send_location", "title": "📍 Send location"}},
+                {"type": "reply", "reply": {"id": "type_address", "title": "✍️ Type address"}},
+            ]},
+        },
+    }
+
+
+def address_confirmation_payload(address: dict) -> dict:
+    formatted = address.get("formatted_address") or ", ".join(
+        value for value in (address.get("city"), address.get("district"), address.get("street")) if value
+    )
+    return {
+        "type": "interactive",
+        "interactive": {
+            "type": "button",
+            "body": {"text": f"We will deliver to: {formatted}. Is this correct?"},
+            "action": {"buttons": [
+                {"type": "reply", "reply": {"id": "confirm_address", "title": "✅ Yes, correct"}},
+                {"type": "reply", "reply": {"id": "change_address", "title": "🔄 Change address"}},
+            ]},
+        },
+    }
+
+
+def upsell_payload(item_name: str = "GCC accessory", price: str = "99") -> dict:
+    return {
+        "type": "interactive",
+        "interactive": {
+            "type": "button",
+            "body": {"text": f"Special offer: add {item_name} to your order for only {price} SAR."},
+            "action": {"buttons": [
+                {"type": "reply", "reply": {"id": "accept_upsell", "title": "➕ Add to order"}},
+                {"type": "reply", "reply": {"id": "reject_upsell", "title": "➡️ No thanks"}},
+            ]},
+        },
+    }
+
+
+def tracking_payload(status: str, tracking_url: str | None = None) -> dict:
+    suffix = f" Track it here: {tracking_url}" if tracking_url else ""
+    return {"type": "text", "text": {"body": f"Order status: {status or 'in transit'}.{suffix}"}}

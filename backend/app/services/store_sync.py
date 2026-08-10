@@ -19,6 +19,7 @@ async def sync_order_to_store(order: Order, event: str) -> dict:
     settings = get_settings()
     payload = {
         "event": event,
+        "store_id": str(order.store_id),
         "order_id": str(order.id),
         "external_order_id": order.external_order_id,
         "status": order.status.value,
@@ -29,6 +30,11 @@ async def sync_order_to_store(order: Order, event: str) -> dict:
         "tracking_number": order.tracking_number,
         "carrier_name": order.carrier_name,
         "items": order.items,
+        "internal_tags": ["WA_Confirmed_Address_Verified"] if event == "FINAL_STORE_SYNC" else [],
+        "order_note": (
+            f"Google Maps: https://maps.google.com/?q={order.gps_lat},{order.gps_lng}"
+            if order.gps_lat is not None and order.gps_lng is not None else None
+        ),
     }
     if not settings.n8n_webhook_url:
         return {"synced": False, "reason": "store_adapter_not_configured", "payload": payload}

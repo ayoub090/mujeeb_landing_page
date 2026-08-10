@@ -17,6 +17,7 @@ from app.database import get_session
 from app.models import Message, Order, OrderStatus
 from app.services.sheets import sync_order_to_google_sheet
 from app.services.llm import LLMNotConfigured, draft_customer_message
+from app.services.store_sync import sync_order_to_store
 
 router = APIRouter(prefix="/api/automation", tags=["automation"])
 
@@ -151,6 +152,16 @@ async def apply_decision(
         "applied_at": datetime.now(UTC).isoformat(),
     }
     order.risk_reasons = risk_reasons
+    order.llm_decision = {
+        "action": resolved_action,
+        "status": order.status.value,
+        "location_required": resolved_location,
+        "customer_message_ar": resolved_ar,
+        "customer_message_en": resolved_en,
+        "upsell_offer": resolved_upsell,
+        "dashboard_note": resolved_note,
+        "applied_at": datetime.now(UTC).isoformat(),
+    }
 
     session.add(Message(
         order_id=order.id,
@@ -161,6 +172,7 @@ async def apply_decision(
     ))
     await session.flush()
     await sync_order_to_google_sheet(order, order.store_id, session)
+    store_sync = await sync_order_to_store(order, "LLM_DECISION")
     await session.commit()
     await session.refresh(order)
     return {
@@ -169,5 +181,5 @@ async def apply_decision(
         "external_order_id": order.external_order_id,
         "order_status": order.status.value,
         "dashboard_updated": True,
-        "store_sync": {"salla": "queued", "shopify": "queued"},
+        "store_sync": store_sync,
     }

@@ -6,6 +6,7 @@ from app.routers import (
     auth,
     automation,
     custom_orders,
+    fsm_webhooks,
     health,
     integrations,
     marketing,
@@ -46,5 +47,6 @@ for api_router in (
     custom_orders.router,
     marketing.router,
     automation.router,
+    fsm_webhooks.router,
 ):
     app.include_router(api_router)

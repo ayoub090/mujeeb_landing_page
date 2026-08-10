@@ -25,10 +25,19 @@ class Settings(BaseSettings):
     meta_config_id: str = ""
     meta_graph_version: str = "v23.0"
     meta_webhook_verify_token: str = ""
+    meta_waba_id: str = ""
+    meta_phone_number_id: str = ""
+    meta_access_token: str = ""
     meta_pixel_id: str = ""
     meta_capi_access_token: str = ""
     meta_embedded_signup_redirect_uri: str = ""
     meta_embedded_signup_enabled: bool = False
+
+    google_maps_api_key: str = ""
+    openrouter_api_key: str = ""
+    openrouter_model: str = "openai/gpt-4o-mini"
+    n8n_webhook_url: str = ""
+    n8n_shared_secret: str = ""
 
     salla_client_id: str = ""
     salla_client_secret: str = ""

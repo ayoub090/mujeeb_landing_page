@@ -20,6 +20,9 @@ from app.schemas import (
 from app.services.email import render_email
 from app.services.quota import FREE_PILOT_ORDER_LIMIT
 from app.services.risk import calculate_risk
+from app.models import FSMState
+from app.services.fsm import InvalidTransition, transition
+from app.services.address import ParsedAddress
 
 
 def test_high_risk_order_is_explainable():
@@ -136,3 +139,14 @@ def test_operational_email_templates_are_transactional():
     assert "10" in plain
     assert "GCC Store" in html
     assert "تقرير" in subject
+
+
+def test_cod_fsm_guardrails():
+    assert transition(FSMState.awaiting_confirmation, FSMState.awaiting_address_choice, "confirm").target == FSMState.awaiting_address_choice
+    with pytest.raises(InvalidTransition):
+        transition(FSMState.awaiting_confirmation, FSMState.order_confirmed, "skip_address")
+
+
+def test_address_contract_requires_city_and_district():
+    parsed = ParsedAddress(is_valid=False, formatted_address="Riyadh")
+    assert parsed.is_valid is False

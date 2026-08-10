@@ -44,6 +44,21 @@ class OrderStatus(str, enum.Enum):
     returned = "returned"
 
 
+class FSMState(str, enum.Enum):
+    order_received = "ORDER_RECEIVED"
+    awaiting_confirmation = "AWAITING_CONFIRMATION"
+    awaiting_address_choice = "AWAITING_ADDRESS_CHOICE"
+    reverse_geo = "REVERSE_GEO"
+    llm_parser_strict = "LLM_PARSER_STRICT"
+    confirm_address_text = "CONFIRM_ADDRESS_TEXT"
+    upsell_pitch = "UPSELL_PITCH"
+    modify_variants = "MODIFY_VARIANTS"
+    final_store_sync = "FINAL_STORE_SYNC"
+    order_confirmed = "ORDER_CONFIRMED"
+    order_cancelled = "ORDER_CANCELLED"
+    tracking_active = "TRACKING_ACTIVE"
+
+
 class RiskLevel(str, enum.Enum):
     low = "low"
     medium = "medium"
@@ -84,6 +99,11 @@ class Store(Base):
         back_populates="store", cascade="all, delete-orphan", uselist=False
     )
     api_keys: Mapped[list["StoreApiKey"]] = relationship(cascade="all, delete-orphan")
+
+
+# The product language calls this entity a Merchant; the existing schema keeps
+# the stable `stores` table name for backwards compatibility with the dashboard.
+Merchant = Store
 
 
 class StoreApiKey(Base):
@@ -169,8 +189,28 @@ class Order(Base):
     shipping_address_encrypted: Mapped[str | None] = mapped_column(Text)
     gps_lat: Mapped[Decimal | None] = mapped_column(Numeric(10, 7))
     gps_lng: Mapped[Decimal | None] = mapped_column(Numeric(10, 7))
+    address_data: Mapped[dict] = mapped_column(JSON, default=dict)
+    upsell_status: Mapped[str] = mapped_column(String(32), default="not_offered")
+    tracking_number: Mapped[str | None] = mapped_column(String(120))
+    carrier_name: Mapped[str | None] = mapped_column(String(80))
+    billing_status: Mapped[str] = mapped_column(String(32), default="UNBILLED")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+class FSMConversation(Base):
+    __tablename__ = "fsm_conversations"
+    __table_args__ = (UniqueConstraint("phone_number", "order_id", name="uq_fsm_phone_order"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    phone_number: Mapped[str] = mapped_column(String(32), index=True)
+    order_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"), index=True)
+    current_state: Mapped[FSMState] = mapped_column(
+        Enum(FSMState, name="fsm_state"), default=FSMState.order_received, index=True
+    )
+    session_data: Mapped[dict] = mapped_column(JSON, default=dict)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 class Message(Base):

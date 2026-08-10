@@ -11,7 +11,8 @@ from app.config import get_settings
 from app.database import get_session
 from app.models import FSMConversation, FSMState, Order, OrderStatus
 from app.services.address import parse_manual_address, reverse_geocode
-from app.services.fsm import ALLOWED_TRANSITIONS, initial_state, transition
+from app.services.fsm import ALLOWED_TRANSITIONS, transition
+from app.services.confirmation import start_cod_confirmation
 from app.services.order_ingest import ingest_order
 from app.services.store_sync import sync_order_to_store
 from app.services.whatsapp import (
@@ -69,28 +70,12 @@ async def order_created(payload: dict, session: AsyncSession = Depends(get_sessi
         shipping_city=shipping.get("city"),
         shipping_address=shipping.get("address") or shipping.get("street"),
     )
-    conversation = await session.scalar(
-        select(FSMConversation).where(
-            FSMConversation.phone_number == str(phone), FSMConversation.order_id == order.id
-        )
+    message = await start_cod_confirmation(
+        session, order, str(phone), str(_value(payload, "customer_name", default="Customer"))
     )
-    if conversation is None:
-        conversation = FSMConversation(
-            phone_number=str(phone), order_id=order.id, current_state=initial_state(), session_data={}
-        )
-        session.add(conversation)
-    else:
-        conversation.current_state = initial_state()
     await session.commit()
-    message = await send_whatsapp_message(
-        str(phone),
-        confirmation_payload(
-            order.external_order_number or str(order.id),
-            str(order.amount),
-            str(_value(payload, "customer_name", default="Customer")),
-        ),
-    )
-    return {"received": True, "created": created, "order_id": str(order.id), "state": conversation.current_state.value, "whatsapp": message}
+    state = await session.scalar(select(FSMConversation.current_state).where(FSMConversation.order_id == order.id))
+    return {"received": True, "created": created, "order_id": str(order.id), "state": state.value if state else None, "whatsapp": message}
 
 
 @router.post("/webhooks/logistics-update", status_code=202)

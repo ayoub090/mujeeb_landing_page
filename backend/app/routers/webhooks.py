@@ -13,6 +13,7 @@ from app.config import get_settings
 from app.database import get_session
 from app.models import Integration, Order, OrderStatus, Platform, WebhookEvent
 from app.services.order_ingest import ingest_order
+from app.services.confirmation import start_cod_confirmation
 
 router = APIRouter(prefix="/api/webhooks", tags=["webhooks"])
 settings = get_settings()
@@ -162,7 +163,7 @@ async def receive_salla(
         address = data.get("shipping") or data.get("shipping_address") or {}
         phone = customer.get("mobile") or customer.get("phone") or address.get("mobile") or address.get("phone")
         if store_id and phone:
-            await ingest_order(
+            order, created_order = await ingest_order(
                 session,
                 store_id=store_id,
                 source="salla",
@@ -177,6 +178,8 @@ async def receive_salla(
                 shipping_city=str(address.get("city") or "") or None,
                 shipping_address=str(address.get("address") or address.get("street") or "") or None,
             )
+            if created_order:
+                await start_cod_confirmation(session, order, str(phone), str(customer.get("name") or "Customer"))
     elif created and event in {"order.status.updated", "order.updated", "order.cancelled"}:
         data = payload.get("data") or payload.get("order") or {}
         store_id = await integration_store_id(session, Platform.salla, payload.get("merchant"))
@@ -213,7 +216,7 @@ async def receive_zid(
         address = data.get("shipping_address") or data.get("shipping") or {}
         phone = customer.get("mobile") or customer.get("phone") or address.get("phone")
         if store_id and phone:
-            await ingest_order(
+            order, created_order = await ingest_order(
                 session,
                 store_id=store_id,
                 source="zid",
@@ -228,6 +231,8 @@ async def receive_zid(
                 shipping_city=str(address.get("city") or "") or None,
                 shipping_address=str(address.get("address") or address.get("street") or "") or None,
             )
+            if created_order:
+                await start_cod_confirmation(session, order, str(phone), str(customer.get("name") or "Customer"))
     await session.commit()
     return {"received": True, "duplicate": not created}
 
@@ -260,7 +265,7 @@ async def receive_shopify(
         address = payload.get("shipping_address") or payload.get("billing_address") or {}
         phone = address.get("phone") or customer.get("phone")
         if store_id and phone:
-            await ingest_order(
+            order, created_order = await ingest_order(
                 session,
                 store_id=store_id,
                 source="shopify",
@@ -275,6 +280,8 @@ async def receive_shopify(
                 shipping_city=str(address.get("city") or "") or None,
                 shipping_address=" ".join(filter(None, [address.get("address1"), address.get("address2")])) or None,
             )
+            if created_order:
+                await start_cod_confirmation(session, order, str(phone), " ".join(filter(None, [customer.get("first_name"), customer.get("last_name")])) or "Customer")
         if x_shopify_topic == "orders/updated":
             external_status = "cancelled" if payload.get("cancelled_at") else (
                 payload.get("fulfillment_status") or payload.get("financial_status")

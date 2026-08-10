@@ -15,6 +15,7 @@ def upgrade() -> None:
     columns = {column["name"] for column in inspector.get_columns("orders")}
     additions = {
         "address_data": sa.Column("address_data", sa.JSON(), nullable=False, server_default="{}"),
+        "llm_decision": sa.Column("llm_decision", sa.JSON(), nullable=False, server_default="{}"),
         "upsell_status": sa.Column("upsell_status", sa.String(32), nullable=False, server_default="not_offered"),
         "tracking_number": sa.Column("tracking_number", sa.String(120), nullable=True),
         "carrier_name": sa.Column("carrier_name", sa.String(80), nullable=True),
@@ -41,5 +42,5 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_table("fsm_conversations")
-    for name in ("billing_status", "carrier_name", "tracking_number", "upsell_status", "address_data"):
+    for name in ("billing_status", "carrier_name", "tracking_number", "upsell_status", "llm_decision", "address_data"):
         op.drop_column("orders", name)

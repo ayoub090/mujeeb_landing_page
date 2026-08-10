@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_session
+from app.config import get_settings
 from app.models import FSMConversation, FSMState, Order, OrderStatus
 from app.services.address import parse_manual_address, reverse_geocode
 from app.services.fsm import initial_state, transition
@@ -99,6 +100,13 @@ async def whatsapp_message(request: Request, session: AsyncSession = Depends(get
             conversation.current_state = transition(conversation.current_state, FSMState.confirm_address_text, "location").target
             order.gps_lat, order.gps_lng = Decimal(str(location["latitude"])), Decimal(str(location["longitude"]))
             order.address_data = address.model_dump()
+            order.llm_decision = {
+                "type": "address_resolution",
+                "method": "reverse_geocode",
+                "provider": "google_maps" if address.formatted_address and address.formatted_address != f"{float(location['latitude']):.6f}, {float(location['longitude']):.6f}" else "fallback",
+                "valid": address.is_valid,
+                "missing": address.missing,
+            }
         elif msg_type == "text":
             text = message.get("text", {}).get("body", "")
             if conversation.current_state == FSMState.modify_variants:
@@ -116,6 +124,14 @@ async def whatsapp_message(request: Request, session: AsyncSession = Depends(get
                 address = await parse_manual_address(text)
                 conversation.current_state = transition(conversation.current_state, FSMState.confirm_address_text, "manual_address").target
                 order.address_data = address.model_dump()
+                order.llm_decision = {
+                    "type": "address_resolution",
+                    "method": "manual_parser",
+                    "provider": "openrouter" if get_settings().openrouter_api_key else "fallback",
+                    "model": get_settings().openrouter_model if get_settings().openrouter_api_key else None,
+                    "valid": address.is_valid,
+                    "missing": address.missing,
+                }
             elif conversation.current_state == FSMState.confirm_address_text and text.lower() in {"yes", "correct", "نعم", "نعم صحيح"}:
                 conversation.current_state = FSMState.upsell_pitch
                 order.upsell_status = "offered"

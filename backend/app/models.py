@@ -190,6 +190,7 @@ class Order(Base):
     gps_lat: Mapped[Decimal | None] = mapped_column(Numeric(10, 7))
     gps_lng: Mapped[Decimal | None] = mapped_column(Numeric(10, 7))
     address_data: Mapped[dict] = mapped_column(JSON, default=dict)
+    llm_decision: Mapped[dict] = mapped_column(JSON, default=dict)
     upsell_status: Mapped[str] = mapped_column(String(32), default="not_offered")
     tracking_number: Mapped[str | None] = mapped_column(String(120))
     carrier_name: Mapped[str | None] = mapped_column(String(80))

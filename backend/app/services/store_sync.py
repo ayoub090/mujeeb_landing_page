@@ -25,6 +25,7 @@ async def sync_order_to_store(order: Order, event: str) -> dict:
         "amount": str(order.amount),
         "currency": order.currency,
         "address": order.address_data,
+        "llm_decision": order.llm_decision,
         "tracking_number": order.tracking_number,
         "carrier_name": order.carrier_name,
         "items": order.items,

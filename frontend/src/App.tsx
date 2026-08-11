@@ -36,6 +36,7 @@ function Auth({onDone}:{onDone:()=>void}) {
     e.preventDefault(); setError("");
     try { 
       await api.post(`/api/auth/${mode}`, Object.fromEntries(new FormData(e.currentTarget))); 
+      if (mode === "register") (window as any).twq?.("event", "tw-re98e-reaq4", {});
       onDone(); 
     }
     catch (err: any) { 
@@ -537,6 +538,12 @@ function Auth({onDone}:{onDone:()=>void}) {
         <div className="mt-2 flex justify-center gap-4">
           <a href="/privacy.html" className="hover:underline">سياسة الخصوصية</a>
           <a href="/terms.html" className="hover:underline">شروط الخدمة</a>
+        </div>
+        <p className="mt-2">Mujeeb is operated by <strong className="text-slate-600">AYOUB FADIL</strong> · <a href="mailto:support@usemujeeb.com" className="text-slate-600 hover:underline">support@usemujeeb.com</a></p>
+        <div className="mt-4 flex justify-center gap-4 flex-wrap">
+          <a href="/data-deletion.html" className="hover:underline">Delete my data</a>
+          <a href="https://x.com/DigiClub09" target="_blank" rel="noreferrer" aria-label="Mujeeb on X" className="font-bold text-slate-600 hover:text-black">𝕏 X</a>
+          <a href="https://www.linkedin.com/company/mujeeb/" target="_blank" rel="noreferrer" aria-label="Mujeeb on LinkedIn" className="font-bold text-slate-600 hover:text-blue-700">in LinkedIn</a>
         </div>
       </footer>
 

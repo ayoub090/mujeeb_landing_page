@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     openrouter_model: str = "openai/gpt-4o-mini"
     n8n_webhook_url: str = ""
     n8n_shared_secret: str = ""
+    waapi_base_url: AnyHttpUrl = "https://waapi.app/api/v1"
+    waapi_api_token: str = ""
+    waapi_webhook_base_url: AnyHttpUrl = "https://api.usemujeeb.com/api/waapi/webhooks"
 
     salla_client_id: str = ""
     salla_client_secret: str = ""

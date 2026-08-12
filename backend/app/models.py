@@ -149,6 +149,20 @@ class WhatsAppAccount(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
+class WaapiConnection(Base):
+    __tablename__ = "waapi_connections"
+    __table_args__ = (UniqueConstraint("store_id", name="uq_waapi_store"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    store_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("stores.id", ondelete="CASCADE"), index=True)
+    instance_id: Mapped[str] = mapped_column(String(64))
+    api_token_encrypted: Mapped[str] = mapped_column(Text)
+    webhook_token_encrypted: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(32), default="configured")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
 class Customer(Base):
     __tablename__ = "customers"
     __table_args__ = (UniqueConstraint("store_id", "phone_hash", name="uq_store_phone_hash"),)

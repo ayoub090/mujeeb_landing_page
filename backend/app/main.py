@@ -6,6 +6,7 @@ from app.routers import (
     auth,
     automation,
     custom_orders,
+    dev_whatsapp,
     fsm_webhooks,
     health,
     integrations,
@@ -14,6 +15,7 @@ from app.routers import (
     payments,
     privacy,
     webhooks,
+    waapi,
     whatsapp,
 )
 
@@ -45,6 +47,8 @@ for api_router in (
     privacy.router,
     webhooks.router,
     custom_orders.router,
+    dev_whatsapp.router,
+    waapi.router,
     marketing.router,
     automation.router,
     fsm_webhooks.router,

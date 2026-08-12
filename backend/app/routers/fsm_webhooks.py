@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
+from app.crypto import encrypt_text
 from app.database import get_session
 from app.models import FSMConversation, FSMState, Order, OrderStatus
 from app.services.address import parse_manual_address, reverse_geocode
@@ -73,9 +74,13 @@ async def order_created(payload: dict, session: AsyncSession = Depends(get_sessi
     message = await start_cod_confirmation(
         session, order, str(phone), str(_value(payload, "customer_name", default="Customer"))
     )
+    # Start the n8n/OpenRouter branch as soon as the order is accepted. The
+    # adapter is optional in local/mock mode and reports that it is disabled
+    # when no webhook URL is configured.
+    automation = await sync_order_to_store(order, "ORDER_CREATED")
     await session.commit()
     state = await session.scalar(select(FSMConversation.current_state).where(FSMConversation.order_id == order.id))
-    return {"received": True, "created": created, "order_id": str(order.id), "state": state.value if state else None, "whatsapp": message}
+    return {"received": True, "created": created, "order_id": str(order.id), "state": state.value if state else None, "whatsapp": message, "automation": automation}
 
 
 @router.post("/webhooks/logistics-update", status_code=202)
@@ -128,6 +133,12 @@ async def whatsapp_message(
             conversation.current_state = transition(conversation.current_state, FSMState.confirm_address_text, "reverse_geocoded").target
             order.gps_lat, order.gps_lng = Decimal(str(location["latitude"])), Decimal(str(location["longitude"]))
             order.address_data = address.model_dump()
+            # Keep the verified location in the canonical shipping fields as
+            # well as the audit JSON. Store adapters (Salla/Shopify/custom)
+            # can therefore write the same address without re-parsing GPS.
+            order.shipping_city = address.city or address.district or order.shipping_city
+            if address.formatted_address:
+                order.shipping_address_encrypted = encrypt_text(address.formatted_address)
             fallback = f"{float(location['latitude']):.6f}, {float(location['longitude']):.6f}"
             order.llm_decision = {"type": "address_resolution", "method": "reverse_geocode", "provider": "google_maps" if address.formatted_address != fallback else "fallback", "valid": address.is_valid, "missing": address.missing}
             await send_whatsapp_message(phone, address_confirmation_payload(order.address_data))
@@ -154,6 +165,9 @@ async def whatsapp_message(
                 address = await parse_manual_address(text)
                 conversation.current_state = transition(conversation.current_state, FSMState.confirm_address_text, "parsed_address").target
                 order.address_data = address.model_dump()
+                order.shipping_city = address.city or address.district or order.shipping_city
+                if address.formatted_address:
+                    order.shipping_address_encrypted = encrypt_text(address.formatted_address)
                 settings = get_settings()
                 order.llm_decision = {"type": "address_resolution", "method": "manual_parser", "provider": "openrouter" if settings.openrouter_api_key else "fallback", "model": settings.openrouter_model if settings.openrouter_api_key else None, "valid": address.is_valid, "missing": address.missing}
                 await send_whatsapp_message(phone, address_confirmation_payload(order.address_data))

@@ -992,5 +992,10 @@ function Dashboard({user,onLogout}:{user:User;onLogout:()=>void}) {
   </main></div>;
 }
 
-export default function App(){const me=useQuery({queryKey:["me"],queryFn:async()=> (await api.get<User>("/api/auth/me")).data,retry:false});if(me.isLoading)return <div className="min-h-screen grid place-items-center font-black">Ù…ÙØ¬ÙŠØ¨</div>;if(!me.data)return <Auth onDone={()=>me.refetch()}/>;return <Dashboard user={me.data} onLogout={async()=>{await api.post("/api/auth/logout");location.reload();}}/>;}
+function repairEncoding(root: ParentNode=document){
+  const nodes=root.querySelectorAll?.("*:not(script):not(style)") || [];
+  const repair=(node: Node)=>{if(node.nodeType!==Node.TEXT_NODE)return;const t=node.textContent||"";if(!/[ØÙÃÂ]/.test(t))return;try{const bytes=[];for(const ch of t){const c=ch.codePointAt(0)!;if(c>=0x80&&c<=0x9f){const cp=[0x20ac,0x201a,0x192,0x201e,0x2026,0x2020,0x2021,0x2c6,0x2030,0x160,0x2039,0x152,0x17d,0x2018,0x2019,0x201c,0x201d,0x2022,0x2013,0x2014,0x2dc,0x2122,0x161,0x203a,0x153,0x17e,0x178];const i=cp.indexOf(c);bytes.push(i<0?c:i+0x80);}else bytes.push(c);}const fixed=new TextDecoder().decode(new Uint8Array(bytes));if(fixed!==t&&/[؀-ۿ]/.test(fixed))(node as Text).textContent=fixed;}catch{}}
+  nodes.forEach(el=>el.childNodes.forEach(repair));
+}
+export default function App(){useEffect(()=>{repairEncoding();const observer=new MutationObserver(()=>repairEncoding());observer.observe(document.body,{subtree:true,childList:true,characterData:true});return()=>observer.disconnect();},[]);const me=useQuery({queryKey:["me"],queryFn:async()=> (await api.get<User>("/api/auth/me")).data,retry:false});if(me.isLoading)return <div className="min-h-screen grid place-items-center font-black">Ù…ÙØ¬ÙŠØ¨</div>;if(!me.data)return <Auth onDone={()=>me.refetch()}/>;return <Dashboard user={me.data} onLogout={async()=>{await api.post("/api/auth/logout");location.reload();}}/>;}
 

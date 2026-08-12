@@ -6,9 +6,12 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import get_current_user
-from app.models import User
+from app.database import get_session
+from app.models import Store, User
 
 router = APIRouter(prefix="/api/dev/whatsapp", tags=["development"])
 _sessions: dict[str, dict] = {}
@@ -24,8 +27,11 @@ class EventIn(BaseModel):
 
 
 @router.post("/session")
-async def create_session(payload: SessionIn, user: User = Depends(get_current_user)):
-    if not any(str(store.id) == str(payload.store_id) for store in user.stores):
+async def create_session(payload: SessionIn, user: User = Depends(get_current_user), session: AsyncSession = Depends(get_session)):
+    # Query explicitly instead of touching the async lazy ``user.stores`` relationship.
+    # The latter raises MissingGreenlet in production and made the pilot button fail.
+    store = await session.scalar(select(Store).where(Store.id == payload.store_id, Store.owner_id == user.id))
+    if not store:
         raise HTTPException(status_code=404, detail="Store not found")
     session_id = secrets.token_urlsafe(18)
     _sessions[session_id] = {
@@ -41,17 +47,19 @@ async def create_session(payload: SessionIn, user: User = Depends(get_current_us
 
 
 @router.get("/session/{session_id}")
-async def get_session(session_id: str, user: User = Depends(get_current_user)):
+async def get_session(session_id: str, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_session)):
     session = _sessions.get(session_id)
-    if not session or not any(session["store_id"] == str(store.id) for store in user.stores):
+    store = await db.scalar(select(Store).where(Store.id == (session or {}).get("store_id"), Store.owner_id == user.id))
+    if not session or not store:
         raise HTTPException(status_code=404, detail="Session not found")
     return session
 
 
 @router.post("/session/{session_id}/event")
-async def add_event(session_id: str, payload: EventIn, user: User = Depends(get_current_user)):
+async def add_event(session_id: str, payload: EventIn, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_session)):
     session = _sessions.get(session_id)
-    if not session or not any(session["store_id"] == str(store.id) for store in user.stores):
+    store = await db.scalar(select(Store).where(Store.id == (session or {}).get("store_id"), Store.owner_id == user.id))
+    if not session or not store:
         raise HTTPException(status_code=404, detail="Session not found")
     session["status"] = "connected" if payload.event == "qr_scanned" else "running"
     session["events"].append({"event": payload.event, "payload": payload.payload, "at": int(time.time())})

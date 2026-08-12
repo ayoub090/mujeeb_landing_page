@@ -30,9 +30,14 @@ async def owned(store_id, user, session):
 @router.post("/connect")
 async def connect(payload: ConnectInput, user: User = Depends(get_current_user), session: AsyncSession = Depends(get_session)):
     await owned(payload.store_id, user, session)
+    if "@" in payload.instance_id or not payload.instance_id.strip().isdigit():
+        raise HTTPException(422, "WAAPI instance ID must be the numeric ID from your WaAPI dashboard")
     settings = get_settings()
-    async with httpx.AsyncClient(timeout=15) as client:
-        response = await client.get(f"{str(settings.waapi_base_url).rstrip('/')}/instances/{payload.instance_id}", headers={"Authorization": f"Bearer {payload.api_token}", "Accept":"application/json"})
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            response = await client.get(f"{str(settings.waapi_base_url).rstrip('/')}/instances/{payload.instance_id}", headers={"Authorization": f"Bearer {payload.api_token}", "Accept":"application/json"})
+    except httpx.HTTPError as exc:
+        raise HTTPException(502, "WAAPI is temporarily unreachable. Please retry.") from exc
     if response.is_error: raise HTTPException(502, "WAAPI instance could not be verified")
     webhook_token = secrets.token_urlsafe(32)
     row = await session.scalar(select(WaapiConnection).where(WaapiConnection.store_id == payload.store_id))
@@ -51,8 +56,11 @@ async def status(store_id: uuid.UUID, user: User = Depends(get_current_user), se
     if not row: return {"configured":False,"connected":False}
     settings = get_settings()
     from app.crypto import decrypt_text
-    async with httpx.AsyncClient(timeout=15) as client:
-        response = await client.get(f"{str(settings.waapi_base_url).rstrip('/')}/instances/{row.instance_id}/client/status", headers={"Authorization":f"Bearer {decrypt_text(row.api_token_encrypted)}","Accept":"application/json"})
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            response = await client.get(f"{str(settings.waapi_base_url).rstrip('/')}/instances/{row.instance_id}/client/status", headers={"Authorization":f"Bearer {decrypt_text(row.api_token_encrypted)}","Accept":"application/json"})
+    except httpx.HTTPError:
+        return {"configured":True,"connected":False,"instance_id":row.instance_id,"provider":"waapi","error":"provider_unreachable"}
     return {"configured":True,"connected":response.is_success,"instance_id":row.instance_id,"provider":"waapi"}
 
 @router.post("/webhooks/{token}", status_code=202)

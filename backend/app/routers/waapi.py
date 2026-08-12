@@ -22,6 +22,9 @@ class ConnectInput(BaseModel):
     instance_id: str = Field(min_length=1, max_length=64)
     api_token: str = Field(min_length=10)
 
+class ProvisionInput(BaseModel):
+    store_id: uuid.UUID
+
 async def owned(store_id, user, session):
     store = await session.scalar(select(Store).where(Store.id == store_id, Store.owner_id == user.id))
     if not store: raise HTTPException(404, "Store not found")
@@ -48,6 +51,40 @@ async def connect(payload: ConnectInput, user: User = Depends(get_current_user),
         row.instance_id = payload.instance_id; row.api_token_encrypted = encrypt_text(payload.api_token); row.webhook_token_encrypted = encrypt_text(webhook_token); row.status = "configured"
     await session.commit()
     return {"status":"connected", "instance_id":payload.instance_id, "webhook_path":f"/api/waapi/webhooks/{webhook_token}"}
+
+@router.post("/provision")
+async def provision(payload: ProvisionInput, user: User = Depends(get_current_user), session: AsyncSession = Depends(get_session)):
+    """Create and configure a WaAPI instance using Mujeeb's provider account.
+    The merchant never sees the provider token; they only receive a QR image.
+    """
+    await owned(payload.store_id, user, session)
+    settings = get_settings()
+    if not settings.waapi_api_token:
+        raise HTTPException(503, "WAAPI provisioning is not configured yet")
+    webhook_token = secrets.token_urlsafe(32)
+    webhook_url = f"{str(settings.waapi_webhook_base_url).rstrip('/')}/{webhook_token}"
+    headers = {"Authorization": f"Bearer {settings.waapi_api_token}", "Accept":"application/json", "Content-Type":"application/json"}
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            created = await client.post(f"{str(settings.waapi_base_url).rstrip('/')}/instances", headers=headers, json={"name": f"mujeeb-{payload.store_id}", "webhook": {"url": webhook_url, "events": ["qr", "ready", "authenticated", "disconnected", "message", "message_create"]}})
+            if created.is_error:
+                raise HTTPException(502, "WAAPI could not create the WhatsApp instance")
+            data = created.json()
+            instance_id = str(data.get("id") or data.get("instanceId") or "")
+            if not instance_id.isdigit():
+                raise HTTPException(502, "WAAPI returned an invalid instance ID")
+            qr = await client.get(f"{str(settings.waapi_base_url).rstrip('/')}/instances/{instance_id}/client/qr", headers=headers)
+            qr_data = qr.json() if qr.is_success else {}
+    except httpx.HTTPError as exc:
+        raise HTTPException(502, "WAAPI is temporarily unreachable") from exc
+    row = await session.scalar(select(WaapiConnection).where(WaapiConnection.store_id == payload.store_id))
+    if not row:
+        row = WaapiConnection(store_id=payload.store_id, instance_id=instance_id, api_token_encrypted=encrypt_text(settings.waapi_api_token), webhook_token_encrypted=encrypt_text(webhook_token), status="provisioned")
+        session.add(row)
+    else:
+        row.instance_id = instance_id; row.api_token_encrypted = encrypt_text(settings.waapi_api_token); row.webhook_token_encrypted = encrypt_text(webhook_token); row.status = "provisioned"
+    await session.commit()
+    return {"status":"qr_ready", "instance_id":instance_id, "qr":qr_data.get("base64") or qr_data.get("qr")}
 
 @router.get("/status")
 async def status(store_id: uuid.UUID, user: User = Depends(get_current_user), session: AsyncSession = Depends(get_session)):

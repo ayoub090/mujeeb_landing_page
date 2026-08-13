@@ -66,13 +66,29 @@ async def provision(payload: ProvisionInput, user: User = Depends(get_current_us
     headers = {"Authorization": f"Bearer {settings.waapi_api_token}", "Accept":"application/json", "Content-Type":"application/json"}
     try:
         async with httpx.AsyncClient(timeout=20) as client:
-            created = await client.post(f"{str(settings.waapi_base_url).rstrip('/')}/instances", headers=headers, json={"name": f"mujeeb-{payload.store_id}", "webhook": {"url": webhook_url, "events": ["qr", "ready", "authenticated", "disconnected", "message", "message_create"]}})
+            # WAAPI creates the instance first; webhook subscription is applied
+            # with the update endpoint immediately afterwards. Sending webhook
+            # fields in the create request is rejected by some API versions.
+            created = await client.post(
+                f"{str(settings.waapi_base_url).rstrip('/')}/instances",
+                headers=headers,
+                json={"name": f"mujeeb-{payload.store_id}"},
+            )
             if created.is_error:
-                raise HTTPException(502, "WAAPI could not create the WhatsApp instance")
+                detail = created.text[:300]
+                raise HTTPException(502, f"WAAPI could not create the WhatsApp instance ({created.status_code}): {detail}")
             data = created.json()
             instance_id = str(data.get("id") or data.get("instanceId") or "")
             if not instance_id.isdigit():
                 raise HTTPException(502, "WAAPI returned an invalid instance ID")
+            updated = await client.put(
+                f"{str(settings.waapi_base_url).rstrip('/')}/instances/{instance_id}",
+                headers=headers,
+                json={"webhook": {"url": webhook_url, "events": ["qr", "ready", "authenticated", "disconnected", "message", "message_create"]}},
+            )
+            if updated.is_error:
+                detail = updated.text[:300]
+                raise HTTPException(502, f"WAAPI instance created but webhook setup failed ({updated.status_code}): {detail}")
             qr = await client.get(f"{str(settings.waapi_base_url).rstrip('/')}/instances/{instance_id}/client/qr", headers=headers)
             qr_data = qr.json() if qr.is_success else {}
     except httpx.HTTPError as exc:

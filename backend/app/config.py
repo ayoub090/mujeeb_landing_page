@@ -34,10 +34,7 @@ class Settings(BaseSettings):
     meta_embedded_signup_enabled: bool = False
 
     google_maps_api_key: str = ""
-    openrouter_api_key: str = ""
-    openrouter_model: str = "openai/gpt-4o-mini"
     n8n_webhook_url: str = ""
-    n8n_shared_secret: str = ""
     waapi_base_url: AnyHttpUrl = "https://waapi.app/api/v1"
     waapi_api_token: str = ""
     waapi_webhook_base_url: AnyHttpUrl = "https://api.usemujeeb.com/api/waapi/webhooks"
@@ -68,6 +65,8 @@ class Settings(BaseSettings):
     app_base_url: AnyHttpUrl = "http://localhost:8000"
 
     analytics_admin_key: str = ""
+    # An empty value means development tools remain inaccessible in production.
+    internal_admin_email: str = ""
     resend_api_key: str = ""
     resend_api_base: str = "https://api.resend.com"
     resend_from_email: str = ""

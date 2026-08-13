@@ -59,6 +59,7 @@ class UserOut(BaseModel):
     email: EmailStr
     full_name: str
     stores: list[StoreOut] = []
+    is_internal_admin: bool = False
 
 
 class RiskInput(BaseModel):
@@ -80,6 +81,7 @@ class OrderOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
     external_order_number: str | None
+    customer_name: str | None = None
     amount: Decimal
     currency: str
     status: OrderStatus
@@ -111,6 +113,10 @@ class CheckoutInput(BaseModel):
 
 class OAuthStartInput(BaseModel):
     store_id: uuid.UUID
+
+
+class MerchantTokenInput(OAuthStartInput):
+    token: str = Field(min_length=8, max_length=2048)
 
 
 class ShopifyStartInput(OAuthStartInput):

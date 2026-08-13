@@ -82,3 +82,24 @@ async def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Compte introuvable")
     return user
 
+
+def is_internal_admin(user: User) -> bool:
+    configured_email = get_settings().internal_admin_email.strip().lower()
+    return bool(configured_email) and user.email.lower() == configured_email
+
+
+def require_internal_admin(user: User) -> User:
+    if not is_internal_admin(user):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Internal tools are not available for this account")
+    return user
+
+
+async def require_superadmin(user: User = Depends(get_current_user)) -> User:
+    """Dependency boundary for every internal-only HTTP route.
+
+    The dashboard may hide `/admin`, but the API remains authoritative: an
+    authenticated merchant can never reach simulation, provider-instance or
+    raw diagnostic endpoints unless their email matches INTERNAL_ADMIN_EMAIL.
+    """
+    return require_internal_admin(user)
+

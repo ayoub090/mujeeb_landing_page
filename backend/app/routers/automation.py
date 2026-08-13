@@ -18,6 +18,7 @@ from app.models import Message, Order, OrderStatus
 from app.services.sheets import sync_order_to_google_sheet
 from app.services.llm import LLMNotConfigured, draft_customer_message
 from app.services.store_sync import sync_order_to_store
+from app.services.quota import consume_confirmation_credit
 
 router = APIRouter(prefix="/api/automation", tags=["automation"])
 
@@ -122,7 +123,12 @@ async def apply_decision(
         except json.JSONDecodeError:
             decision = {}
     resolved_status = str(decision.get("status") or payload.status)
-    order.status = _safe_status(resolved_status)
+    next_status = _safe_status(resolved_status)
+    # n8n retries must be harmless: the credit is consumed only on the first
+    # successful transition into confirmed status.
+    if next_status == OrderStatus.confirmed and order.status != OrderStatus.confirmed:
+        await consume_confirmation_credit(order.store_id, session)
+    order.status = next_status
     resolved_risk = decision.get("risk_score", payload.risk_score)
     if resolved_risk is not None:
         payload.risk_score = int(resolved_risk)

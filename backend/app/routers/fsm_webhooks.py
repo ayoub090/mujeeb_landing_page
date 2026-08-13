@@ -15,6 +15,7 @@ from app.services.address import parse_manual_address, reverse_geocode
 from app.services.fsm import ALLOWED_TRANSITIONS, transition
 from app.services.confirmation import start_cod_confirmation
 from app.services.order_ingest import ingest_order
+from app.services.quota import consume_confirmation_credit
 from app.services.store_sync import sync_order_to_store
 from app.services.whatsapp import (
     address_choice_payload,
@@ -43,6 +44,13 @@ def _can_cancel(state: FSMState) -> bool:
 async def _final_sync(conversation: FSMConversation, order: Order, event: str) -> None:
     result = await sync_order_to_store(order, event)
     conversation.session_data = {**conversation.session_data, "store_sync": result}
+
+
+async def _mark_order_confirmed(order: Order, session: AsyncSession) -> None:
+    """Set a confirmed order once and consume a free credit exactly once."""
+    if order.status != OrderStatus.confirmed:
+        await consume_confirmation_credit(order.store_id, session)
+        order.status = OrderStatus.confirmed
 
 
 @router.post("/webhooks/order-created", status_code=202)
@@ -177,7 +185,8 @@ async def whatsapp_message(
                 await send_whatsapp_message(phone, upsell_payload())
             elif conversation.current_state == FSMState.upsell_pitch and lowered in {"no", "no thanks", "complete order"}:
                 conversation.current_state = transition(conversation.current_state, FSMState.final_store_sync, "upsell_declined").target
-                order.upsell_status, order.status = "declined", OrderStatus.confirmed
+                order.upsell_status = "declined"
+                await _mark_order_confirmed(order, session)
                 await _final_sync(conversation, order, "FINAL_STORE_SYNC")
                 conversation.current_state = transition(conversation.current_state, FSMState.order_confirmed, "store_sync_complete").target
         elif msg_type == "interactive":
@@ -205,7 +214,8 @@ async def whatsapp_message(
                 await send_whatsapp_message(phone, address_choice_payload())
             elif action in {"reject_upsell", "complete_order"} and conversation.current_state == FSMState.upsell_pitch:
                 conversation.current_state = transition(conversation.current_state, FSMState.final_store_sync, "upsell_declined").target
-                order.upsell_status, order.status = "declined", OrderStatus.confirmed
+                order.upsell_status = "declined"
+                await _mark_order_confirmed(order, session)
                 await _final_sync(conversation, order, "FINAL_STORE_SYNC")
                 conversation.current_state = transition(conversation.current_state, FSMState.order_confirmed, "store_sync_complete").target
             elif action == "accept_upsell" and conversation.current_state == FSMState.upsell_pitch:
@@ -213,7 +223,7 @@ async def whatsapp_message(
                 order.amount += Decimal("99")
                 order.upsell_status = "accepted"
                 conversation.current_state = transition(conversation.current_state, FSMState.final_store_sync, "upsell_accepted").target
-                order.status = OrderStatus.confirmed
+                await _mark_order_confirmed(order, session)
                 await _final_sync(conversation, order, "FINAL_STORE_SYNC")
                 conversation.current_state = transition(conversation.current_state, FSMState.order_confirmed, "store_sync_complete").target
         processed += 1

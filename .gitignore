@@ -1,6 +1,12 @@
 .env
 .env.*
 !.env.example
+.env.production
+.env.production.local
+.secrets/
+deploy/certbot/conf/
+deploy/certbot/www/
+deploy/backups/
 __pycache__/
 *.py[cod]
 .pytest_cache/

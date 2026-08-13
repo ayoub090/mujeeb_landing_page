@@ -4,9 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import get_current_user
+from app.auth import get_current_user, require_superadmin
 from app.database import get_session
-from app.models import Order, OrderStatus, Store, Subscription, User
+from app.models import Customer, Order, OrderStatus, Store, Subscription, User
 from app.schemas import OrderOut, RiskInput, RiskResult
 from app.services.quota import FREE_PILOT_ORDER_LIMIT
 from app.services.risk import calculate_risk
@@ -30,10 +30,24 @@ async def list_orders(
     session: AsyncSession = Depends(get_session),
 ):
     await owned_store(store_id, user, session)
-    statement = select(Order).where(Order.store_id == store_id).order_by(Order.created_at.desc()).limit(limit)
+    statement = (
+        select(Order, Customer.name_encrypted)
+        .join(Customer, Customer.id == Order.customer_id)
+        .where(Order.store_id == store_id)
+        .order_by(Order.created_at.desc())
+        .limit(limit)
+    )
     if status_filter:
         statement = statement.where(Order.status == status_filter)
-    return list((await session.scalars(statement)).all())
+    from app.crypto import decrypt_text
+
+    result = await session.execute(statement)
+    output = []
+    for order, encrypted_name in result.all():
+        item = OrderOut.model_validate(order).model_dump()
+        item["customer_name"] = decrypt_text(encrypted_name) if encrypted_name else None
+        output.append(item)
+    return output
 
 
 @router.get("/summary")
@@ -56,6 +70,11 @@ async def order_summary(
         select(Subscription).where(Subscription.store_id == store_id)
     )
     plan = subscription.plan if subscription and subscription.status == "active" else "free"
+    free_remaining = (
+        subscription.free_confirmations_remaining
+        if subscription and plan == "free"
+        else (FREE_PILOT_ORDER_LIMIT if plan == "free" else None)
+    )
 
     # Count GPS verified orders
     gps_verified = await session.scalar(
@@ -95,9 +114,9 @@ async def order_summary(
         "human_follow_up": counts.get(OrderStatus.human_follow_up.value, 0),
         "confirmation_rate": round((confirmed / total * 100), 1) if total else 0,
         "plan": plan,
-        "pilot_orders_used": total if plan == "free" else None,
+        "pilot_orders_used": FREE_PILOT_ORDER_LIMIT - free_remaining if plan == "free" else None,
         "free_pilot_limit": FREE_PILOT_ORDER_LIMIT if plan == "free" else None,
-        "free_pilot_remaining": max(FREE_PILOT_ORDER_LIMIT - total, 0) if plan == "free" else None,
+        "free_pilot_remaining": free_remaining,
         "gps_verified_count": gps_verified,
         "upsell_conversion_count": upsell_count,
         "upsell_revenue": upsell_revenue,
@@ -117,7 +136,7 @@ class ChatbotActionInput(BaseModel):
 
 @router.post("/simulate-chatbot")
 async def simulate_chatbot_order(
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_superadmin),
     session: AsyncSession = Depends(get_session),
 ):
     from app.models import Store, Customer, OrderStatus, RiskLevel
@@ -172,7 +191,7 @@ async def simulate_chatbot_order(
 async def chatbot_action(
     order_id: uuid.UUID,
     payload: ChatbotActionInput,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_superadmin),
     session: AsyncSession = Depends(get_session),
 ):
     from decimal import Decimal

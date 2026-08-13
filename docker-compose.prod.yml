@@ -1,0 +1,88 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mujeeb
+      POSTGRES_USER: mujeeb
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mujeeb -d mujeeb"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes: [redis_data:/data]
+
+  api:
+    image: ghcr.io/ayoub090/mujeeb-api:latest
+    restart: unless-stopped
+    env_file: .env
+    environment: &api_environment
+      ENVIRONMENT: production
+      DATABASE_URL: postgresql+asyncpg://mujeeb:${POSTGRES_PASSWORD}@postgres:5432/mujeeb
+      REDIS_URL: redis://redis:6379/0
+      FRONTEND_URL: https://${APP_DOMAIN}
+      COOKIE_DOMAIN: .${PRIMARY_DOMAIN}
+      APP_BASE_URL: https://${API_DOMAIN}
+      TRUST_PROXY_HEADERS: "true"
+      SALLA_REDIRECT_URI: https://${API_DOMAIN}/api/integrations/salla/callback
+      ZID_REDIRECT_URI: https://${API_DOMAIN}/api/integrations/zid/callback
+      SHOPIFY_REDIRECT_URI: https://${API_DOMAIN}/api/integrations/shopify/callback
+    command: ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='*'"]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_started}
+
+  worker:
+    image: ghcr.io/ayoub090/mujeeb-api:latest
+    restart: unless-stopped
+    env_file: .env
+    environment: *api_environment
+    command: ["python", "-m", "app.worker"]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_started}
+
+  dashboard:
+    image: ghcr.io/ayoub090/mujeeb-dashboard:latest
+    restart: unless-stopped
+    depends_on: [api]
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./deploy/nginx-production.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./deploy/certbot/www:/var/www/certbot:ro
+      - ./deploy/certbot/conf:/etc/letsencrypt:ro
+    depends_on: [api, dashboard]
+
+  certbot-init:
+    image: certbot/certbot:latest
+    profiles: ["bootstrap"]
+    ports: ["80:80"]
+    volumes:
+      - ./deploy/certbot/conf:/etc/letsencrypt
+    command: >-
+      certonly --standalone --non-interactive --agree-tos
+      --email ${ACME_EMAIL:?Set ACME_EMAIL in .env}
+      -d ${PRIMARY_DOMAIN} -d ${APP_DOMAIN} -d ${API_DOMAIN}
+
+  certbot-renew:
+    image: certbot/certbot:latest
+    profiles: ["renew"]
+    volumes:
+      - ./deploy/certbot/conf:/etc/letsencrypt
+      - ./deploy/certbot/www:/var/www/certbot
+    command: renew --webroot -w /var/www/certbot
+
+volumes:
+  postgres_data:
+  redis_data:

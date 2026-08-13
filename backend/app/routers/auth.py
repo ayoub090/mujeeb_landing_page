@@ -9,6 +9,7 @@ from app.auth import (
     decode_token,
     get_current_user,
     hash_password,
+    is_internal_admin,
     set_auth_cookies,
     verify_password,
 )
@@ -22,6 +23,10 @@ from app.services.geoip import verify_signup_ip
 from app.services.lifecycle import enqueue_email, record_lifecycle_event
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+
+def user_out(user: User) -> UserOut:
+    return UserOut.model_validate(user).model_copy(update={"is_internal_admin": is_internal_admin(user)})
 
 
 def source_ip(request: Request) -> str:
@@ -58,7 +63,9 @@ async def register(
         country_code=payload.country_code,
         currency={"SA": "SAR", "AE": "AED", "KW": "KWD", "BH": "BHD", "QA": "QAR", "OM": "OMR"}[payload.country_code],
     )
-    store.subscription = Subscription(plan="free", status="active")
+    store.subscription = Subscription(
+        plan="free", status="active", free_confirmations_remaining=50
+    )
     user.stores.append(store)
     session.add(user)
     await session.flush()
@@ -88,7 +95,7 @@ async def register(
         user_agent=request.headers.get("user-agent"),
     )
     set_auth_cookies(response, user.id)
-    return user
+    return user_out(user)
 
 
 @router.post("/login", response_model=UserOut)
@@ -103,7 +110,7 @@ async def login(
     if not user or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Email ou mot de passe invalide")
     set_auth_cookies(response, user.id)
-    return user
+    return user_out(user)
 
 
 @router.post("/refresh", status_code=204)
@@ -127,4 +134,4 @@ async def me(
     hydrated = await session.scalar(
         select(User).options(selectinload(User.stores)).where(User.id == user.id)
     )
-    return hydrated
+    return user_out(hydrated)

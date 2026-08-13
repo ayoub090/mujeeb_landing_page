@@ -4,13 +4,13 @@ import hmac
 import json
 from decimal import Decimal, InvalidOperation
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query, Request
 from fastapi.responses import PlainTextResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
-from app.database import get_session
+from app.database import SessionLocal, get_session
 from app.models import Integration, Order, OrderStatus, Platform, WebhookEvent
 from app.services.order_ingest import ingest_order
 from app.services.confirmation import start_cod_confirmation
@@ -26,7 +26,7 @@ def signature_ok(raw: bytes, received: str | None, secret: str, prefix: str = ""
     return hmac.compare_digest(f"{prefix}{digest}", received)
 
 
-async def persist_event(provider: str, raw: bytes, payload: dict, session: AsyncSession) -> bool:
+async def persist_event(provider: str, raw: bytes, payload: dict, session: AsyncSession) -> WebhookEvent | None:
     event_type = str(payload.get("event") or payload.get("eventType") or payload.get("topic") or "unknown")
     supplied_id = payload.get("id") or payload.get("event_id") or payload.get("webhook_id")
     event_key = str(supplied_id or hashlib.sha256(raw).hexdigest())
@@ -36,13 +36,14 @@ async def persist_event(provider: str, raw: bytes, payload: dict, session: Async
         )
     )
     if exists:
-        return False
-    session.add(WebhookEvent(
+        return None
+    event = WebhookEvent(
         provider=provider, event_key=event_key, payload_hash=hashlib.sha256(raw).hexdigest(),
         event_type=event_type, payload=payload, status="received",
-    ))
+    )
+    session.add(event)
     await session.flush()
-    return True
+    return event
 
 
 def _decimal(value: object) -> Decimal:
@@ -57,6 +58,16 @@ def _decimal(value: object) -> Decimal:
 async def integration_store_id(
     session: AsyncSession, platform: Platform, external_store_id: object
 ):
+    # Providers are inconsistent here: Salla can send the merchant as an
+    # object while Zid/Shopify normally send a scalar identifier. Normalise
+    # before looking up the integration so an incoming order always stays
+    # isolated to the merchant that connected it.
+    if isinstance(external_store_id, dict):
+        external_store_id = (
+            external_store_id.get("id")
+            or external_store_id.get("store_id")
+            or external_store_id.get("uuid")
+        )
     if external_store_id in (None, ""):
         return None
     return await session.scalar(select(Integration.store_id).where(
@@ -103,6 +114,103 @@ async def update_order_status(
         order.status = mapped
 
 
+async def _process_salla(payload: dict, session: AsyncSession) -> None:
+    event = str(payload.get("event") or payload.get("type") or "")
+    if event == "order.created":
+        store_id = await integration_store_id(session, Platform.salla, payload.get("merchant"))
+        data = payload.get("data") or {}
+        customer = data.get("customer") or {}
+        address = data.get("shipping") or data.get("shipping_address") or {}
+        phone = customer.get("mobile") or customer.get("phone") or address.get("mobile") or address.get("phone")
+        if store_id and phone:
+            order, created_order = await ingest_order(
+                session, store_id=store_id, source="salla", external_order_id=str(data.get("id")),
+                external_order_number=str(data.get("reference_id") or data.get("number") or data.get("id")),
+                customer_name=str(customer.get("name") or "Customer"), customer_phone=str(phone),
+                amount=_decimal(data.get("total")), currency=str(data.get("currency") or "SAR"),
+                payment_method=str((data.get("payment_method") or {}).get("name") if isinstance(data.get("payment_method"), dict) else data.get("payment_method") or "cod"),
+                items=data.get("items") or [], shipping_city=str(address.get("city") or "") or None,
+                shipping_address=str(address.get("address") or address.get("street") or "") or None,
+            )
+            if created_order:
+                await start_cod_confirmation(session, order, str(phone), str(customer.get("name") or "Customer"))
+    elif event in {"order.status.updated", "order.updated", "order.cancelled"}:
+        data = payload.get("data") or payload.get("order") or {}
+        store_id = await integration_store_id(session, Platform.salla, payload.get("merchant"))
+        await update_order_status(session, store_id=store_id, external_order_id=data.get("id") or data.get("order_id"), external_status=data.get("status") or data.get("order_status") or event)
+
+
+async def _process_zid(payload: dict, session: AsyncSession) -> None:
+    event = payload.get("event") or payload.get("type")
+    if event != "order.create":
+        return
+    data = payload.get("data") or payload.get("order") or payload
+    store_id = await integration_store_id(session, Platform.zid, payload.get("store_id") or data.get("store_id"))
+    customer = data.get("customer") or {}
+    address = data.get("shipping_address") or data.get("shipping") or {}
+    phone = customer.get("mobile") or customer.get("phone") or address.get("phone")
+    if store_id and phone:
+        order, created_order = await ingest_order(
+            session, store_id=store_id, source="zid", external_order_id=str(data.get("id")),
+            external_order_number=str(data.get("code") or data.get("order_number") or data.get("id")),
+            customer_name=str(customer.get("name") or "Customer"), customer_phone=str(phone),
+            amount=_decimal(data.get("total") or data.get("total_price")), currency=str(data.get("currency") or "SAR"),
+            payment_method=str(data.get("payment_method") or "cod"), items=data.get("products") or data.get("items") or [],
+            shipping_city=str(address.get("city") or "") or None,
+            shipping_address=str(address.get("address") or address.get("street") or "") or None,
+        )
+        if created_order:
+            await start_cod_confirmation(session, order, str(phone), str(customer.get("name") or "Customer"))
+
+
+async def _process_shopify(payload: dict, session: AsyncSession) -> None:
+    topic = payload.get("topic")
+    shop = payload.get("_shop_domain")
+    if topic in {"orders/create", "orders/updated"}:
+        store_id = await integration_store_id(session, Platform.shopify, shop)
+        customer = payload.get("customer") or {}
+        address = payload.get("shipping_address") or payload.get("billing_address") or {}
+        phone = address.get("phone") or customer.get("phone")
+        if store_id and phone:
+            customer_name = " ".join(filter(None, [customer.get("first_name"), customer.get("last_name")])) or "Customer"
+            order, created_order = await ingest_order(
+                session, store_id=store_id, source="shopify", external_order_id=str(payload.get("id")),
+                external_order_number=str(payload.get("name") or payload.get("order_number") or payload.get("id")),
+                customer_name=customer_name, customer_phone=str(phone), amount=_decimal(payload.get("total_price")),
+                currency=str(payload.get("currency") or "SAR"),
+                payment_method="cod" if any("cash" in str(name).lower() for name in payload.get("payment_gateway_names") or []) else "online",
+                items=payload.get("line_items") or [], shipping_city=str(address.get("city") or "") or None,
+                shipping_address=" ".join(filter(None, [address.get("address1"), address.get("address2")])) or None,
+            )
+            if created_order:
+                await start_cod_confirmation(session, order, str(phone), customer_name)
+        if topic == "orders/updated":
+            await update_order_status(session, store_id=store_id, external_order_id=payload.get("id"), external_status="cancelled" if payload.get("cancelled_at") else (payload.get("fulfillment_status") or payload.get("financial_status")))
+    elif topic in {"shop/redact", "app/uninstalled"}:
+        integration = await session.scalar(select(Integration).where(Integration.platform == Platform.shopify, Integration.external_store_id == shop))
+        if integration:
+            integration.is_connected = False
+
+
+async def process_saved_webhook(event_id) -> None:
+    """Process persisted store webhooks after their HTTP acknowledgement."""
+    async with SessionLocal() as session:
+        event = await session.get(WebhookEvent, event_id)
+        if not event or event.status == "processed":
+            return
+        try:
+            if event.provider == "salla":
+                await _process_salla(event.payload, session)
+            elif event.provider == "zid":
+                await _process_zid(event.payload, session)
+            elif event.provider == "shopify":
+                await _process_shopify(event.payload, session)
+            event.status = "processed"
+        except Exception as exc:  # retain an auditable failure without retrying the store webhook
+            event.status = f"failed:{type(exc).__name__}"[:32]
+        await session.commit()
+
+
 @router.get("/meta", response_class=PlainTextResponse)
 async def verify_meta(
     mode: str = Query(alias="hub.mode"),
@@ -124,7 +232,8 @@ async def receive_meta(
     if not signature_ok(raw, x_hub_signature_256, settings.meta_app_secret, "sha256="):
         raise HTTPException(status_code=401, detail="Invalid Meta signature")
     payload = json.loads(raw)
-    created = await persist_event("meta", raw, payload, session)
+    event = await persist_event("meta", raw, payload, session)
+    created = event is not None
     await session.commit()
     # Meta delivers inbound WhatsApp messages nested under entry/changes. Feed
     # the same persisted FSM handler used by the test/custom webhook route so
@@ -145,6 +254,7 @@ async def receive_meta(
 @router.post("/salla")
 async def receive_salla(
     request: Request,
+    background_tasks: BackgroundTasks,
     x_salla_signature: str | None = Header(default=None),
     authorization: str | None = Header(default=None),
     session: AsyncSession = Depends(get_session),
@@ -154,48 +264,17 @@ async def receive_salla(
     if not signature_ok(raw, candidate, settings.salla_webhook_secret):
         raise HTTPException(status_code=401, detail="Invalid Salla signature")
     payload = json.loads(raw)
-    created = await persist_event("salla", raw, payload, session)
-    event = str(payload.get("event") or payload.get("type") or "")
-    if created and event == "order.created":
-        store_id = await integration_store_id(session, Platform.salla, payload.get("merchant"))
-        data = payload.get("data") or {}
-        customer = data.get("customer") or {}
-        address = data.get("shipping") or data.get("shipping_address") or {}
-        phone = customer.get("mobile") or customer.get("phone") or address.get("mobile") or address.get("phone")
-        if store_id and phone:
-            order, created_order = await ingest_order(
-                session,
-                store_id=store_id,
-                source="salla",
-                external_order_id=str(data.get("id")),
-                external_order_number=str(data.get("reference_id") or data.get("number") or data.get("id")),
-                customer_name=str(customer.get("name") or "Customer"),
-                customer_phone=str(phone),
-                amount=_decimal(data.get("total")),
-                currency=str(data.get("currency") or "SAR"),
-                payment_method=str((data.get("payment_method") or {}).get("name") if isinstance(data.get("payment_method"), dict) else data.get("payment_method") or "cod"),
-                items=data.get("items") or [],
-                shipping_city=str(address.get("city") or "") or None,
-                shipping_address=str(address.get("address") or address.get("street") or "") or None,
-            )
-            if created_order:
-                await start_cod_confirmation(session, order, str(phone), str(customer.get("name") or "Customer"))
-    elif created and event in {"order.status.updated", "order.updated", "order.cancelled"}:
-        data = payload.get("data") or payload.get("order") or {}
-        store_id = await integration_store_id(session, Platform.salla, payload.get("merchant"))
-        await update_order_status(
-            session,
-            store_id=store_id,
-            external_order_id=data.get("id") or data.get("order_id"),
-            external_status=data.get("status") or data.get("order_status") or event,
-        )
+    event_record = await persist_event("salla", raw, payload, session)
     await session.commit()
-    return {"received": True, "duplicate": not created}
+    if event_record:
+        background_tasks.add_task(process_saved_webhook, event_record.id)
+    return {"received": True, "queued": event_record is not None}
 
 
 @router.post("/zid")
 async def receive_zid(
     request: Request,
+    background_tasks: BackgroundTasks,
     authorization: str | None = Header(default=None),
     session: AsyncSession = Depends(get_session),
 ):
@@ -206,40 +285,17 @@ async def receive_zid(
     if not authorization or not settings.zid_webhook_secret or not hmac.compare_digest(authorization, expected_basic):
         raise HTTPException(status_code=401, detail="Invalid Zid signature")
     payload = json.loads(raw)
-    created = await persist_event("zid", raw, payload, session)
-    event = payload.get("event") or payload.get("type")
-    if created and event == "order.create":
-        data = payload.get("data") or payload.get("order") or payload
-        external_store = payload.get("store_id") or data.get("store_id")
-        store_id = await integration_store_id(session, Platform.zid, external_store)
-        customer = data.get("customer") or {}
-        address = data.get("shipping_address") or data.get("shipping") or {}
-        phone = customer.get("mobile") or customer.get("phone") or address.get("phone")
-        if store_id and phone:
-            order, created_order = await ingest_order(
-                session,
-                store_id=store_id,
-                source="zid",
-                external_order_id=str(data.get("id")),
-                external_order_number=str(data.get("code") or data.get("order_number") or data.get("id")),
-                customer_name=str(customer.get("name") or "Customer"),
-                customer_phone=str(phone),
-                amount=_decimal(data.get("total") or data.get("total_price")),
-                currency=str(data.get("currency") or "SAR"),
-                payment_method=str(data.get("payment_method") or "cod"),
-                items=data.get("products") or data.get("items") or [],
-                shipping_city=str(address.get("city") or "") or None,
-                shipping_address=str(address.get("address") or address.get("street") or "") or None,
-            )
-            if created_order:
-                await start_cod_confirmation(session, order, str(phone), str(customer.get("name") or "Customer"))
+    event_record = await persist_event("zid", raw, payload, session)
     await session.commit()
-    return {"received": True, "duplicate": not created}
+    if event_record:
+        background_tasks.add_task(process_saved_webhook, event_record.id)
+    return {"received": True, "queued": event_record is not None}
 
 
 @router.post("/shopify")
 async def receive_shopify(
     request: Request,
+    background_tasks: BackgroundTasks,
     x_shopify_hmac_sha256: str | None = Header(default=None),
     x_shopify_shop_domain: str | None = Header(default=None),
     x_shopify_topic: str | None = Header(default=None),
@@ -256,63 +312,11 @@ async def receive_shopify(
         raise HTTPException(status_code=401, detail="Invalid Shopify signature")
     payload = json.loads(raw)
     payload["topic"] = x_shopify_topic or "unknown"
+    payload["_shop_domain"] = x_shopify_shop_domain
     if x_shopify_webhook_id:
         payload["webhook_id"] = x_shopify_webhook_id
-    created = await persist_event("shopify", raw, payload, session)
-    if created and x_shopify_topic in {"orders/create", "orders/updated"}:
-        store_id = await integration_store_id(session, Platform.shopify, x_shopify_shop_domain)
-        customer = payload.get("customer") or {}
-        address = payload.get("shipping_address") or payload.get("billing_address") or {}
-        phone = address.get("phone") or customer.get("phone")
-        if store_id and phone:
-            order, created_order = await ingest_order(
-                session,
-                store_id=store_id,
-                source="shopify",
-                external_order_id=str(payload.get("id")),
-                external_order_number=str(payload.get("name") or payload.get("order_number") or payload.get("id")),
-                customer_name=" ".join(filter(None, [customer.get("first_name"), customer.get("last_name")])) or "Customer",
-                customer_phone=str(phone),
-                amount=_decimal(payload.get("total_price")),
-                currency=str(payload.get("currency") or "SAR"),
-                payment_method="cod" if any("cash" in str(name).lower() for name in payload.get("payment_gateway_names") or []) else "online",
-                items=payload.get("line_items") or [],
-                shipping_city=str(address.get("city") or "") or None,
-                shipping_address=" ".join(filter(None, [address.get("address1"), address.get("address2")])) or None,
-            )
-            if created_order:
-                await start_cod_confirmation(session, order, str(phone), " ".join(filter(None, [customer.get("first_name"), customer.get("last_name")])) or "Customer")
-        if x_shopify_topic == "orders/updated":
-            external_status = "cancelled" if payload.get("cancelled_at") else (
-                payload.get("fulfillment_status") or payload.get("financial_status")
-            )
-            await update_order_status(
-                session,
-                store_id=store_id,
-                external_order_id=payload.get("id"),
-                external_status=external_status,
-            )
-    elif created and x_shopify_topic in {
-        "customers/data_request",
-        "customers/redact",
-        "shop/redact",
-    }:
-        # Shopify's mandatory privacy webhooks must always be acknowledged.
-        # Store the event for the audit trail; shop redaction also disconnects
-        # the integration so no further processing occurs.
-        if x_shopify_topic == "shop/redact":
-            integration = await session.scalar(select(Integration).where(
-                Integration.platform == Platform.shopify,
-                Integration.external_store_id == x_shopify_shop_domain,
-            ))
-            if integration:
-                integration.is_connected = False
-    elif created and x_shopify_topic == "app/uninstalled":
-        integration = await session.scalar(select(Integration).where(
-            Integration.platform == Platform.shopify,
-            Integration.external_store_id == x_shopify_shop_domain,
-        ))
-        if integration:
-            integration.is_connected = False
+    event_record = await persist_event("shopify", raw, payload, session)
     await session.commit()
-    return {"received": True, "duplicate": not created}
+    if event_record:
+        background_tasks.add_task(process_saved_webhook, event_record.id)
+    return {"received": True, "queued": event_record is not None}

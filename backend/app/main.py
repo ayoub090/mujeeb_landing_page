@@ -21,6 +21,7 @@ from app.routers import (
 
 settings = get_settings()
 app = FastAPI(title="Mujeeb API", version="0.1.0", docs_url="/api/docs")
+local_origin_pattern = r"^http://(localhost|127\.0\.0\.1):\d+$" if settings.environment != "production" else None
 app.add_middleware(
     CORSMiddleware,
     allow_origins=list(
@@ -32,6 +33,7 @@ app.add_middleware(
             ]
         )
     ),
+    allow_origin_regex=local_origin_pattern,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "X-CSRF-Token", "X-Mujeeb-Analytics-Key"],

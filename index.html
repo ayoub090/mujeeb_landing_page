@@ -87,6 +87,20 @@
       background: var(--gold-soft)
     }
 
+    .video-demos { padding: 76px 0; background: #f8fafc }
+    .video-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-top: 32px }
+    .video-card { text-align: right; background: #fff; border: 1px solid var(--line); border-radius: 22px; padding: 18px; box-shadow: 0 12px 30px rgba(15,23,42,.06) }
+    .video-frame { aspect-ratio: 16 / 9; border-radius: 16px; overflow: hidden; background: #0f172a }
+    .video-placeholder { height: 100%; display: grid; place-items: center; align-content: center; gap: 10px; color: #cbd5e1; background: linear-gradient(135deg,#172554,#0f766e) }
+    .play-button { width: 58px; height: 58px; border: 0; border-radius: 50%; display: grid; place-items: center; background: #10b981; color: #fff; font-size: 20px; cursor: pointer; transition: transform .2s ease }
+    .play-button:hover { transform: scale(1.08) }
+    .video-card h3 { margin: 18px 0 8px; color: #172554 }
+    .video-card p { color: #64748b; line-height: 1.8 }
+    .video-card details { margin: 14px 0; padding: 12px; background: #f8fafc; border-radius: 12px }
+    .video-card summary { cursor: pointer; font-weight: 700; color: #1d4ed8 }
+    .video-card .btn { display: inline-block; margin-top: 8px }
+    @media (max-width: 800px) { .video-grid { grid-template-columns: 1fr } }
+
     /* ---------- decorative pattern ---------- */
     .pattern {
       position: absolute;
@@ -1379,6 +1393,41 @@
           <p class="form-note">اختبر الافتراض على ٥٠ طلباً قبل اتخاذ قرار شراء أو توسع.</p>
           <a href="#book" class="btn small">اطلب تجربة ٥٠ طلباً</a>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Demos & how it works: video slots for the merchant's own recordings -->
+  <section id="demos" class="center video-demos" aria-labelledby="demos-title">
+    <div class="container">
+      <span class="sec-tag">كيف يعمل مجيب</span>
+      <h2 id="demos-title">شاهد التجربة قبل أن تبدأ</h2>
+      <p class="sec-sub">فيديوهان واضحان يشرحان ربط متجرك وتشغيل أول ٥٠ تأكيداً بدون إعداد معقّد.</p>
+      <div class="video-grid">
+        <article class="video-card">
+          <div class="video-frame" data-video-slot="overview">
+            <div class="video-placeholder" role="img" aria-label="موضع فيديو شرح مجيب">
+              <button class="play-button" type="button" aria-label="تشغيل فيديو الشرح">▶</button>
+              <span>فيديو الشرح — يُرفع قريباً</span>
+            </div>
+          </div>
+          <h3>كيف يعمل مجيب في ٣٠ ثانية</h3>
+          <p>اربط Shopify أو سلة أو زد، اربط WhatsApp، ثم شاهد التأكيد وطلب الموقع وتحديث حالة الطلب.</p>
+          <details><summary>عرض النص العربي</summary><p>تصل الطلبية، يرسل مجيب رسالة تأكيد، يطلب موقع العميل، ثم يحدّث الطلب إلى مؤكد وجاهز للشحن.</p></details>
+          <a href="#book" class="btn small">ابدأ مجاناً مع ٥٠ طلباً</a>
+        </article>
+        <article class="video-card">
+          <div class="video-frame" data-video-slot="real-demo">
+            <div class="video-placeholder" role="img" aria-label="موضع فيديو العرض المباشر">
+              <button class="play-button" type="button" aria-label="تشغيل العرض المباشر">▶</button>
+              <span>عرض مباشر — يُرفع قريباً</span>
+            </div>
+          </div>
+          <h3>عرض توضيحي مباشر من طلب إلى شحن</h3>
+          <p>من طلب الدفع عند الاستلام إلى موقع GPS مؤكد ومزامنة تفاصيل الشحن داخل متجرك.</p>
+          <details><summary>عرض النص العربي</summary><p>يرد العميل بالتأكيد ويرسل موقعه، فتُحفظ الإحداثيات وتنتقل حالة الطلب إلى جاهز للشحن.</p></details>
+          <a href="#book" class="btn small">ابدأ مجاناً مع ٥٠ طلباً</a>
+        </article>
       </div>
     </div>
   </section>

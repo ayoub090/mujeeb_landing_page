@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import get_current_user
+from app.auth import require_superadmin
 from app.database import get_session
 from app.models import Store, User
 
@@ -27,7 +27,7 @@ class EventIn(BaseModel):
 
 
 @router.post("/session")
-async def create_session(payload: SessionIn, user: User = Depends(get_current_user), session: AsyncSession = Depends(get_session)):
+async def create_session(payload: SessionIn, user: User = Depends(require_superadmin), session: AsyncSession = Depends(get_session)):
     # Query explicitly instead of touching the async lazy ``user.stores`` relationship.
     # The latter raises MissingGreenlet in production and made the pilot button fail.
     store = await session.scalar(select(Store).where(Store.id == payload.store_id, Store.owner_id == user.id))
@@ -47,7 +47,7 @@ async def create_session(payload: SessionIn, user: User = Depends(get_current_us
 
 
 @router.get("/session/{session_id}")
-async def get_session(session_id: str, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_session)):
+async def get_session(session_id: str, user: User = Depends(require_superadmin), db: AsyncSession = Depends(get_session)):
     session = _sessions.get(session_id)
     store = await db.scalar(select(Store).where(Store.id == (session or {}).get("store_id"), Store.owner_id == user.id))
     if not session or not store:
@@ -56,7 +56,7 @@ async def get_session(session_id: str, user: User = Depends(get_current_user), d
 
 
 @router.post("/session/{session_id}/event")
-async def add_event(session_id: str, payload: EventIn, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_session)):
+async def add_event(session_id: str, payload: EventIn, user: User = Depends(require_superadmin), db: AsyncSession = Depends(get_session)):
     session = _sessions.get(session_id)
     store = await db.scalar(select(Store).where(Store.id == (session or {}).get("store_id"), Store.owner_id == user.id))
     if not session or not store:

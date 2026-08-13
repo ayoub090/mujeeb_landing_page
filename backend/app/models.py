@@ -249,6 +249,9 @@ class Subscription(Base):
     plan: Mapped[str] = mapped_column(String(32), default="free")
     status: Mapped[str] = mapped_column(String(32), default="active")
     orders_count_this_month: Mapped[int] = mapped_column(Integer, default=0)
+    # The free pilot is consumed only after a customer successfully confirms
+    # an order. Paid plans continue to use their normal monthly allowance.
+    free_confirmations_remaining: Mapped[int] = mapped_column(Integer, default=50)
     creem_customer_id: Mapped[str | None] = mapped_column(String(128))
     creem_subscription_id: Mapped[str | None] = mapped_column(String(128), unique=True)
     trial_ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

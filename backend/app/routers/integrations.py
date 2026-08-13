@@ -15,8 +15,8 @@ from app.auth import get_current_user
 from app.config import get_settings
 from app.crypto import encrypt_text
 from app.database import get_session
-from app.models import Integration, OAuthState, Platform, Store, User
-from app.schemas import OAuthStartInput, ShopifyStartInput, UrlOut, GoogleSheetsConnectInput
+from app.models import Integration, OAuthState, Platform, Store, StoreApiKey, User
+from app.schemas import MerchantTokenInput, OAuthStartInput, ShopifyStartInput, UrlOut, GoogleSheetsConnectInput
 from app.services.lifecycle import record_lifecycle_event
 
 router = APIRouter(prefix="/api/integrations", tags=["integrations"])
@@ -28,6 +28,50 @@ async def ensure_owned_store(store_id: uuid.UUID, user_id: uuid.UUID, session: A
     if not store:
         raise HTTPException(status_code=404, detail="Store not found")
     return store
+
+
+async def salla_store_id(access_token: str) -> str:
+    """Resolve the merchant store identifier before accepting a direct token.
+
+    Webhook payloads are keyed by the Salla merchant/store identifier. Saving
+    it at connection time is what lets an incoming order be routed to the
+    correct Mujeeb store without asking the merchant for another value.
+    """
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            response = await client.get(
+                "https://api.salla.dev/admin/v2/store/info",
+                headers={"Authorization": f"Bearer {access_token}", "Accept": "application/json"},
+            )
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=502, detail="Unable to verify the Salla store") from exc
+    if response.is_error:
+        raise HTTPException(status_code=422, detail="Unable to verify the Salla connection key")
+    data = response.json().get("data") or response.json()
+    store_id = data.get("id") if isinstance(data, dict) else None
+    if not store_id:
+        raise HTTPException(status_code=422, detail="Salla did not return a store identifier")
+    return str(store_id)
+
+
+async def zid_store_id(token: str) -> str:
+    """Resolve the Zid store identifier required for incoming order routing."""
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            response = await client.get(
+                "https://api.zid.sa/v1/managers/account/store",
+                headers={"X-Manager-Token": token, "Accept-Language": "en"},
+            )
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=502, detail="Unable to verify the Zid store") from exc
+    if response.is_error:
+        raise HTTPException(status_code=422, detail="Unable to verify the Zid connection key")
+    data = response.json()
+    store = data.get("store") or data.get("data") or {}
+    store_id = store.get("uuid") or store.get("id") if isinstance(store, dict) else None
+    if not store_id:
+        raise HTTPException(status_code=422, detail="Zid did not return a store identifier")
+    return str(store_id)
 
 
 async def make_state(provider: str, store_id: uuid.UUID, session: AsyncSession) -> str:
@@ -80,6 +124,26 @@ async def start_salla(
         "state": state,
     }
     return UrlOut(url=f"https://accounts.salla.sa/oauth2/auth?{urlencode(params)}")
+
+
+@router.post("/salla/merchant-key")
+async def connect_salla_merchant_key(
+    payload: MerchantTokenInput,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    """Connect a merchant's own Salla token without marketplace approval."""
+    await ensure_owned_store(payload.store_id, user.id, session)
+    token = payload.token.strip()
+    external_store_id = await salla_store_id(token)
+    await register_salla_webhooks(token)
+    await upsert_integration(
+        payload.store_id, Platform.salla, {"access_token": token}, session,
+        external_store_id=external_store_id,
+    )
+    await record_lifecycle_event(session, "store_connected", store_id=payload.store_id, properties={"platform": "salla"})
+    await session.commit()
+    return {"status": "connected", "platform": "salla"}
 
 
 @router.get("/salla/callback")
@@ -143,6 +207,66 @@ async def start_zid(
         "state": state,
     }
     return UrlOut(url=f"https://oauth.zid.sa/oauth/authorize?{urlencode(params)}")
+
+
+@router.post("/zid/merchant-key")
+async def connect_zid_merchant_key(
+    payload: MerchantTokenInput,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    """Connect a merchant's X-Manager-Token without marketplace approval."""
+    await ensure_owned_store(payload.store_id, user.id, session)
+    token = payload.token.strip()
+    external_store_id = await zid_store_id(token)
+    await register_zid_webhooks({"access_token": token})
+    await upsert_integration(
+        payload.store_id, Platform.zid, {"access_token": token}, session,
+        external_store_id=external_store_id,
+    )
+    await record_lifecycle_event(session, "store_connected", store_id=payload.store_id, properties={"platform": "zid"})
+    await session.commit()
+    return {"status": "connected", "platform": "zid"}
+
+
+@router.post("/custom/start")
+async def start_custom_store(
+    payload: OAuthStartInput,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    """Prepare a one-time key for a merchant's developer without blocking onboarding."""
+    await ensure_owned_store(payload.store_id, user.id, session)
+    existing = await session.scalar(
+        select(StoreApiKey).where(
+            StoreApiKey.store_id == payload.store_id,
+            StoreApiKey.revoked_at.is_(None),
+        )
+    )
+    if existing:
+        await upsert_integration(
+            payload.store_id, Platform.custom, {"access_token": existing.prefix}, session,
+            external_store_id="custom_api",
+        )
+        await session.commit()
+        return {"status": "connected", "api_key": None, "already_created": True}
+
+    api_key = f"muj_live_{secrets.token_urlsafe(32)}"
+    session.add(
+        StoreApiKey(
+            store_id=payload.store_id,
+            name="Custom store onboarding",
+            prefix=api_key[:17],
+            secret_hash=hashlib.sha256(api_key.encode()).hexdigest(),
+        )
+    )
+    await upsert_integration(
+        payload.store_id, Platform.custom, {"access_token": api_key}, session,
+        external_store_id="custom_api",
+    )
+    await record_lifecycle_event(session, "store_connected", store_id=payload.store_id, properties={"platform": "custom"})
+    await session.commit()
+    return {"status": "connected", "api_key": api_key, "already_created": False}
 
 
 @router.get("/zid/callback")
@@ -264,8 +388,9 @@ async def shopify_callback(
 async def register_shopify_webhooks(shop: str, access_token: str) -> None:
     endpoint = f"https://{shop}/admin/api/{settings.shopify_api_version}/graphql.json"
     mutation = """
-      mutation CreateWebhook($topic: WebhookSubscriptionTopic!, $uri: URL!) {
-        webhookSubscriptionCreate(topic: $topic, webhookSubscription: {uri: $uri, format: JSON}) {
+      mutation CreateWebhook($topic: WebhookSubscriptionTopic!, $webhookSubscription: WebhookSubscriptionInput!) {
+        webhookSubscriptionCreate(topic: $topic, webhookSubscription: $webhookSubscription) {
+          webhookSubscription { id topic uri }
           userErrors { field message }
         }
       }
@@ -289,7 +414,9 @@ async def register_shopify_webhooks(shop: str, access_token: str) -> None:
                     "query": mutation,
                     "variables": {
                         "topic": topic,
-                        "uri": f"{str(settings.app_base_url).rstrip('/')}/api/webhooks/shopify",
+                        "webhookSubscription": {
+                            "uri": f"{str(settings.app_base_url).rstrip('/')}/api/webhooks/shopify",
+                        },
                     },
                 },
             )
@@ -369,10 +496,11 @@ async def integration_status(
         )
     )
     return {
-        "salla": {"configured": bool(settings.salla_client_id and settings.salla_client_secret and settings.salla_webhook_secret), "connected": Platform.salla in connected},
-        "zid": {"configured": bool(settings.zid_client_id and settings.zid_client_secret and settings.zid_webhook_secret), "connected": Platform.zid in connected},
+        "salla": {"configured": bool(settings.salla_webhook_secret), "connected": Platform.salla in connected},
+        "zid": {"configured": bool(settings.zid_webhook_secret), "connected": Platform.zid in connected},
         "shopify": {"configured": bool(settings.shopify_client_id and settings.shopify_client_secret), "connected": Platform.shopify in connected},
         "whatsapp": {"enabled": settings.meta_embedded_signup_enabled, "configured": bool(settings.meta_app_id and settings.meta_config_id)},
+        "custom": {"connected": Platform.custom in connected},
         "google_sheets": {"configured": True, "connected": bool(google_sheets_connected)},
     }
 

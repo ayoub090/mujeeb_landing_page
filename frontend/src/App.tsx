@@ -4,7 +4,7 @@ import {
   BarChart3, Boxes, CheckCircle2, Clipboard, Code2, CreditCard, Link2,
   Download, LockKeyhole, LogOut, MessageCircle, PackageCheck, ShieldCheck, Sparkles,
   Trash2, TriangleAlert, ChevronRight, X, ArrowRightLeft, ShieldAlert, BadgePercent, HelpCircle,
-  Zap, Coins, FileText, Search, Star, MapPin
+  Zap, Coins, FileText, Search, Star, MapPin, Store
 } from "lucide-react";
 import {api} from "./api";
 import {launchEmbeddedSignup} from "./meta";
@@ -21,10 +21,6 @@ function Auth({onDone}:{onDone:()=>void}) {
   const [mode,setMode]=useState<"login"|"register">("login");
   const [modalOpen,setModalOpen]=useState(false);
   const [error,setError]=useState("");
-
-  // Simulator States
-  const [simStatus, setSimStatus] = useState<"pending" | "confirmed" | "cancelled" | "typing">("pending");
-  const [simSavings, setSimSavings] = useState(8420);
 
   // ROI Calculator States
   const [calcOrders, setCalcOrders] = useState(350);
@@ -59,18 +55,6 @@ function Auth({onDone}:{onDone:()=>void}) {
   const recoveredSales = savedOrders * calcAov;
   const totalSavedRevenue = savedShippingFees + recoveredSales;
 
-  const triggerSim = (status: "confirmed" | "cancelled") => {
-    setSimStatus("typing");
-    setTimeout(() => {
-      setSimStatus(status);
-      if (status === "confirmed") {
-        setSimSavings(prev => prev + 320);
-      } else {
-        setSimSavings(prev => prev + 80); // saved shipping fee (35*2 + 10)
-      }
-    }, 1200);
-  };
-
   const openAuth = (authMode: "login" | "register") => {
     setMode(authMode);
     setModalOpen(true);
@@ -88,14 +72,15 @@ function Auth({onDone}:{onDone:()=>void}) {
           <ul className="hidden md:flex gap-6 text-sm font-semibold text-slate-600">
             <li><a href="#problem" className="hover:text-sky transition-colors">المشكلة</a></li>
             <li><a href="#features" className="hover:text-sky transition-colors">المميزات</a></li>
-            <li><a href="#simulator" className="hover:text-sky transition-colors">كيف يعمل</a></li>
+            <li><a href="#demos" className="hover:text-sky transition-colors">شاهد الديمو</a></li>
+            <li><a href="#how-it-works" className="hover:text-sky transition-colors">كيف يعمل</a></li>
             <li><a href="#calculator" className="hover:text-sky transition-colors">حاسبة التوفير</a></li>
             <li><a href="#pricing" className="hover:text-sky transition-colors">الأسعار</a></li>
           </ul>
         </div>
         <div className="flex items-center gap-3">
           <button onClick={() => openAuth("login")} className="text-sm font-bold text-blue-deep hover:text-sky px-3 py-2 transition-colors">تسجيل الدخول</button>
-          <button onClick={() => openAuth("register")} className="rounded-xl btn-gold text-sm font-black px-5 py-2.5 shadow-md">ابدأ مجاناً 🚀</button>
+          <button onClick={() => openAuth("register")} className="rounded-xl btn-gold text-sm font-black px-5 py-2.5 shadow-md">ابدأ مجاناً</button>
         </div>
       </nav>
 
@@ -116,8 +101,8 @@ function Auth({onDone}:{onDone:()=>void}) {
             <button onClick={() => openAuth("register")} className="rounded-xl btn-gold text-lg font-black px-8 py-4 shadow-xl hover:shadow-2xl shadow-emerald-500/10">
               ابدأ تجربتك المجانية (50 طلب)
             </button>
-            <a href="#calculator" className="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors text-ink font-bold px-8 py-4 flex items-center justify-center gap-2">
-              احسب أرباح متجرك
+            <a href="#demos" className="rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors text-ink font-bold px-8 py-4 flex items-center justify-center gap-2">
+              شاهد كيف يعمل خلال 30 ثانية
             </a>
           </div>
           <div className="grid grid-cols-3 gap-6 pt-6 border-t border-slate-100 text-slate-500">
@@ -136,100 +121,36 @@ function Auth({onDone}:{onDone:()=>void}) {
           </div>
         </div>
 
-        {/* Live Simulator Widget */}
-        <div id="simulator" className="lg:col-span-5">
-          <div className="bg-white rounded-3xl p-6 shadow-2xl border border-slate-100 relative">
-            <div className="absolute -top-3 -left-3 bg-mint text-white text-xs font-black px-3 py-1 rounded-full shadow">محاكاة تفاعلية حية</div>
-            <p className="text-xs text-slate-400 font-bold mb-4 uppercase tracking-wider">تفاعل مع الرسالة وشاهد النتيجة في لوحة التحكم:</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              
-              {/* WhatsApp Mockup */}
-              <div className="bg-[#E5DDD5] rounded-2xl p-3 border border-slate-200 min-h-[300px] flex flex-col justify-between">
-                <div className="bg-[#075E54] text-white p-2 rounded-t-xl -mx-3 -mt-3 flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center font-bold text-xs">م</div>
-                  <div className="text-xs font-bold">مُجيب | تأكيد الطلبات</div>
-                </div>
-                
-                <div className="space-y-2 mt-4 overflow-y-auto flex-1">
-                  <div className="bg-white p-2.5 rounded-lg text-xs max-w-[85%] shadow-sm leading-relaxed">
-                    السلام عليكم من متجر العطور الفاخرة 🌸.
-                    طلبك رقم <strong>#1042</strong> بقيمة <strong>320 ريال</strong> جاهز للشحن. هل ترغب بتأكيد الطلب الآن؟
-                  </div>
-
-                  {simStatus === "typing" && (
-                    <div className="bg-white p-2.5 rounded-lg text-xs max-w-[40%] shadow-sm text-slate-400 animate-pulse">
-                      يكتب الآن...
-                    </div>
-                  )}
-
-                  {simStatus === "confirmed" && (
-                    <>
-                      <div className="bg-[#DCF8C6] p-2.5 rounded-lg text-xs max-w-[80%] shadow-sm ml-auto mr-0 text-right font-bold">
-                        نعم، أكيد
-                      </div>
-                      <div className="bg-white p-2.5 rounded-lg text-xs max-w-[85%] shadow-sm leading-relaxed">
-                        رائع! تم تأكيد طلبك بنجاح وسنقوم بشحنه فوراً. شكراً لك ✨
-                      </div>
-                    </>
-                  )}
-
-                  {simStatus === "cancelled" && (
-                    <>
-                      <div className="bg-[#DCF8C6] p-2.5 rounded-lg text-xs max-w-[80%] shadow-sm ml-auto mr-0 text-right font-bold">
-                        إلغاء الطلب
-                      </div>
-                      <div className="bg-white p-2.5 rounded-lg text-xs max-w-[85%] shadow-sm leading-relaxed text-red-700">
-                        تم إلغاء الطلب بناءً على رغبتك. شكراً لك وسنقوم بتحديث المتجر.
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                {simStatus === "pending" && (
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    <button onClick={() => triggerSim("confirmed")} className="bg-[#25D366] text-white font-bold p-2 rounded-xl text-xs shadow hover:bg-emerald-600 transition-colors">
-                      نعم، أكيد ✅
-                    </button>
-                    <button onClick={() => triggerSim("cancelled")} className="bg-white text-red-600 border border-red-200 font-bold p-2 rounded-xl text-xs hover:bg-red-50 transition-colors">
-                      إلغاء الطلب ❌
-                    </button>
-                  </div>
-                )}
-
-                {simStatus !== "pending" && simStatus !== "typing" && (
-                  <button onClick={() => setSimStatus("pending")} className="mt-2 w-full bg-slate-800 text-white font-bold p-2 rounded-xl text-xs hover:bg-slate-900 transition-colors">
-                    إعادة التجربة 🔄
-                  </button>
-                )}
-              </div>
-
-              {/* Mini Dashboard widget mockup */}
-              <div className="bg-slate-900 text-white rounded-2xl p-4 flex flex-col justify-between">
-                <div>
-                  <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">لوحة التحكم التلقائية</h4>
-                  <div className="mt-3 flex items-center justify-between border-b border-slate-800 pb-2">
-                    <span className="text-xs">طلب #1042</span>
-                    {simStatus === "pending" && <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full font-bold">بانتظار العميل</span>}
-                    {simStatus === "typing" && <span className="text-[10px] bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded-full font-bold animate-pulse">جاري المتابعة</span>}
-                    {simStatus === "confirmed" && <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold">مؤكد</span>}
-                    {simStatus === "cancelled" && <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full font-bold">ملغي</span>}
-                  </div>
-                  <div className="mt-4 space-y-2 text-xs">
-                    <div className="flex justify-between"><span className="text-slate-400">المنصة:</span><span className="font-bold">سلة (Salla)</span></div>
-                    <div className="flex justify-between"><span className="text-slate-400">طريقة الدفع:</span><span className="font-bold">COD</span></div>
-                  </div>
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-slate-800">
-                  <span className="text-[10px] text-slate-400 uppercase block">إجمالي التوفير هذا الشهر:</span>
-                  <strong className="text-2xl text-mint font-black block mt-1 transition-all duration-500">{simSavings.toLocaleString()} ريال</strong>
-                </div>
-              </div>
-
+        <div id="how-it-works" className="lg:col-span-5">
+          <div className="bg-white rounded-3xl p-6 shadow-2xl border border-slate-100">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-5">
+              <div><p className="text-xs font-black text-emerald-700">مسار البداية</p><h2 className="mt-1 text-xl font-black text-blue-deep">جاهز خلال 3 دقائق</h2></div>
+              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-50 text-emerald-700"><CheckCircle2 size={23}/></div>
             </div>
+            <ol className="mt-5 space-y-3">
+              <li className="flex gap-3 rounded-2xl bg-slate-50 p-4"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-blue-deep text-sm font-black text-white">1</span><div><b className="text-sm">اربط متجرك</b><p className="mt-1 text-xs leading-5 text-slate-500">Shopify، سلة، زد، أو متجر مخصص.</p></div></li>
+              <li className="flex gap-3 rounded-2xl bg-slate-50 p-4"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-emerald-600 text-sm font-black text-white">2</span><div><b className="text-sm">امسح رمز WhatsApp</b><p className="mt-1 text-xs leading-5 text-slate-500">من الأجهزة المرتبطة على هاتفك، بلا إعدادات معقدة.</p></div></li>
+              <li className="flex gap-3 rounded-2xl bg-slate-50 p-4"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-slate-800 text-sm font-black text-white">3</span><div><b className="text-sm">ابدأ 50 تأكيداً مجاناً</b><p className="mt-1 text-xs leading-5 text-slate-500">تابع التأكيد والموقع وحالة الشحن من لوحة واحدة.</p></div></li>
+            </ol>
+            <button onClick={() => openAuth("register")} className="mt-5 w-full rounded-xl btn-gold p-3 font-black">ربط متجري مجاناً</button>
           </div>
         </div>
       </header>
+
+      {/* Product demos: video assets will be added without changing this layout. */}
+      <section id="demos" className="bg-slate-50 py-20 px-6 border-y border-slate-100">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <span className="text-xs font-black uppercase tracking-widest text-sky">ديموهات مجيب</span>
+            <h2 className="text-3xl font-black text-blue-deep mt-3">شاهد كيف تبدأ خلال 3 دقائق</h2>
+            <p className="text-slate-500 mt-3">اختر متجرك، اربط WhatsApp بمسح رمز QR، ثم ابدأ أول 50 تأكيد طلب مجاناً.</p>
+          </div>
+          <div className="grid lg:grid-cols-2 gap-6">
+            <DemoCard title="كيف يعمل مجيب في 30 ثانية" duration="30–45 ثانية" transcript="تختار Shopify أو سلة أو زد، ثم تمسح رمز WhatsApp. يصل طلب الدفع عند الاستلام، يطلب مجيب التأكيد والموقع، وتظهر الحالة مؤكدة وجاهزة للشحن." onStart={()=>openAuth("register")} />
+            <DemoCard title="عرض توضيحي مباشر" duration="45–60 ثانية" transcript="يشاهد العميل رسالة التأكيد، يرسل الموافقة وموقعه، فتُضاف الإحداثيات إلى الطلب ويظهر لفريق المتجر جاهزاً للشحن." onStart={()=>openAuth("register")} />
+          </div>
+        </div>
+      </section>
 
       {/* The Problem Section */}
       <section id="problem" className="bg-white py-20 px-6 border-y border-slate-100">
@@ -272,7 +193,7 @@ function Auth({onDone}:{onDone:()=>void}) {
           <div className="text-center max-w-2xl mx-auto space-y-3 mb-16">
             <span className="text-xs text-sky font-black uppercase tracking-widest block">الخدمات والميزات المتكاملة</span>
             <h2 className="text-3xl font-black text-blue-deep">منظومة ذكية متكاملة لحماية وإدارة طلبياتك</h2>
-            <p className="text-slate-500 text-sm">Une multitude d'outils et de fonctionnalités gratuites pour vous guider vers le succès et la réussite.</p>
+            <p className="text-slate-500 text-sm">كل ما تحتاجه لتأكيد الطلبات، توضيح العناوين، ومتابعة حالة الشحن من مكان واحد.</p>
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -281,23 +202,23 @@ function Auth({onDone}:{onDone:()=>void}) {
             <article className="bg-white border border-slate-100 rounded-2xl p-6 space-y-4 hover:shadow-lg transition-shadow">
               <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky flex items-center justify-center"><Link2 size={20}/></div>
               <h3 className="font-bold text-base text-blue-deep">ربط المتاجر بضغطة زر</h3>
-              <p className="text-xs text-slate-400 font-bold block -mt-2">One-Click Store Connect</p>
+              <p className="text-xs text-slate-400 font-bold block -mt-2">ربط سريع وآمن</p>
               <p className="text-xs text-slate-500 leading-relaxed">ربط رسمي وسريع مع منصات سلة (Salla) وزد (Zid) وشوبيفاي (Shopify) لسحب وإدارة الطلبات فوراً.</p>
             </article>
 
             {/* Service 2 */}
             <article className="bg-white border border-slate-100 rounded-2xl p-6 space-y-4 hover:shadow-lg transition-shadow">
               <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky flex items-center justify-center"><MessageCircle size={20}/></div>
-              <h3 className="font-bold text-base text-blue-deep">تفعيل الواتساب (WABA) الفوري</h3>
-              <p className="text-xs text-slate-400 font-bold block -mt-2">One-Click WABA Integration</p>
-              <p className="text-xs text-slate-500 leading-relaxed">ربط حساب الواتساب الخاص بمتجرك بضغطة واحدة من خلال نظام التسجيل المدمج من Meta.</p>
+              <h3 className="font-bold text-base text-blue-deep">ربط WhatsApp Business بسهولة</h3>
+              <p className="text-xs text-slate-400 font-bold block -mt-2">امسح رمز QR وابدأ خلال دقائق</p>
+              <p className="text-xs text-slate-500 leading-relaxed">اربط رقم WhatsApp الخاص بمتجرك في خطوة واحدة، ثم ابدأ تأكيد الطلبات مباشرة.</p>
             </article>
 
             {/* Service 3 */}
             <article className="bg-white border border-slate-100 rounded-2xl p-6 space-y-4 hover:shadow-lg transition-shadow">
               <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky flex items-center justify-center"><CheckCircle2 size={20}/></div>
               <h3 className="font-bold text-base text-blue-deep">تأكيد الطلبات التلقائي</h3>
-              <p className="text-xs text-slate-400 font-bold block -mt-2">Automated Chatbot Confirmation</p>
+              <p className="text-xs text-slate-400 font-bold block -mt-2">تأكيد تلقائي للطلبات</p>
               <p className="text-xs text-slate-500 leading-relaxed">يتولى البوت التفاعل الفوري مع عملائك بالواتساب لتأكيد طلبيات الدفع عند الاستلام وفلترة الوهميين.</p>
             </article>
 
@@ -305,7 +226,7 @@ function Auth({onDone}:{onDone:()=>void}) {
             <article className="bg-white border border-slate-100 rounded-2xl p-6 space-y-4 hover:shadow-lg transition-shadow">
               <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky flex items-center justify-center"><MapPin size={20}/></div>
               <h3 className="font-bold text-base text-blue-deep">التحقق الجغرافي وتحديث العناوين</h3>
-              <p className="text-xs text-slate-400 font-bold block -mt-2">Auto-update Salla/Zid Address</p>
+              <p className="text-xs text-slate-400 font-bold block -mt-2">تحديث العنوان تلقائياً</p>
               <p className="text-xs text-slate-500 leading-relaxed">يجمع البوت إحداثيات GPS ويكتبها مباشرة في تفاصيل الشحن بسلة/زد لتتمكن من طباعة بوليصة التوصيل فورا.</p>
             </article>
 
@@ -313,23 +234,23 @@ function Auth({onDone}:{onDone:()=>void}) {
             <article className="bg-white border border-slate-100 rounded-2xl p-6 space-y-4 hover:shadow-lg transition-shadow">
               <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky flex items-center justify-center"><BadgePercent size={20}/></div>
               <h3 className="font-bold text-base text-blue-deep">عروض البيع الإضافي (Upsell)</h3>
-              <p className="text-xs text-slate-400 font-bold block -mt-2">Post-Confirmation Upsell</p>
+              <p className="text-xs text-slate-400 font-bold block -mt-2">عرض ذكي بعد التأكيد</p>
               <p className="text-xs text-slate-500 leading-relaxed">اقتراح عروض إضافية ذكية للعميل تلقائياً في الواتساب فور تأكيد طلبه لزيادة أرباحك.</p>
             </article>
 
             {/* Service 6 */}
             <article className="bg-white border border-slate-100 rounded-2xl p-6 space-y-4 hover:shadow-lg transition-shadow">
               <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky flex items-center justify-center"><FileText size={20}/></div>
-              <h3 className="font-bold text-base text-blue-deep">المزامنة مع Google Sheets</h3>
-              <p className="text-xs text-slate-400 font-bold block -mt-2">Google Sheets Instant Sync</p>
-              <p className="text-xs text-slate-500 leading-relaxed">تحديث فوري وتلقائي لبيانات العملاء وحالة طلبياتهم ومواقعهم في جدول بيانات جوجل الخاص بك.</p>
+              <h3 className="font-bold text-base text-blue-deep">تحديثات فورية لفريقك</h3>
+              <p className="text-xs text-slate-400 font-bold block -mt-2">كل حالة واضحة في وقتها</p>
+              <p className="text-xs text-slate-500 leading-relaxed">تابع حالة كل طلب وموقعه وآخر إجراء من مكان واحد، ليبقى فريق الشحن على اطلاع دائم.</p>
             </article>
 
             {/* Service 7 */}
             <article className="bg-white border border-slate-100 rounded-2xl p-6 space-y-4 hover:shadow-lg transition-shadow">
               <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky flex items-center justify-center"><HelpCircle size={20}/></div>
               <h3 className="font-bold text-base text-blue-deep">التدخل البشري والتحويل الذكي</h3>
-              <p className="text-xs text-slate-400 font-bold block -mt-2">Smart Agent Handover</p>
+              <p className="text-xs text-slate-400 font-bold block -mt-2">تحويل سلس لفريقك</p>
               <p className="text-xs text-slate-500 leading-relaxed">في حال طرح العميل سؤالاً معقداً أو تعديلاً، يتوقف البوت فوراً ويحيل الدردشة لصندوق الوارد المشترك.</p>
             </article>
 
@@ -337,7 +258,7 @@ function Auth({onDone}:{onDone:()=>void}) {
             <article className="bg-white border border-slate-100 rounded-2xl p-6 space-y-4 hover:shadow-lg transition-shadow">
               <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky flex items-center justify-center"><BarChart3 size={20}/></div>
               <h3 className="font-bold text-base text-blue-deep">لوحة تحليل المخاطر والتحليلات</h3>
-              <p className="text-xs text-slate-400 font-bold block -mt-2">AI Analytics & Risk Dashboard</p>
+              <p className="text-xs text-slate-400 font-bold block -mt-2">مؤشرات واضحة لاتخاذ القرار</p>
               <p className="text-xs text-slate-500 leading-relaxed">مراقبة تفصيلية لمعدلات التسليم ومستويات المخاطر وسلوك المشتري لضمان تحسين مستمر للهوامش.</p>
             </article>
 
@@ -427,7 +348,7 @@ function Auth({onDone}:{onDone:()=>void}) {
               <div>
                 <p className="font-black text-xl text-blue-deep">الباقة المبتدئة (Starter)</p>
                 <p className="text-slate-400 text-sm mt-1">للمتاجر الجديدة والناشئة</p>
-                <strong className="text-3xl font-black text-sky block mt-6">299 ريال <span className="text-xs font-normal text-slate-400">/شهرياً</span></strong>
+                <strong className="text-3xl font-black text-sky block mt-6">99 ريال <span className="text-xs font-normal text-slate-400">/شهرياً</span></strong>
                 <ul className="mt-8 space-y-3 text-sm text-slate-600">
                   <li className="flex items-center gap-2">✓ تأكيد تلقائي حتى 300 طلب/شهر</li>
                   <li className="flex items-center gap-2 font-bold text-emerald-800">✓ ميزة التحقق من موقع GPS مشمولة</li>
@@ -443,9 +364,9 @@ function Auth({onDone}:{onDone:()=>void}) {
               <div>
                 <p className="font-black text-xl text-blue-deep">باقة النمو (Growth)</p>
                 <p className="text-slate-400 text-sm mt-1">تأكيد متقدم وذكاء اصطناعي كامل</p>
-                <strong className="text-3xl font-black text-sky block mt-6">599 ريال <span className="text-xs font-normal text-slate-400">/شهرياً</span></strong>
+                <strong className="text-3xl font-black text-sky block mt-6">249 ريال <span className="text-xs font-normal text-slate-400">/شهرياً</span></strong>
                 <ul className="mt-8 space-y-3 text-sm text-slate-600">
-                  <li className="flex items-center gap-2">✓ تأكيد تلقائي حتى 5,000 طلب/شهر</li>
+                  <li className="flex items-center gap-2">✓ تأكيد تلقائي حتى 2,000 طلب/شهر</li>
                   <li className="flex items-center gap-2 font-bold text-emerald-800">✓ حماية التوصيل الكاملة (GPS + فحص العناوين)</li>
                   <li className="flex items-center gap-2 font-bold text-blue-800">✓ صندوق المحادثات المشترك والتحويل البشري</li>
                   <li className="flex items-center gap-2">✓ لوحات تحكم متقدمة بالكامل ودعم أولوي</li>
@@ -458,9 +379,9 @@ function Auth({onDone}:{onDone:()=>void}) {
               <div>
                 <p className="font-black text-xl text-blue-deep">باقة التوسع (Scale)</p>
                 <p className="text-slate-400 text-sm mt-1">للماركات الكبرى ومتعددة المتاجر</p>
-                <strong className="text-3xl font-black text-sky block mt-6">1,199 ريال <span className="text-xs font-normal text-slate-400">/شهرياً</span></strong>
+                <strong className="text-3xl font-black text-sky block mt-6">499 ريال <span className="text-xs font-normal text-slate-400">/شهرياً</span></strong>
                 <ul className="mt-8 space-y-3 text-sm text-slate-600">
-                  <li className="flex items-center gap-2">✓ تأكيد تلقائي غير محدود</li>
+                  <li className="flex items-center gap-2">✓ تأكيد تلقائي حتى 5,000 طلب/شهر</li>
                   <li className="flex items-center gap-2">✓ ربط متاجر متعددة بلوحة واحدة</li>
                   <li className="flex items-center gap-2">✓ تكامل مع API المخصص والمخازن</li>
                   <li className="flex items-center gap-2 font-bold text-blue-800">✓ خادم مخصص للماركة ودعم مخصص</li>
@@ -555,9 +476,9 @@ function Auth({onDone}:{onDone:()=>void}) {
               <X size={20} />
             </button>
             <form onSubmit={submit} className="p-8 sm:p-10 flex flex-col justify-center">
-              <p className="inline-block px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold w-fit mb-3">حسابات المؤسسين التجريبية</p>
+              <p className="inline-block px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold w-fit mb-3">50 تأكيد طلب مجاناً</p>
               <h3 className="text-2xl font-black mt-2 text-ink">{mode === "login" ? "مرحباً بعودتك" : "ابدأ تأكيد طلباتك مجاناً"}</h3>
-              <p className="text-slate-500 text-sm mt-1">انضم لصفوة تجار الخليج وتخلص من خسائر الدفع عند الاستلام نهائياً.</p>
+              <p className="text-slate-500 text-sm mt-1">اربط متجرك وWhatsApp، ثم ابدأ تأكيد طلبات الدفع عند الاستلام بلا بطاقة بنكية.</p>
 
               <div className="grid gap-3 mt-7">
                 {mode === "register" && (
@@ -565,22 +486,9 @@ function Auth({onDone}:{onDone:()=>void}) {
                     <input name="full_name" required placeholder="الاسم الكامل" className="rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-sky" />
                     <input name="phone" required placeholder="+9665xxxxxxxx" dir="ltr" className="rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-sky" />
                     <input name="store_name" required placeholder="اسم المتجر" className="rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-sky" />
-                    <div className="grid grid-cols-2 gap-3">
-                      <select name="platform" className="rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-sky">
-                        <option value="salla">سلة</option>
-                        <option value="zid">زد</option>
-                        <option value="shopify">Shopify</option>
-                        <option value="custom">متجر مخصص</option>
-                      </select>
-                      <select name="country_code" className="rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-sky">
-                        <option value="SA">السعودية</option>
-                        <option value="AE">الإمارات</option>
-                        <option value="KW">الكويت</option>
-                        <option value="QA">قطر</option>
-                        <option value="BH">البحرين</option>
-                        <option value="OM">عُمان</option>
-                      </select>
-                    </div>
+                    <input type="hidden" name="platform" value="custom" />
+                    <input type="hidden" name="country_code" value="SA" />
+                    <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-500">ستختار طريقة ربط متجرك في الخطوة التالية.</p>
                   </>
                 )}
                 <input name="email" type="email" required placeholder="البريد الإلكتروني للعمل" dir="ltr" className="rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-sky" />
@@ -589,12 +497,12 @@ function Auth({onDone}:{onDone:()=>void}) {
                 {error && <p className="text-rose-600 text-sm font-bold bg-rose-50 p-2 rounded">{error}</p>}
                 
                 <button className="rounded-xl btn-gold font-black p-4 mt-2 text-lg shadow-xl hover:shadow-2xl">
-                  {mode === "login" ? "دخول آمن للوحة · 180IQ" : "أكّد مكاني كعضو مؤسس"}
+                  {mode === "login" ? "تسجيل الدخول" : "ابدأ 50 تأكيد طلب مجاناً"}
                 </button>
               </div>
 
               <button type="button" onClick={() => setMode(mode === "login" ? "register" : "login")} className="mt-5 text-sm text-sky font-bold hover:underline">
-                {mode === "login" ? "متجر جديد؟ أنشئ حسابك لبدء التجربة" : "لديك حساب مؤسس؟ سجّل الدخول هنا"}
+                {mode === "login" ? "متجر جديد؟ أنشئ حسابك لبدء التجربة" : "لديك حساب؟ سجّل الدخول هنا"}
               </button>
             </form>
           </div>
@@ -606,6 +514,19 @@ function Auth({onDone}:{onDone:()=>void}) {
 
 function Stat({title,value,detail,icon:Icon,tone}:{title:string;value:string|number;detail:string;icon:any;tone:string}) {
   return <article className="glass rounded-2xl p-5"><div className="flex justify-between"><div><p className="text-sm text-slate-500">{title}</p><p className="text-3xl font-black mt-2">{value}</p></div><div className={`w-11 h-11 rounded-xl grid place-items-center ${tone}`}><Icon size={21}/></div></div><p className="text-xs text-slate-500 mt-4">{detail}</p></article>;
+}
+
+function DemoCard({title,duration,transcript,onStart}:{title:string;duration:string;transcript:string;onStart?:()=>void}) {
+  const [open,setOpen]=useState(false);
+  return <article className="rounded-3xl bg-white p-5 shadow-xl border border-slate-100">
+    <div className="aspect-video rounded-2xl bg-gradient-to-br from-blue-deep via-sky to-emerald-700 grid place-items-center relative overflow-hidden">
+      <div className="absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_30%_20%,white,transparent_35%)]" />
+      <div className="relative text-center text-white px-5"><button type="button" onClick={()=>setOpen(true)} aria-label={`عرض نص ${title}`} className="mx-auto mb-3 w-14 h-14 rounded-full bg-white/20 border border-white/40 grid place-items-center text-xl transition-transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-white/50">▶</button><p className="font-black">{title}</p><p className="text-xs text-white/80 mt-2">{duration} · مدعوم بالترجمة العربية الخليجية</p></div>
+    </div>
+    <button onClick={()=>setOpen(!open)} className="mt-4 text-sm font-bold text-sky">{open?"إخفاء النص":"قراءة نص الفيديو"}</button>
+    {open&&<p className="mt-3 rounded-xl bg-slate-50 p-4 text-sm leading-7 text-slate-600">{transcript}</p>}
+    <button onClick={onStart} className="mt-4 w-full rounded-xl btn-gold p-3 font-black">ابدأ مجاناً مع 50 طلباً</button>
+  </article>;
 }
 
 function DeveloperApi({storeId}:{storeId:string}) {
@@ -622,87 +543,69 @@ function Billing({storeId}:{storeId:string}) {
   const [checkingOut,setCheckingOut]=useState("");
   const [message,setMessage]=useState("");
   const plans=[
-    {id:"starter",name:"Starter",price:"299",orders:"حتى 300 طلب شهرياً",detail:"لمتجر واحد وفريق صغير"},
-    {id:"growth",name:"Growth",price:"599",orders:"حتى 5,000 طلب شهرياً",detail:"تحليل أعمق ودعم بأولوية",featured:true},
-    {id:"scale",name:"Scale",price:"1,199",orders:"حجم مرتفع وفق الاستخدام العادل",detail:"للعلامات متعددة المتاجر"},
+    {id:"starter",name:"Starter",price:"99",orders:"حتى 300 طلب شهرياً",detail:"لمتجر واحد وفريق صغير"},
+    {id:"growth",name:"Growth",price:"249",orders:"حتى 2,000 طلب شهرياً",detail:"للعمل المتنامي وإدارة المتابعة",featured:true},
+    {id:"scale",name:"Scale",price:"499",orders:"حتى 5,000 طلب شهرياً",detail:"للمتاجر متعددة القنوات"},
   ];
   const checkout=async(plan:string)=>{
     setCheckingOut(plan); setMessage("");
     try { const r=await api.post("/api/payments/checkout",{store_id:storeId,plan}); location.href=r.data.url; }
     catch(err:any){ setMessage(err.response?.status===503?"الدفع الإلكتروني لهذه الخطة قيد التفعيل. تواصل معنا لتثبيت عرض المؤسسين.":"تعذر فتح صفحة الدفع الآمنة. حاول مرة أخرى."); setCheckingOut(""); }
   };
-  return <section className="mt-8 max-w-5xl"><p className="inline-block px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-bold w-fit mb-3">نموذج أعمال يضمن ربحك</p><h2 className="text-3xl font-black mt-2 text-ink">استثمر جزءاً صغيراً مما نوفره لك</h2><p className="text-slate-500 mt-3 text-lg">بدون عمولات إضافية على الرسائل للحفاظ على هامش ربحك عالياً. ادفع بعد تحقق القيمة الفعلية من النظام.</p><div className="grid md:grid-cols-3 gap-5 mt-8">{plans.map(plan=><article key={plan.id} className={`glass rounded-2xl p-8 relative flex flex-col ${plan.featured?"border-2 border-mint shadow-2xl shadow-mint/10":""}`}>{plan.featured&&<span className="absolute -top-3 right-8 rounded-full bg-mint px-4 py-1.5 text-xs font-bold text-white shadow-lg">🚀 مقترح للنمو (180IQ)</span>}<p className="font-black text-2xl text-blue-deep">{plan.name}</p><p className="mt-5 text-4xl font-black text-sky">{plan.price} <span className="text-sm font-medium text-slate-400">ريال/شهر</span></p><p className="mt-5 font-bold p-3 bg-sky-50 rounded-xl text-blue-deep text-center">{plan.orders}</p><p className="mt-4 min-h-16 text-sm text-slate-500 leading-relaxed font-medium">{plan.detail}</p><button onClick={()=>checkout(plan.id)} disabled={!!checkingOut} className={`mt-auto w-full rounded-xl p-4 font-bold text-lg transition-transform ${plan.featured?"btn-gold":"bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>{checkingOut===plan.id?"جارٍ التحميل الآمن...":`اختيار باقة ${plan.name}`}</button></article>)}</div>{message&&<p className="mt-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-800 border border-amber-200">{message}</p>}<p className="mt-6 text-xs text-slate-400 text-center uppercase tracking-wider">نظام فواتير آمن مدعوم بـ Stripe | إلغاء متى شئت</p></section>;
+  return <section className="mt-8 max-w-5xl"><p className="inline-block px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-bold w-fit mb-3">نموذج أعمال يضمن ربحك</p><h2 className="text-3xl font-black mt-2 text-ink">استثمر جزءاً صغيراً مما نوفره لك</h2><p className="text-slate-500 mt-3 text-lg">بدون عمولات إضافية على الرسائل للحفاظ على هامش ربحك عالياً. ادفع بعد تحقق القيمة الفعلية من النظام.</p><div className="grid md:grid-cols-3 gap-5 mt-8">{plans.map(plan=><article key={plan.id} className={`glass rounded-2xl p-8 relative flex flex-col ${plan.featured?"border-2 border-mint shadow-2xl shadow-mint/10":""}`}>{plan.featured&&<span className="absolute -top-3 right-8 rounded-full bg-mint px-4 py-1.5 text-xs font-bold text-white shadow-lg">الباقة الموصى بها</span>}<p className="font-black text-2xl text-blue-deep">{plan.name}</p><p className="mt-5 text-4xl font-black text-sky">{plan.price} <span className="text-sm font-medium text-slate-400">ريال/شهر</span></p><p className="mt-5 font-bold p-3 bg-sky-50 rounded-xl text-blue-deep text-center">{plan.orders}</p><p className="mt-4 min-h-16 text-sm text-slate-500 leading-relaxed font-medium">{plan.detail}</p><button onClick={()=>checkout(plan.id)} disabled={!!checkingOut} className={`mt-auto w-full rounded-xl p-4 font-bold text-lg transition-transform ${plan.featured?"btn-gold":"bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>{checkingOut===plan.id?"جارٍ التحميل الآمن...":`اختيار باقة ${plan.name}`}</button></article>)}</div>{message&&<p className="mt-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-800 border border-amber-200">{message}</p>}<p className="mt-6 text-xs text-slate-400 text-center uppercase tracking-wider">نظام فواتير آمن مدعوم بـ Stripe | إلغاء متى شئت</p></section>;
 }
 
-function Integrations({storeId, onConnectedChange}:{storeId:string, onConnectedChange:()=>void}) {
-  const [shop,setShop]=useState(""); const [message,setMessage]=useState("");
-  const [sheetUrl,setSheetUrl]=useState("");
-  const [waInstance,setWaInstance]=useState(""); const [waToken,setWaToken]=useState(""); const [waQr,setWaQr]=useState("");
+function ZeroFrictionOnboarding({storeId,storeName,freeRemaining,onReady}:{storeId:string;storeName:string;freeRemaining:number;onReady:()=>void}) {
+  const [platform,setPlatform]=useState<"shopify"|"salla"|"zid"|"custom"|"">("");
+  const [shop,setShop]=useState(""); const [merchantKey,setMerchantKey]=useState("");
+  const [qr,setQr]=useState(""); const [notice,setNotice]=useState(""); const [busy,setBusy]=useState(false); const [showKeyGuide,setShowKeyGuide]=useState(false); const [customKey,setCustomKey]=useState("");
+  const connections=useQuery({queryKey:["onboarding-connections",storeId],queryFn:async()=> (await api.get("/api/integrations/status",{params:{store_id:storeId}})).data});
+  const whatsapp=useQuery({
+    queryKey:["onboarding-whatsapp",storeId],
+    queryFn:async()=> (await api.get("/api/waapi/status",{params:{store_id:storeId}})).data,
+    refetchInterval: qr ? 3000 : false,
+  });
+  const connectedStore=Boolean(connections.data?.shopify?.connected || connections.data?.salla?.connected || connections.data?.zid?.connected || connections.data?.custom?.connected);
+  const connectedWhatsapp=Boolean(whatsapp.data?.connected);
+  const connectShopify=async()=>{try{setBusy(true);const r=await api.post("/api/integrations/shopify/start",{store_id:storeId,shop});location.href=r.data.url}catch(err:any){setNotice(err.response?.data?.detail||"تعذر بدء ربط Shopify")}finally{setBusy(false)}};
+  const connectMerchant=async()=>{try{setBusy(true);await api.post(`/api/integrations/${platform}/merchant-key`,{store_id:storeId,token:merchantKey});setMerchantKey("");setNotice("تم ربط المتجر بنجاح. ستصل الطلبات تلقائياً إلى مجيب.");connections.refetch();onReady()}catch(err:any){setNotice(err.response?.data?.detail||"تعذر ربط المتجر. تحقق من رمز الربط.")}finally{setBusy(false)}};
+  const createCustomAccess=async()=>{try{setBusy(true);const r=await api.post("/api/integrations/custom/start",{store_id:storeId});setCustomKey(r.data.api_key||"");setNotice(r.data.api_key?"تم إنشاء وصول آمن لمتجرك. سلّم المفتاح التالي لمطور متجرك مرة واحدة فقط.":"وصول مطور متجرك جاهز بالفعل. إذا احتجت مفتاحاً جديداً، تواصل مع الدعم.");connections.refetch();onReady()}catch(err:any){setNotice(err.response?.data?.detail||"تعذر تجهيز وصول متجرك المخصص.")}finally{setBusy(false)}};
+  const createChannel=async()=>{try{setBusy(true);const r=await api.post("/api/waapi/provision",{store_id:storeId});setQr(r.data.qr||"");setNotice("");whatsapp.refetch();onReady()}catch(err:any){setNotice(err.response?.data?.detail||"تعذر إنشاء قناة WhatsApp")}finally{setBusy(false)}};
+  const sendTest=async()=>{try{setBusy(true);await api.post("/api/waapi/test-message",{store_id:storeId});setNotice("تم إرسال رسالة الاختبار إلى رقمك. تحقق من WhatsApp الآن.")}catch(err:any){setNotice(err.response?.data?.detail||"تعذر إرسال رسالة الاختبار. تأكد من مسح QR أولاً.")}finally{setBusy(false)}};
+  const cards=[{id:"shopify",name:"Shopify",copy:"ربط آمن خلال دقيقتين"},{id:"salla",name:"سلة",copy:"مفتاح ربط واحد من متجرك"},{id:"zid",name:"زد",copy:"رمز ربط واحد من متجرك"},{id:"custom",name:"متجر مخصص",copy:"ربط سريع مع فريق مجيب"}] as const;
+  const keyLabel=platform==="salla"?"مفتاح ربط سلة":"رمز ربط زد";
+  return <section className="mt-8 max-w-5xl" dir="rtl">
+    <div className="rounded-3xl bg-gradient-to-l from-blue-deep to-slate-900 p-7 text-white"><p className="text-emerald-300 font-black text-sm">تجربتك المجانية</p><h2 className="text-3xl font-black mt-2">50 تأكيد طلبات مجاناً لمتجرك</h2><p className="text-blue-100 mt-3">لا تحتاج بطاقة بنكية. اربط متجرك ثم WhatsApp وابدأ التشغيل.</p><div className="mt-5 inline-flex rounded-xl bg-white/10 border border-white/20 px-4 py-2 font-black">{50-freeRemaining} / 50 طلب مستخدم</div></div>
+    {notice&&<p className="mt-5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 p-4 text-sm">{notice}</p>}
+    <div className="mt-7 grid gap-5">
+      <article className="glass rounded-2xl p-6"><div className="flex gap-4 items-start"><span className="grid place-items-center w-9 h-9 rounded-full bg-blue-deep text-white font-black">1</span><div><h3 className="font-black text-xl">اربط متجرك</h3><p className="text-slate-500 text-sm mt-1">اختر منصتك. تبدأ مزامنة الطلبات تلقائياً بعد الربط.</p></div></div><div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-5">{cards.map(item=><button key={item.id} onClick={()=>{setPlatform(item.id);setNotice("")}} className={`text-right rounded-xl border p-4 transition ${platform===item.id?"border-sky bg-sky-50":"border-slate-200 hover:border-sky"}`}><Store className="text-sky mb-5" size={21}/><b>{item.name}</b><span className="block text-xs text-slate-500 mt-2">{item.copy}</span><span className="mt-4 block border-t border-slate-100 pt-3 text-[11px] font-bold text-slate-400">حوالي دقيقتين · اتصال آمن · مزامنة تلقائية</span></button>)}</div>
+      {platform==="shopify"&&<div className="mt-5 rounded-xl bg-slate-50 p-4"><label className="text-sm font-bold">اسم متجر Shopify</label><div className="mt-2 flex gap-2" dir="ltr"><input value={shop} onChange={e=>setShop(e.target.value)} placeholder="store.myshopify.com" className="flex-1 rounded-xl border border-slate-200 p-3 text-sm"/><button disabled={!shop||busy} onClick={connectShopify} className="rounded-xl bg-blue-deep text-white px-5 font-bold disabled:opacity-50">ربط المتجر</button></div></div>}
+      {(platform==="salla"||platform==="zid")&&<div className="mt-5 rounded-xl bg-slate-50 p-4"><div className="flex items-center justify-between gap-4"><label className="text-sm font-bold">{keyLabel}</label><button type="button" onClick={()=>setShowKeyGuide(!showKeyGuide)} className="text-xs font-bold text-sky">{showKeyGuide?"إخفاء الدليل":"شاهد الدليل · 15 ثانية"}</button></div><p className="text-xs text-slate-500 mt-1">انسخه من إعدادات متجرك. نحفظه بأمان ونكمل الربط تلقائياً.</p>{showKeyGuide&&<div className="mt-3 rounded-xl border border-sky-100 bg-white p-3 text-xs leading-6 text-slate-600">{platform==="salla"?"من لوحة سلة: الإعدادات ← خيارات المطور ← أنشئ مفتاح API، ثم انسخه هنا.":"من إعدادات متجر زد: أنشئ X-Manager-Token، ثم انسخه هنا."}</div>}<div className="mt-2 flex gap-2"><input value={merchantKey} onChange={e=>setMerchantKey(e.target.value)} type="password" placeholder={keyLabel} className="flex-1 rounded-xl border border-slate-200 p-3 text-sm"/><button disabled={!merchantKey||busy} onClick={connectMerchant} className="rounded-xl bg-blue-deep text-white px-5 font-bold disabled:opacity-50">ربط المتجر</button></div></div>}
+      {platform==="custom"&&<div className="mt-5 rounded-xl bg-slate-50 p-4 text-sm text-slate-600"><p>أنشئ وصولاً آمناً لمطور متجرك في خطوة واحدة. لا تحتاج لأي إعداد الآن.</p><button disabled={busy} onClick={createCustomAccess} className="mt-3 rounded-xl bg-blue-deep px-5 py-3 font-bold text-white disabled:opacity-50">إنشاء وصول المطور</button>{customKey&&<div className="mt-4 rounded-xl bg-slate-950 p-4 text-xs text-emerald-300 break-all" dir="ltr">{customKey}</div>}{customKey&&<button onClick={()=>navigator.clipboard.writeText(customKey)} className="mt-3 text-sm font-bold text-sky">نسخ المفتاح لمطور المتجر</button>}</div>}</article>
+      <article className="glass rounded-2xl p-6"><div className="flex gap-4 items-start"><span className="grid place-items-center w-9 h-9 rounded-full bg-emerald-600 text-white font-black">2</span><div><h3 className="font-black text-xl">اربط WhatsApp Business</h3><p className="text-slate-500 text-sm mt-1">بعد ربط متجرك، أنشئ القناة ثم امسح رمز QR من WhatsApp ← الأجهزة المرتبطة.</p></div></div>{connectedWhatsapp?<div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800"><div className="flex items-center gap-2 font-black"><CheckCircle2 size={20}/> تم ربط WhatsApp بنجاح</div><p className="mt-1 text-sm">{whatsapp.data?.display_phone || "قناتك جاهزة الآن"}</p></div>:!qr?<><button disabled={busy||!connectedStore} onClick={createChannel} className="mt-5 rounded-xl bg-emerald-600 text-white px-6 py-3 font-black disabled:opacity-50">إنشاء القناة وإظهار QR</button>{!connectedStore&&<p className="mt-3 text-xs text-slate-500">أكمل ربط متجرك أولاً لتفعيل هذه الخطوة.</p>}</>:<div className="mt-5 grid sm:grid-cols-[180px_1fr] gap-5 items-center"><img src={qr} alt="رمز QR لربط WhatsApp" className="w-44 h-44 bg-white rounded-xl p-2 border"/><p className="text-sm text-slate-600 leading-7">افتح WhatsApp على هاتفك، اختر الأجهزة المرتبطة، ثم امسح الرمز. سيؤكد مجيب الاتصال تلقائياً خلال ثوانٍ.</p></div>}</article>
+      <article className="glass rounded-2xl p-6"><div className="flex gap-4 items-start"><span className="grid place-items-center w-9 h-9 rounded-full bg-slate-800 text-white font-black">3</span><div><h3 className="font-black text-xl">شغّل أول 50 تأكيداً مجاناً</h3><p className="text-slate-500 text-sm mt-1">تحقق من جاهزية الربط، ثم أرسل رسالة اختبار إلى رقمك.</p></div></div><div className="mt-5 space-y-3 text-sm"><p className={`flex items-center gap-2 ${connectedStore?"text-emerald-700":"text-slate-500"}`}><CheckCircle2 size={18}/> {connectedStore?`تم ربط المتجر: ${storeName}`:"بانتظار ربط المتجر"}</p><p className={`flex items-center gap-2 ${connectedWhatsapp?"text-emerald-700":"text-slate-500"}`}><CheckCircle2 size={18}/> {connectedWhatsapp?`تم ربط WhatsApp: ${whatsapp.data?.display_phone || "متصل"}`:"امسح QR لإتمام ربط WhatsApp"}</p><p className={`flex items-center gap-2 ${connectedStore&&connectedWhatsapp?"text-emerald-700":"text-slate-500"}`}><CheckCircle2 size={18}/> {connectedStore&&connectedWhatsapp?"النظام جاهز لتأكيد الطلبات":"يكمل النظام تلقائياً بعد الخطوتين"}</p></div><button disabled={!connectedStore||!connectedWhatsapp||busy} onClick={sendTest} className="mt-5 rounded-xl bg-blue-deep text-white px-6 py-3 font-black disabled:opacity-40">إرسال طلب تجريبي حقيقي</button></article>
+    </div>
+  </section>;
+}
 
-  const status=useQuery({queryKey:["integration-status",storeId],queryFn:async()=> (await api.get("/api/integrations/status",{params:{store_id:storeId}})).data});
-  const waStatus=useQuery({queryKey:["waapi-status",storeId],queryFn:async()=> (await api.get("/api/waapi/status",{params:{store_id:storeId}})).data});
-  
-  const connect=async(provider:"salla"|"zid")=>{setMessage("");try{const r=await api.post(`/api/integrations/${provider}/start`,{store_id:storeId});location.href=r.data.url;}catch(err:any){setMessage(err.response?.data?.detail||"تعذر بدء الربط");}};
-  const connectShopify=async()=>{setMessage("");try{const r=await api.post("/api/integrations/shopify/start",{store_id:storeId,shop});location.href=r.data.url;}catch(err:any){setMessage(err.response?.data?.detail||"تحقق من اسم متجر Shopify");}};
-  const provisionWaapi=async()=>{setMessage("");try{const r=await api.post("/api/waapi/provision",{store_id:storeId});setWaInstance(r.data.instance_id||"");setWaQr(r.data.qr||"");setMessage("تم إنشاء قناة WhatsApp. امسح رمز QR من هاتفك لإكمال الربط.");waStatus.refetch();}catch(err:any){setMessage(err.response?.data?.detail||"تعذر إنشاء قناة WhatsApp");}};
-  const connectWhatsApp=async()=>{setMessage("");try{const signup=await launchEmbeddedSignup();await api.post("/api/whatsapp/embedded-signup",{store_id:storeId,...signup});setMessage("تم ربط رقم واتساب والتحقق من ملكيته.");status.refetch();onConnectedChange();}catch(err:any){setMessage(err.response?.data?.detail||err.message||"تعذر ربط واتساب");}};
-  
-  const connectGoogleSheets=async()=>{
-    setMessage("");
-    if(!sheetUrl.startsWith("http")){
-      setMessage("يرجى إدخال رابط Google Webhook صحيح.");
-      return;
-    }
-    try{
-      await api.post("/api/integrations/google-sheets/connect", {store_id:storeId, url:sheetUrl});
-      setMessage("تم ربط Google Sheet بنجاح! سيتم مزامنة الطلبيات فوراً.");
-      setSheetUrl("");
-      status.refetch();
-      onConnectedChange();
-    }catch(err:any){
-      setMessage(err.response?.data?.detail||"تعذر ربط Google Sheet");
-    }
-  };
-
-  const disconnectGoogleSheets=async()=>{
-    setMessage("");
-    try{
-      await api.post("/api/integrations/google-sheets/disconnect", {store_id:storeId});
-      setMessage("تم فصل Google Sheet.");
-      status.refetch();
-      onConnectedChange();
-    }catch(err:any){
-      setMessage("تعذر إيقاف الربط");
-    }
-  };
-
-  const entry=(provider:string)=>status.data?.[provider]||{configured:false,connected:false};
-
-  return <section className="mt-8"><h2 className="text-xl font-black">ربط بوابات المبيعات والعمليات</h2><p className="text-slate-500 mt-1">تكامل مباشر مع المتاجر، وقنوات الواتساب وجداول جوجل لتنظيم دورة العمل بالكامل.</p>{message&&<p className="mt-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-800 border border-amber-200">{message}</p>}<div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5 mt-5">
-    {[{id:"salla",name:"سلة",desc:"مزامنة تلقائية للطلبيات والعملاء"},{id:"zid",name:"زد",desc:"سحب الطلبيات وتأكيد حالتها"}].map(item=>{const state=entry(item.id);return <article className="glass rounded-2xl p-6" key={item.id}><Link2 className="text-mint"/><h3 className="font-black text-lg mt-5">{item.name}</h3><p className="text-sm text-slate-500 mt-2 min-h-10">{item.desc}</p><button disabled={!state.configured||state.connected} onClick={()=>connect(item.id as "salla"|"zid")} className="mt-5 w-full rounded-xl border border-sky text-sky p-2 font-bold disabled:border-slate-200 disabled:text-slate-400">{state.connected?"متصل":state.configured?"ربط آمن":"قيد إعداد الشريك"}</button></article>})}
-    <article className="glass rounded-2xl p-6"><Link2 className="text-mint"/><h3 className="font-black text-lg mt-5">Shopify</h3><p className="text-sm text-slate-500 mt-2">أدخل اسم المتجر فقط.</p><input value={shop} onChange={e=>setShop(e.target.value)} dir="ltr" placeholder="store.myshopify.com" className="mt-3 w-full rounded-xl border border-slate-200 p-2 text-sm"/><button disabled={!entry("shopify").configured||entry("shopify").connected||!shop} onClick={connectShopify} className="mt-3 w-full rounded-xl border border-sky text-sky p-2 font-bold disabled:border-slate-200 disabled:text-slate-400">{entry("shopify").connected?"متصل":entry("shopify").configured?"ربط آمن":"قيد إعداد الشريك"}</button></article>
-    
-    <DevWhatsAppSimulator storeId={storeId}/>
-    <article className="glass rounded-2xl p-6 border border-emerald-200 bg-emerald-50/30"><MessageCircle className="text-emerald-600"/><h3 className="font-black text-lg mt-5">WhatsApp عبر Mujeeb</h3><p className="text-sm text-slate-600 mt-2">Mujeeb ينشئ القناة تلقائياً. لا يحتاج التاجر إلى إنشاء حساب WaAPI أو نسخ أي ID أو token.</p>{waQr?<div className="mt-4 space-y-3"><img src={waQr} alt="WhatsApp QR" className="mx-auto w-48 h-48 rounded-xl bg-white p-2"/><p className="text-xs text-center font-bold">افتح واتساب ← الأجهزة المرتبطة ← ربط جهاز، ثم امسح الرمز</p></div>:<button onClick={provisionWaapi} className="mt-5 w-full rounded-xl bg-emerald-600 text-white p-2 font-bold">إنشاء قناة ومسح QR</button>}</article>
-    <article className="glass rounded-2xl p-6 border border-amber-200"><MessageCircle className="text-amber-600"/><h3 className="font-black text-lg mt-5">WAAPI (pilote externe)</h3><p className="text-sm text-slate-500 mt-2">Instance WAAPI isolée par boutique. Le token est chiffré côté serveur.</p>{waStatus.data?.connected?<div className="mt-4 rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-sm font-bold text-emerald-800">Instance {waStatus.data.instance_id} · connectée ✓</div>:<div className="mt-3 space-y-2"><input value={waInstance} onChange={e=>setWaInstance(e.target.value)} dir="ltr" placeholder="WAAPI instance ID" className="w-full rounded-xl border border-slate-200 p-2 text-sm"/><input value={waToken} onChange={e=>setWaToken(e.target.value)} dir="ltr" type="password" placeholder="WAAPI API token" className="w-full rounded-xl border border-slate-200 p-2 text-sm"/><button disabled={!waInstance||!waToken} className="w-full rounded-xl bg-amber-600 text-white p-2 font-bold disabled:opacity-50" onClick={async()=>{try{await api.post("/api/waapi/connect",{store_id:storeId,instance_id:waInstance,api_token:waToken});setWaToken("");setMessage("WAAPI connecté.");waStatus.refetch();}catch(err:any){setMessage(err.response?.data?.detail||"Impossible de vérifier WAAPI");}}}>Vérifier et connecter WAAPI</button></div>}</article>
-    {/* WhatsApp WABA Embedding Card */}
-    <article className="glass rounded-2xl p-6"><MessageCircle className="text-mint"/><h3 className="font-black text-lg mt-5">WhatsApp Business (WABA)</h3><p className="text-sm text-slate-500 mt-2 min-h-10">ربط رقم الواتساب الخاص بمتجرك بضغطة واحدة عبر Meta Embedded Signup.</p><button disabled={!entry("whatsapp").enabled} onClick={connectWhatsApp} className={`mt-5 w-full rounded-xl p-2 font-bold border transition-colors ${entry("whatsapp").connected?"bg-emerald-50 border-emerald-500 text-emerald-800":"border-sky text-sky hover:bg-sky-50"}`}>{entry("whatsapp").connected?"متصل بنجاح ✓":"ربط الحساب بضغطة واحدة"}</button></article>
-
-    {/* Google Sheets Sync Card */}
-    <article className="glass rounded-2xl p-6"><FileText className="text-mint"/><h3 className="font-black text-lg mt-5">Google Sheets Sync</h3><p className="text-sm text-slate-500 mt-2">مزامنة تلقائية للمبيعات وتحديثات الشحن مباشرة في جدولك الخاص.</p>
-      {entry("google_sheets").connected ? (
-        <div className="mt-4 space-y-3">
-          <div className="bg-emerald-50 border border-emerald-250 p-2 rounded-xl text-xs text-emerald-800 font-bold text-center">متصل بنشاط ومزامن ✓</div>
-          <button onClick={disconnectGoogleSheets} className="w-full rounded-xl border border-rose-300 text-rose-600 p-2 text-xs font-bold hover:bg-rose-50">إيقاف المزامنة</button>
-        </div>
-      ) : (
-        <div className="mt-3 space-y-2">
-          <input value={sheetUrl} onChange={e=>setSheetUrl(e.target.value)} dir="ltr" placeholder="رابط Google Webhook URL" className="w-full rounded-xl border border-slate-200 p-2 text-xs"/>
-          <button onClick={connectGoogleSheets} className="w-full rounded-xl border border-sky text-sky p-2 text-xs font-bold hover:bg-sky-50">ربط وتفعيل المزامنة</button>
-        </div>
-      )}
-    </article>
-  </div></section>;
+function OperationalDashboard({summary,orders}:{summary:Summary;orders:Order[]}) {
+  const [details,setDetails]=useState<string|null>(null);
+  const remaining=summary.free_pilot_remaining ?? 50;
+  const selectedOrder=orders.find(order=>order.id===details);
+  return <section className="mt-8" dir="rtl">
+    <div className="grid sm:grid-cols-2 xl:grid-cols-5 gap-4">
+      <Stat title="الطلبات المستلمة" value={summary.total} detail="كل الطلبات الواردة" icon={PackageCheck} tone="bg-blue-100 text-blue-700"/>
+      <Stat title="الطلبات المؤكدة" value={`${summary.confirmation_rate}%`} detail={`${summary.confirmed} طلب مؤكد`} icon={CheckCircle2} tone="bg-emerald-100 text-emerald-700"/>
+      <Stat title="الطلبات الملغاة" value={summary.cancelled} detail="لا تشحن قبل التأكيد" icon={X} tone="bg-rose-100 text-rose-700"/>
+      <Stat title="مواقع GPS المستلمة" value={(summary as any).gps_verified_count ?? 0} detail="عناوين أوضح للشحن" icon={MapPin} tone="bg-indigo-100 text-indigo-700"/>
+      <Stat title="رصيد التجربة" value={`${remaining} / 50`} detail="تأكيد مجاني متبقٍ" icon={Coins} tone="bg-amber-100 text-amber-700"/>
+    </div>
+    <section className="mt-7 rounded-2xl bg-white border border-slate-100 shadow-sm overflow-hidden">
+      <div className="p-5 border-b border-slate-100"><h2 className="text-xl font-black">سجل الطلبات</h2><p className="text-sm text-slate-500 mt-1">تابع ما تم تأكيده وما يحتاج متابعة، من دون تفاصيل تقنية.</p></div>
+      {orders.length ? <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-sm"><thead className="bg-slate-50 text-slate-500"><tr><th className="p-4 text-right">رقم الطلب</th><th className="p-4 text-right">العميل</th><th className="p-4 text-right">المبلغ</th><th className="p-4 text-right">الحالة</th><th className="p-4 text-right">الموقع</th><th className="p-4 text-right">آخر إجراء</th></tr></thead><tbody>{orders.map(order=><tr key={order.id} className="border-t border-slate-100 hover:bg-slate-50"><td className="p-4 font-bold">#{order.external_order_number || order.id.slice(0,8)}</td><td className="p-4 text-slate-600">{order.customer_name || "عميل المتجر"}</td><td className="p-4 font-bold">{order.amount} {order.currency}</td><td className="p-4"><span className={`status-${order.status} px-3 py-1 text-xs`}>{statusLabel[order.status] || order.status}</span></td><td className="p-4">{order.gps_lat&&order.gps_lng?<a className="inline-flex items-center gap-1 text-sky font-bold" target="_blank" rel="noreferrer" href={`https://www.google.com/maps?q=${order.gps_lat},${order.gps_lng}`}><MapPin size={14}/> موقع مؤكد</a>:<span className="text-slate-400">بانتظار الموقع</span>}</td><td className="p-4"><button onClick={()=>setDetails(details===order.id?null:order.id)} className="font-bold text-sky">عرض التفاصيل</button></td></tr>)}</tbody></table></div>:<div className="p-12 text-center text-slate-500">ستظهر طلبات متجرك هنا فور وصولها.</div>}
+      {selectedOrder&&<div className="mx-5 mb-5 rounded-xl bg-slate-50 p-4 text-sm text-slate-600"><div className="flex items-center justify-between gap-3"><p className="font-black text-ink">تفاصيل الطلب #{selectedOrder.external_order_number || selectedOrder.id.slice(0,8)}</p><button onClick={()=>setDetails(null)} className="font-bold text-sky">إغلاق</button></div><div className="mt-3 grid sm:grid-cols-3 gap-3 text-xs"><p><span className="text-slate-400">آخر حالة:</span> {statusLabel[selectedOrder.status] || selectedOrder.status}</p><p><span className="text-slate-400">وقت الاستلام:</span> {new Date(selectedOrder.created_at).toLocaleString("ar-SA")}</p><p><span className="text-slate-400">فحص الطلب:</span> جاهز للشحن بعد التأكيد</p></div>{selectedOrder.items.length>0&&<p className="mt-3 text-xs"><span className="text-slate-400">المنتجات:</span> {selectedOrder.items.map(item=>item.name || item.title || "منتج").join("، ")}</p>}</div>}
+    </section>
+  </section>;
 }
 
 function DevWhatsAppSimulator({storeId}:{storeId:string}) {
@@ -723,22 +626,32 @@ function Privacy() {
 }
 
 function Dashboard({user,onLogout}:{user:User;onLogout:()=>void}) {
-  const store=user.stores[0]; const [tab,setTab]=useState("overview");
+  const store=user.stores[0];
+  const initialTab = location.pathname.endsWith("/integrations")
+    ? "integrations"
+    : location.pathname.endsWith("/billing")
+      ? "billing"
+      : "overview";
+  const [tab,setTab]=useState(initialTab);
   const [showUpsell, setShowUpsell] = useState(true);
-
-  // Bot Simulator States
+  // These states support legacy views that are not reachable from merchant navigation.
+  // The only supported testing UI is protected under /admin.
   const [activeSimId, setActiveSimId] = useState<string | null>(null);
   const [simStep, setSimStep] = useState<"ready" | "pending_confirm" | "pending_gps" | "pending_upsell" | "completed">("ready");
   const [simAmount, setSimAmount] = useState(320);
 
   const summary=useQuery({queryKey:["summary",store.id],queryFn:async()=> (await api.get<any>("/api/orders/summary",{params:{store_id:store.id}})).data});
   const orders=useQuery({queryKey:["orders",store.id],queryFn:async()=> (await api.get<Order[]>("/api/orders",{params:{store_id:store.id}})).data});
+  const integrationStatus=useQuery({queryKey:["integration-status",store.id],queryFn:async()=> (await api.get("/api/integrations/status",{params:{store_id:store.id}})).data});
+  const waapiStatus=useQuery({queryKey:["waapi-status",store.id],queryFn:async()=> (await api.get("/api/waapi/status",{params:{store_id:store.id}})).data});
   
   const s = summary.data || {
     total:0, confirmed:0, cancelled:0, human_follow_up:0, confirmation_rate:0,
     plan:"free", free_pilot_remaining:50, gps_verified_count: 0,
     upsell_conversion_count: 0, upsell_revenue: 0.0, google_sheets_sync_healthy: false
   };
+  const storeConnected=Boolean(integrationStatus.data?.shopify?.connected || integrationStatus.data?.salla?.connected || integrationStatus.data?.zid?.connected || integrationStatus.data?.custom?.connected);
+  const systemReady=storeConnected && Boolean(waapiStatus.data?.connected);
 
   const startSimulator = async () => {
     try {
@@ -746,7 +659,7 @@ function Dashboard({user,onLogout}:{user:User;onLogout:()=>void}) {
       setActiveSimId(r.data.order_id);
       setSimStep("pending_confirm");
       setSimAmount(320);
-    } catch(err:any) {
+    } catch {
       alert("يرجى التأكد من إضافة متجر أولاً.");
     }
   };
@@ -755,50 +668,41 @@ function Dashboard({user,onLogout}:{user:User;onLogout:()=>void}) {
     if (!activeSimId) return;
     try {
       const r = await api.post(`/api/orders/${activeSimId}/chatbot`, {action});
-      if (action === "confirm") {
-        setSimStep("pending_gps");
-      } else if (action === "share_location") {
-        setSimStep("pending_upsell");
-      } else {
-        setSimStep("completed");
-        setActiveSimId(null);
-        // Refresh summary stats and orders list immediately
-        summary.refetch();
-        orders.refetch();
-      }
+      if (action === "confirm") setSimStep("pending_gps");
+      else if (action === "share_location") setSimStep("pending_upsell");
+      else { setSimStep("completed"); setActiveSimId(null); summary.refetch(); orders.refetch(); }
       setSimAmount(Number(r.data.amount));
-    } catch(err:any) {
-      console.error(err);
-    }
+    } catch (err) { console.error(err); }
   };
 
   const nav=[
     {id:"overview",label:"لوحة القيادة",icon:BarChart3},
     {id:"orders",label:"سجل الطلبات",icon:Boxes},
-    {id:"integrations",label:"تفعيل القنوات",icon:Link2},
-    {id:"developer",label:"API المطورين",icon:Code2},
+    {id:"integrations",label:"ربط المتجر وWhatsApp",icon:Link2},
     {id:"billing",label:"الاشتراك والترقية",icon:CreditCard},
     {id:"privacy",label:"الخصوصية والأمان",icon:ShieldCheck}
   ];
 
   return <div className="min-h-screen lg:grid lg:grid-cols-[260px_1fr]" dir="rtl"><aside className="bg-blue-deep text-white p-6 lg:min-h-screen border-l border-blue-900 shadow-[4px_0_24px_rgba(30,58,138,0.2)]"><div className="text-2xl font-black mb-10 flex items-center gap-2"><div className="w-10 h-10 rounded-xl bg-gradient-to-br from-mint to-teal-800 flex items-center justify-center shadow-lg shadow-mint/20 text-xl font-bold">M</div>مُجيب</div><nav className="flex lg:flex-col gap-2 overflow-auto">{nav.map(n=><button key={n.id} onClick={()=>setTab(n.id)} className={`flex items-center gap-3 rounded-xl px-4 py-3.5 whitespace-nowrap transition-colors font-medium ${tab===n.id?"bg-white text-blue-deep shadow-md font-bold":"text-blue-200 hover:bg-white/10 hover:text-white"}`}><n.icon size={20}/>{n.label}</button>)}</nav><button onClick={onLogout} className="mt-12 lg:mt-[40vh] flex items-center gap-3 text-blue-300 hover:text-white transition-colors w-full px-4"><LogOut size={20}/> تسجيل الخروج</button></aside>
-  <main className="mesh p-5 lg:px-10 lg:py-8"><header className="flex justify-between items-center bg-white/50 backdrop-blur-md p-4 rounded-2xl border border-slate-100 shadow-sm"><div><p className="text-sm font-bold text-sky">{store.name} · {store.country_code}</p><h1 className="text-2xl font-black mt-1 text-ink">أهلاً، {user.full_name.split(" ")[0]} 👋</h1></div><div className="flex items-center gap-3"><button onClick={()=>setTab("billing")} className="px-4 py-2 font-bold text-sm bg-blue-deep text-white rounded-xl shadow-md hover:bg-blue-800 transition-colors">ترقية الحساب</button><span className="rounded-xl border border-mint bg-emerald-50 text-emerald-800 px-4 py-2 text-sm font-black shadow-sm">{s.plan==="free"?`التجربة (تبقى ${s.free_pilot_remaining??50} طلب)`:`باقة ${s.plan}`}</span></div></header>
+  <main className="mesh p-5 lg:px-10 lg:py-8"><header className="flex justify-between items-center bg-white/50 backdrop-blur-md p-4 rounded-2xl border border-slate-100 shadow-sm"><div><p className="text-sm font-bold text-sky">{store.name} · {store.country_code}</p><h1 className="text-2xl font-black mt-1 text-ink">أهلاً، {user.full_name.split(" ")[0]}</h1></div><div className="flex items-center gap-3"><button onClick={()=>setTab("billing")} className="px-4 py-2 font-bold text-sm bg-blue-deep text-white rounded-xl shadow-md hover:bg-blue-800 transition-colors">ترقية الحساب</button><span className="rounded-xl border border-mint bg-emerald-50 text-emerald-800 px-4 py-2 text-sm font-black shadow-sm">{s.plan==="free"?`التجربة (تبقى ${s.free_pilot_remaining??50} طلب)`:`باقة ${s.plan}`}</span></div></header>
   
-  {showUpsell && s.plan==="free" && tab==="overview" && (
+  {showUpsell && s.plan==="free" && (s.free_pilot_remaining ?? 50) <= 5 && tab==="overview" && (
     <div className="mt-6 glass rounded-2xl p-6 border-l-4 border-l-gold relative flex flex-col sm:flex-row justify-between items-center shadow-xl shadow-gold/5 bg-gradient-to-r from-amber-50 to-white overflow-hidden">
       <div className="absolute top-0 right-0 w-32 h-32 bg-gold/10 rounded-full blur-3xl"></div>
       <div className="z-10">
-        <h3 className="text-lg font-black text-ink flex items-center gap-2"><Sparkles className="text-gold" size={18} /> حماية التوصيل (Protect) معطلة للمتاجر المجانية</h3>
-        <p className="text-slate-600 text-sm mt-1">ميزة GPS مشمولة في Starter حتى 300 طلب شهرياً. رقٍّ إلى Growth عند الحاجة إلى 5,000 طلب، Shared Inbox وتسليم المحادثة لفريقك.</p>
+        <h3 className="text-lg font-black text-ink flex items-center gap-2"><Sparkles className="text-gold" size={18} /> بقي 5 تأكيدات مجانية فقط</h3>
+        <p className="text-slate-600 text-sm mt-1">انتقل إلى Starter لتستمر تأكيدات الطلبات دون انقطاع، مع GPS حتى 300 طلب شهرياً.</p>
       </div>
       <div className="flex gap-3 mt-4 sm:mt-0 z-10 w-full sm:w-auto">
         <button className="text-slate-500 text-sm font-bold px-3 hover:text-ink transition-colors" onClick={() => setShowUpsell(false)}>إخفاء التنبيه</button>
-        <button onClick={() => setTab("billing")} className="btn-gold whitespace-nowrap text-sm px-6 py-2.5 rounded-xl shadow-lg border-none w-full sm:w-auto">اكتشف باقة Growth</button>
+        <button onClick={() => setTab("billing")} className="btn-gold whitespace-nowrap text-sm px-6 py-2.5 rounded-xl shadow-lg border-none w-full sm:w-auto">انتقل إلى Starter</button>
       </div>
     </div>
   )}
 
-  {tab==="overview"&&<>
+  {tab==="overview"&&(systemReady ? <OperationalDashboard summary={s} orders={orders.data || []}/> : <ZeroFrictionOnboarding storeId={store.id} storeName={store.name} freeRemaining={s.free_pilot_remaining ?? 50} onReady={() => {summary.refetch();integrationStatus.refetch();waapiStatus.refetch();}}/>)}
+
+  {tab==="legacy-overview"&&<>
     {/* Core Stats Overview */}
     <section className="grid sm:grid-cols-2 xl:grid-cols-4 gap-5 mt-8">
       <Stat title="إجمالي الطلبات المستلمة" value={s.total} detail="هذا الشهر (واتساب)" icon={PackageCheck} tone="bg-blue-100 text-blue-700 shadow-blue-500/10"/>
@@ -933,7 +837,7 @@ function Dashboard({user,onLogout}:{user:User;onLogout:()=>void}) {
     </section>
   </>}
 
-  {tab === "orders" && (
+  {tab === "legacy-orders" && (
     <section className="glass rounded-2xl p-5 mt-8 overflow-auto">
       <h2 className="text-xl font-black mb-5">سجل الطلبيات</h2>
       {orders.isLoading ? (
@@ -985,11 +889,13 @@ function Dashboard({user,onLogout}:{user:User;onLogout:()=>void}) {
     </section>
   )}
   
-  {tab==="integrations"&&<Integrations storeId={store.id} onConnectedChange={() => summary.refetch()}/>}
-  {tab==="developer"&&<DeveloperApi storeId={store.id}/>} 
+  {tab === "orders" && <OperationalDashboard summary={s} orders={orders.data || []}/>}
+  {tab==="integrations"&&<ZeroFrictionOnboarding storeId={store.id} storeName={store.name} freeRemaining={s.free_pilot_remaining ?? 50} onReady={() => {summary.refetch();integrationStatus.refetch();waapiStatus.refetch();}}/>}
   {tab==="billing"&&<Billing storeId={store.id}/>}
   {tab==="privacy"&&<Privacy/>}
   </main></div>;
 }
 
-export default function App(){const me=useQuery({queryKey:["me"],queryFn:async()=> (await api.get<User>("/api/auth/me")).data,retry:false});if(me.isLoading)return <div className="min-h-screen grid place-items-center font-black">مُجيب</div>;if(!me.data)return <Auth onDone={()=>me.refetch()}/>;return <Dashboard user={me.data} onLogout={async()=>{await api.post("/api/auth/logout");location.reload();}}/>;}
+function InternalAdmin({user,onLogout}:{user:User;onLogout:()=>void}) { const store=user.stores[0]; return <main className="mesh min-h-screen p-6 lg:p-12" dir="rtl"><div className="max-w-5xl mx-auto"><header className="flex items-center justify-between rounded-2xl bg-slate-950 text-white p-5"><div><p className="text-xs text-slate-400">لوحة داخلية</p><h1 className="text-2xl font-black mt-1">أدوات اختبار مجيب</h1></div><button onClick={onLogout} className="rounded-xl bg-white/10 px-4 py-2 font-bold">تسجيل الخروج</button></header><p className="mt-6 text-sm text-slate-600">هذه الصفحة مخصصة للفريق فقط، ولا تظهر في تجربة التاجر.</p><div className="mt-6 grid gap-6"><DevWhatsAppSimulator storeId={store.id}/><DeveloperApi storeId={store.id}/></div></div></main>; }
+
+export default function App(){const me=useQuery({queryKey:["me"],queryFn:async()=> (await api.get<User>("/api/auth/me")).data,retry:false});const logout=async()=>{await api.post("/api/auth/logout");location.reload();};if(me.isLoading)return <div className="min-h-screen grid place-items-center font-black">مُجيب</div>;if(!me.data)return <Auth onDone={()=>me.refetch()}/>;if(location.pathname==="/admin")return me.data.is_internal_admin?<InternalAdmin user={me.data} onLogout={logout}/>:<Dashboard user={me.data} onLogout={logout}/>;return <Dashboard user={me.data} onLogout={logout}/>;}

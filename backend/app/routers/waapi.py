@@ -78,7 +78,10 @@ async def provision(payload: ProvisionInput, user: User = Depends(get_current_us
                 detail = created.text[:300]
                 raise HTTPException(502, f"WAAPI could not create the WhatsApp instance ({created.status_code}): {detail}")
             data = created.json()
-            instance_id = str(data.get("id") or data.get("instanceId") or "")
+            instance = data.get("instance") if isinstance(data, dict) else None
+            if not isinstance(instance, dict):
+                instance = data
+            instance_id = str(instance.get("id") or instance.get("instanceId") or "")
             if not instance_id.isdigit():
                 raise HTTPException(502, "WAAPI returned an invalid instance ID")
             updated = await client.put(

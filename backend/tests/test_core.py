@@ -46,6 +46,7 @@ from app.schemas import (
 from app.services.email import render_email
 from app.services.quota import FREE_PILOT_ORDER_LIMIT, consume_confirmation_credit, enforce_order_allowance
 from app.services.risk import calculate_risk
+from app.services.prospecting import canonicalize_website, prospect_score
 from app.models import FSMState
 from app.services.fsm import InvalidTransition, transition
 from app.services.address import ParsedAddress
@@ -125,6 +126,28 @@ def test_business_lead_normalizes_phone_and_requires_consent():
             contact_consent=False,
             consent_timestamp=datetime.now(UTC),
         )
+
+
+def test_acquisition_score_is_transparent_and_gcc_focused():
+    assert prospect_score(
+        country_code="KW",
+        platform="shopify",
+        public_email="sales@example.com",
+        public_phone="+96550000000",
+        evidence={"cod_available": True, "whatsapp_available": True},
+    ) == 100
+    assert prospect_score(
+        country_code=None,
+        platform=None,
+        public_email=None,
+        public_phone=None,
+        evidence={},
+    ) == 0
+
+
+def test_acquisition_canonicalizes_websites_for_deduplication():
+    assert canonicalize_website("http://www.Example.com/") == "https://example.com"
+    assert canonicalize_website("https://example.com/shop/?utm_source=x") == "https://example.com/shop"
 
 
 def test_funnel_event_allowlist():

@@ -258,6 +258,60 @@ class BusinessLeadCreated(BaseModel):
     status: str = "received"
 
 
+class AcquisitionProspectInput(BaseModel):
+    company: str = Field(min_length=2, max_length=180)
+    website: str = Field(min_length=8, max_length=500)
+    source_url: str = Field(min_length=8, max_length=1000)
+    country_code: str | None = Field(default=None, min_length=2, max_length=2)
+    platform: str | None = Field(default=None, max_length=32)
+    public_email: EmailStr | None = None
+    public_phone: str | None = Field(default=None, max_length=40)
+    social_profiles: dict[str, str] = Field(default_factory=dict)
+    evidence: dict[str, str | int | float | bool] = Field(default_factory=dict)
+    message_draft: str | None = Field(default=None, max_length=2500)
+
+    @field_validator("country_code")
+    @classmethod
+    def acquisition_gcc_country(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.upper()
+        if normalized not in {"SA", "AE", "KW", "BH", "QA", "OM"}:
+            raise ValueError("Prospect must be located in a GCC country")
+        return normalized
+
+    @field_validator("platform")
+    @classmethod
+    def acquisition_platform(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip().lower()
+        if normalized not in {"salla", "zid", "shopify", "woocommerce", "custom", "other"}:
+            raise ValueError("Unsupported platform")
+        return normalized
+
+
+class AcquisitionDecisionInput(BaseModel):
+    decision: str
+
+    @field_validator("decision")
+    @classmethod
+    def supported_decision(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if normalized not in {"approved", "rejected", "contacted", "replied", "converted"}:
+            raise ValueError("Unsupported acquisition decision")
+        return normalized
+
+
+class AcquisitionProgressInput(BaseModel):
+    run_id: str = Field(min_length=4, max_length=100)
+    stage: str = Field(min_length=2, max_length=80)
+    processed: int = Field(default=0, ge=0)
+    qualified: int = Field(default=0, ge=0)
+    skipped: int = Field(default=0, ge=0)
+    message: str | None = Field(default=None, max_length=500)
+
+
 class FunnelEventInput(BaseModel):
     event_name: str
     session_id: str = Field(min_length=8, max_length=64)

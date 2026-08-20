@@ -89,6 +89,12 @@ class Settings(BaseSettings):
     openrouter_http_referer: str = "https://usemujeeb.com"
     openrouter_app_name: str = "Mujeeb"
     n8n_shared_secret: str = ""
+    acquisition_admin_key: str = ""
+    acquisition_scraper_url: AnyHttpUrl = "http://acquisition:8080"
+    acquisition_daily_limit: int = Field(default=30, ge=1, le=500)
+    acquisition_auto_send_enabled: bool = False
+    telegram_bot_token: str = ""
+    telegram_chat_id: str = ""
 
     access_token_minutes: int = Field(default=30, ge=5, le=1440)
     refresh_token_days: int = Field(default=14, ge=1, le=90)

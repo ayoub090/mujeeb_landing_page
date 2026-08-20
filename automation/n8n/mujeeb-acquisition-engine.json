@@ -1,0 +1,94 @@
+{
+  "name": "Mujeeb - GCC prospect qualification",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mujeeb-gcc-prospecting",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-seeds",
+      "name": "Receive public store URLs",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-760, 0],
+      "webhookId": "mujeeb-gcc-prospecting"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body || $json;\nconst urls = Array.isArray(body.urls) ? body.urls : [];\nif (!urls.length) throw new Error('Provide at least one public ecommerce URL');\nif (urls.length > 30) throw new Error('Safety limit: maximum 30 URLs per run');\nconst runId = body.run_id || `mujeeb-${Date.now()}`;\nreturn [...new Set(urls)].map(url => ({ json: { url, country_hint: body.country_hint || null, run_id: runId } }));"
+      },
+      "id": "validate-seeds",
+      "name": "Validate, cap and deduplicate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-520, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.usemujeeb.com/api/acquisition/extract",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ url: $json.url, country_hint: $json.country_hint }) }}",
+        "options": {"timeout": 120000}
+      },
+      "id": "extract-public-facts",
+      "name": "Extract public business facts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-280, 0],
+      "credentials": {
+        "httpHeaderAuth": {"id": "REPLACE_AFTER_IMPORT", "name": "Mujeeb Acquisition Key"}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json;\nif (!data.company || !data.website) return [];\nreturn [{ json: {\n  company: String(data.company).slice(0,180),\n  website: data.website,\n  source_url: data.source_url || data.website,\n  country_code: data.country_code || null,\n  platform: data.platform || 'other',\n  public_email: data.public_email || null,\n  public_phone: data.public_phone || null,\n  social_profiles: data.social_profiles || {},\n  evidence: data.evidence || {},\n  message_draft: null\n} }];"
+      },
+      "id": "normalize",
+      "name": "Normalize prospect",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-40, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.usemujeeb.com/api/acquisition/prospects",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "store-prospect",
+      "name": "Score and store in Mujeeb",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [200, 0],
+      "credentials": {
+        "httpHeaderAuth": {"id": "REPLACE_AFTER_IMPORT", "name": "Mujeeb Acquisition Key"}
+      }
+    }
+  ],
+  "connections": {
+    "Receive public store URLs": {"main": [[{"node": "Validate, cap and deduplicate", "type": "main", "index": 0}]]},
+    "Validate, cap and deduplicate": {"main": [[{"node": "Extract public business facts", "type": "main", "index": 0}]]},
+    "Extract public business facts": {"main": [[{"node": "Normalize prospect", "type": "main", "index": 0}]]},
+    "Normalize prospect": {"main": [[{"node": "Score and store in Mujeeb", "type": "main", "index": 0}]]}
+  },
+  "pinData": {},
+  "settings": {"executionOrder": "v1", "saveDataErrorExecution": "all", "saveDataSuccessExecution": "none"},
+  "active": false,
+  "versionId": "9d4c4777-b2ca-4f1d-8753-3c94cbe780a0",
+  "meta": {"templateCredsSetupCompleted": false},
+  "tags": []
+}

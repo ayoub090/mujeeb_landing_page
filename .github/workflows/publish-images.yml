@@ -7,6 +7,7 @@ on:
     paths:
       - "backend/**"
       - "frontend/**"
+      - "acquisition/**"
       - ".github/workflows/publish-images.yml"
 
 permissions:
@@ -23,6 +24,8 @@ jobs:
             context: backend
           - name: dashboard
             context: frontend
+          - name: acquisition
+            context: acquisition
     steps:
       - uses: actions/checkout@v4
       - uses: docker/login-action@v3

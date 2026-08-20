@@ -324,6 +324,35 @@ class BusinessLead(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
 
 
+class AcquisitionProspect(Base):
+    """Public business prospect discovered by the owner-operated acquisition pipeline."""
+
+    __tablename__ = "acquisition_prospects"
+    __table_args__ = (
+        UniqueConstraint("canonical_website", name="uq_acquisition_prospect_website"),
+        Index("ix_acquisition_prospects_score_status", "score", "status"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    company: Mapped[str] = mapped_column(String(180))
+    canonical_website: Mapped[str] = mapped_column(String(500))
+    source_url: Mapped[str] = mapped_column(String(1000))
+    country_code: Mapped[str | None] = mapped_column(String(2), index=True)
+    platform: Mapped[str | None] = mapped_column(String(32), index=True)
+    public_email: Mapped[str | None] = mapped_column(String(320))
+    public_phone: Mapped[str | None] = mapped_column(String(40))
+    social_profiles: Mapped[dict] = mapped_column(JSON, default=dict)
+    evidence: Mapped[dict] = mapped_column(JSON, default=dict)
+    score: Mapped[int] = mapped_column(Integer, default=0, index=True)
+    status: Mapped[str] = mapped_column(String(32), default="new", index=True)
+    outreach_channel: Mapped[str | None] = mapped_column(String(32))
+    message_draft: Mapped[str | None] = mapped_column(Text)
+    last_contacted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    contact_attempts: Mapped[int] = mapped_column(Integer, default=0)
+    discovered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
 class FunnelEvent(Base):
     __tablename__ = "funnel_events"
 

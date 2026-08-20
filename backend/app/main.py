@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.routers import (
+    acquisition,
     auth,
     automation,
     custom_orders,
@@ -37,11 +38,17 @@ app.add_middleware(
     allow_origin_regex=local_origin_pattern,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "X-CSRF-Token", "X-Mujeeb-Analytics-Key"],
+    allow_headers=[
+        "Content-Type",
+        "X-CSRF-Token",
+        "X-Mujeeb-Analytics-Key",
+        "X-Mujeeb-Acquisition-Key",
+    ],
 )
 
 for api_router in (
     health.router,
+    acquisition.router,
     auth.router,
     orders.router,
     integrations.router,

@@ -1,0 +1,19 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["acquisition"]
+    restart: unless-stopped
+    volumes: [ollama_data:/root/.ollama]
+
+  acquisition:
+    image: ghcr.io/ayoub090/mujeeb-acquisition:latest
+    profiles: ["acquisition"]
+    restart: unless-stopped
+    environment:
+      ACQUISITION_ADMIN_KEY: ${ACQUISITION_ADMIN_KEY}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b}
+      OLLAMA_BASE_URL: http://ollama:11434
+    depends_on: [ollama]
+
+volumes:
+  ollama_data:

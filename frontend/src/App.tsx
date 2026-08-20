@@ -1,4 +1,4 @@
-import {useState} from "react";
+import {useRef, useState} from "react";
 import {useQuery} from "@tanstack/react-query";
 import {
   BarChart3, Boxes, CheckCircle2, Clipboard, Code2, CreditCard, Link2,
@@ -146,8 +146,8 @@ function Auth({onDone}:{onDone:()=>void}) {
             <p className="text-slate-500 mt-3">اختر متجرك، اربط WhatsApp بمسح رمز QR، ثم ابدأ أول 50 تأكيد طلب مجاناً.</p>
           </div>
           <div className="grid lg:grid-cols-2 gap-6">
-            <DemoCard title="كيف يعمل مجيب في 30 ثانية" duration="30–45 ثانية" transcript="تختار Shopify أو سلة أو زد، ثم تمسح رمز WhatsApp. يصل طلب الدفع عند الاستلام، يطلب مجيب التأكيد والموقع، وتظهر الحالة مؤكدة وجاهزة للشحن." onStart={()=>openAuth("register")} />
-            <DemoCard title="عرض توضيحي مباشر" duration="45–60 ثانية" transcript="يشاهد العميل رسالة التأكيد، يرسل الموافقة وموقعه، فتُضاف الإحداثيات إلى الطلب ويظهر لفريق المتجر جاهزاً للشحن." onStart={()=>openAuth("register")} />
+            <DemoCard title="كيف يعمل مجيب في 30 ثانية" duration="35 ثانية" src="/videos/video1_onboarding.mp4" poster="/videos/video1_onboarding-poster.jpg" transcript="اربط متجرك على سلة أو زد في ثوانٍ برمز API الخاص بك، امسح رمز الواتساب... ومبارك عليك! نظام مُجيب صار جاهز لتأكيد أول 50 طلب لمتجرك مجاناً وبدون أي تعقيد." onStart={()=>openAuth("register")} />
+            <DemoCard title="عرض توضيحي مباشر" duration="48 ثانية" src="/videos/video2_workflow.mp4" poster="/videos/video2_workflow-poster.jpg" transcript="بمجرد تسجيل العميل لطلب دفع عند الاستلام، يتولى مُجيب المحادثة فوراً بلهجة سعودية طبيعية. يؤكد الطلب، يسحب لوكيشن الـ GPS بدقة، ويحدث حالة الطلب في متجرك تلقائياً. تأكيد أسرع، ومرتجعات أقل." onStart={()=>openAuth("register")} />
           </div>
         </div>
       </section>
@@ -516,13 +516,18 @@ function Stat({title,value,detail,icon:Icon,tone}:{title:string;value:string|num
   return <article className="glass rounded-2xl p-5"><div className="flex justify-between"><div><p className="text-sm text-slate-500">{title}</p><p className="text-3xl font-black mt-2">{value}</p></div><div className={`w-11 h-11 rounded-xl grid place-items-center ${tone}`}><Icon size={21}/></div></div><p className="text-xs text-slate-500 mt-4">{detail}</p></article>;
 }
 
-function DemoCard({title,duration,transcript,onStart}:{title:string;duration:string;transcript:string;onStart?:()=>void}) {
+function DemoCard({title,duration,transcript,src,poster,onStart}:{title:string;duration:string;transcript:string;src:string;poster:string;onStart?:()=>void}) {
   const [open,setOpen]=useState(false);
+  const [playing,setPlaying]=useState(false);
+  const videoRef=useRef<HTMLVideoElement>(null);
+  const play=()=>{setPlaying(true);void videoRef.current?.play();};
   return <article className="rounded-3xl bg-white p-5 shadow-xl border border-slate-100">
-    <div className="aspect-video rounded-2xl bg-gradient-to-br from-blue-deep via-sky to-emerald-700 grid place-items-center relative overflow-hidden">
-      <div className="absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_30%_20%,white,transparent_35%)]" />
-      <div className="relative text-center text-white px-5"><button type="button" onClick={()=>setOpen(true)} aria-label={`عرض نص ${title}`} className="mx-auto mb-3 w-14 h-14 rounded-full bg-white/20 border border-white/40 grid place-items-center text-xl transition-transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-white/50">▶</button><p className="font-black">{title}</p><p className="text-xs text-white/80 mt-2">{duration} · مدعوم بالترجمة العربية الخليجية</p></div>
+    <div className="aspect-video rounded-2xl bg-slate-950 relative overflow-hidden group">
+      <video ref={videoRef} className="h-full w-full object-cover" src={src} poster={poster} controls={playing} preload="metadata" playsInline onPlay={()=>setPlaying(true)} onEnded={()=>setPlaying(false)} aria-label={title}/>
+      {!playing&&<button type="button" onClick={play} aria-label={`تشغيل ${title}`} className="absolute inset-0 grid place-items-center bg-slate-950/15 transition-colors hover:bg-slate-950/25 focus:outline-none focus:ring-4 focus:ring-inset focus:ring-white/60"><span className="grid h-16 w-16 place-items-center rounded-full border border-white/50 bg-white/90 text-2xl text-blue-deep shadow-2xl transition-transform group-hover:scale-110">▶</span></button>}
+      <span className="absolute right-4 top-4 rounded-full border border-white/30 bg-slate-950/75 px-3 py-1.5 text-[11px] font-bold text-white backdrop-blur">مدعوم بالترجمة العربية الخليجية</span>
     </div>
+    <div className="mt-4 flex items-center justify-between gap-3"><p className="font-black text-blue-deep">{title}</p><span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">{duration}</span></div>
     <button onClick={()=>setOpen(!open)} className="mt-4 text-sm font-bold text-sky">{open?"إخفاء النص":"قراءة نص الفيديو"}</button>
     {open&&<p className="mt-3 rounded-xl bg-slate-50 p-4 text-sm leading-7 text-slate-600">{transcript}</p>}
     <button onClick={onStart} className="mt-4 w-full rounded-xl btn-gold p-3 font-black">ابدأ مجاناً مع 50 طلباً</button>

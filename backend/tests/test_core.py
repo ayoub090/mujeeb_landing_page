@@ -25,6 +25,13 @@ from app.routers.integrations import verify_shopify_callback
 from app.routers.integrations import router as integrations_router
 from app.routers.waapi import SendTestMessageInput, merchant_connection_status, qr_image_source
 from app.routers.waapi import router as waapi_router
+from app.routers.demo_salla import (
+    DEMO_COUNTRY,
+    DEMO_MERCHANT_API_KEY,
+    DEMO_STORE_NAME,
+    demo_salla_order_payload,
+    router as demo_salla_router,
+)
 from app.routers import webhooks
 from app.routers.webhooks import receive_salla, receive_shopify, receive_zid, signature_ok
 from app.schemas import (
@@ -42,6 +49,7 @@ from app.services.risk import calculate_risk
 from app.models import FSMState
 from app.services.fsm import InvalidTransition, transition
 from app.services.address import ParsedAddress
+from app.main import app
 
 
 def test_high_risk_order_is_explainable():
@@ -132,6 +140,35 @@ def test_funnel_event_allowlist():
 def test_free_pilot_contract():
     assert FREE_PILOT_ORDER_LIMIT == 50
     assert Subscription.__table__.c.free_confirmations_remaining.default.arg == 50
+
+
+def test_asala_salla_demo_payload_is_realistic_and_safe_for_recording():
+    payload = demo_salla_order_payload()
+    data = payload["data"]
+    customer = data["customer"]
+    assert DEMO_STORE_NAME == "متجر أصالة للعود"
+    assert DEMO_COUNTRY == "المملكة العربية السعودية"
+    assert DEMO_MERCHANT_API_KEY.startswith("salla_demo_sec_")
+    assert payload["event"] == "order.created"
+    assert data["id"] == 10482
+    assert data["reference_id"] == "ORD-2026-10482"
+    assert data["total"] == {"amount": 380, "currency": "SAR"}
+    assert data["payment_method"] == "cod"
+    assert customer["mobile"].startswith("+966")
+    assert customer["city"] == "الرياض"
+    assert customer["district"] == "حي النرجس"
+    assert data["items"] == [{"name": "عطر مروكي ملكي فاخر 100 مل", "quantity": 1, "price": 380}]
+
+
+def test_asala_demo_routes_are_internal_only_surface():
+    paths = {route.path for route in demo_salla_router.routes}
+    assert paths == {
+        "/api/admin/demo/salla/profile",
+        "/api/admin/demo/salla/seed",
+        "/api/admin/demo/salla/dispatch",
+    }
+    active_paths = {route.path for route in app.routes}
+    assert paths <= active_paths
 
 
 class _SubscriptionSession:

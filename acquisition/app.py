@@ -84,6 +84,13 @@ async def extract(payload: ExtractInput, x_mujeeb_acquisition_key: str | None = 
         await _ensure_model()
     except (httpx.HTTPError, ValueError) as exc:
         raise HTTPException(status_code=503, detail="Local qualification model is not ready") from exc
+
+    # ScrapeGraphAI 1.x still imports ChatOllama from the legacy community
+    # namespace, while current LangChain ships it in langchain-ollama.
+    import langchain_community.chat_models as community_chat_models
+    if not hasattr(community_chat_models, "ChatOllama"):
+        from langchain_ollama import ChatOllama
+        community_chat_models.ChatOllama = ChatOllama
     from scrapegraphai.graphs import SmartScraperGraph
 
     graph = SmartScraperGraph(

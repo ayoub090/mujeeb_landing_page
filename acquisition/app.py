@@ -1,9 +1,11 @@
+import asyncio
 import hmac
 import ipaddress
 import socket
 from typing import Any
 from urllib.parse import urlsplit
 
+import httpx
 from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -18,6 +20,8 @@ class Settings(BaseSettings):
 
 settings = Settings()
 app = FastAPI(title="Mujeeb Acquisition Extractor", docs_url=None, redoc_url=None)
+_model_ready = False
+_model_lock = asyncio.Lock()
 
 
 class ExtractInput(BaseModel):
@@ -46,6 +50,27 @@ def _assert_public_url(value: str) -> str:
     return value.strip()
 
 
+async def _ensure_model() -> None:
+    global _model_ready
+    if _model_ready:
+        return
+    async with _model_lock:
+        if _model_ready:
+            return
+        base_url = settings.ollama_base_url.rstrip("/")
+        async with httpx.AsyncClient(timeout=httpx.Timeout(1800.0, connect=10.0)) as client:
+            tags = await client.get(f"{base_url}/api/tags")
+            tags.raise_for_status()
+            installed = {item.get("name", "") for item in tags.json().get("models", [])}
+            if not any(name == settings.ollama_model or name.startswith(f"{settings.ollama_model}:") for name in installed):
+                pull = await client.post(
+                    f"{base_url}/api/pull",
+                    json={"name": settings.ollama_model, "stream": False},
+                )
+                pull.raise_for_status()
+        _model_ready = True
+
+
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok", "service": "mujeeb-acquisition", "privacy": "local-llm"}
@@ -55,6 +80,10 @@ async def health() -> dict[str, str]:
 async def extract(payload: ExtractInput, x_mujeeb_acquisition_key: str | None = Header(default=None)) -> Any:
     _authenticate(x_mujeeb_acquisition_key)
     source = _assert_public_url(payload.url)
+    try:
+        await _ensure_model()
+    except (httpx.HTTPError, ValueError) as exc:
+        raise HTTPException(status_code=503, detail="Local qualification model is not ready") from exc
     from scrapegraphai.graphs import SmartScraperGraph
 
     graph = SmartScraperGraph(

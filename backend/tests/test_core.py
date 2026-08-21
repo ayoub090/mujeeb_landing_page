@@ -43,7 +43,7 @@ from app.schemas import (
     RiskInput,
     ShopifyStartInput,
 )
-from app.services.email import render_email
+from app.services.email_service import render_email
 from app.services.quota import FREE_PILOT_ORDER_LIMIT, consume_confirmation_credit, enforce_order_allowance
 from app.services.risk import calculate_risk
 from app.services.prospecting import canonicalize_website, prospect_score

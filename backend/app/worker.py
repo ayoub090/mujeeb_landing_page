@@ -8,7 +8,7 @@ from sqlalchemy import delete, select
 from app.crypto import decrypt_text
 from app.database import SessionLocal
 from app.models import BusinessLead, DataDeletionRequest, EmailJob, User
-from app.services.email import send_email
+from app.services.email_service import send_email
 
 logger = logging.getLogger("mujeeb.worker")
 

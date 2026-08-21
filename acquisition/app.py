@@ -116,7 +116,7 @@ Never infer personal data and return null when information is not public.
             "verbose": False,
         },
     )
-    result = graph.run()
+    result = await asyncio.to_thread(graph.run)
     if not isinstance(result, dict):
         raise HTTPException(status_code=502, detail="Extractor returned an invalid payload")
     result["source_url"] = source

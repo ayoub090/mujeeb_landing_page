@@ -16,10 +16,12 @@
 * `9c95049`: Added controlled GCC acquisition engine, transparent ICP scoring, and Telegram alerts.
 * `f4fa83f`: Added showcase video modules and demo assets.
 * `71a5055`: Finalized zero-friction pilot onboarding, Arabic RTL UI, Salla/Zid API key setup.
+* `beb092c`: Fixed event loop collision in acquisition service with `asyncio.to_thread`.
 
-## Acquisition Pipeline & Bug Fix
-* **Pipeline flow**: Target domain -> `acquisition/app.py` -> Chromium headless scrape -> Ollama `qwen2.5:3b` extraction -> Backend scoring & storage -> Telegram owner alert.
-* **Async Event Loop Fix**: ScrapeGraphAI uses an internal asyncio event loop inside Chromium loader. Running `graph.run()` directly inside FastAPI's async handler caused loop collisions. The fix wraps execution with `await asyncio.to_thread(graph.run)`.
+## Acquisition & Commercial Outreach Pipeline
+* **Acquisition flow**: Target domain -> `acquisition/app.py` -> Chromium scrape -> Ollama `qwen2.5:3b` extraction -> Backend scoring & storage -> Telegram owner alert.
+* **Outreach Cohort 1**: Top 5 qualified Saudi Salla ecommerce stores (Moments, Almadar, Battal Perfumes, Mim Electronic, 1995 Perfumes) with 100/100 ICP score, verified COD and WhatsApp channels.
+* **Review & Sending Mechanism**: Personalized Arabic messages sent to owner's Telegram with direct 1-click `wa.me` links for compliant, owner-supervised outreach.
 
 ## Testing & Quality Gates
 * **Backend Pytest**:
@@ -27,28 +29,16 @@
   export PYTHONPATH="backend:."
   pytest backend/tests
   ```
-  Tests cover core FSM, risk calculations, prospect scoring, address parsing, and acquisition endpoint with thread isolation checks.
 * **Frontend Build**:
   ```bash
   cd frontend && npm run build
   ```
 
-## Deployment Workflow
-* Deployments run on Hostinger VPS using Docker Compose:
-  ```bash
-  docker compose -f deploy/docker-compose.production.yml up -d --build
-  ```
-* Acquisition profile (optional/controlled):
-  ```bash
-  docker compose -f deploy/docker-compose.production.yml --profile acquisition up -d
-  ```
-
 ## Security & Operational Constraints
 * **NO SECRETS**: Never commit API keys, tokens, or credentials to Git. Use environment variables.
 * **DO NOT ENABLE AUTOMATIC PROSPECT OUTREACH UNTIL END-TO-END VALIDATION PASSES.**
-* Outbound messages are strictly manual or requires explicit owner approval.
+* Outbound messages are strictly manual or require explicit owner approval.
 * Scraper only accesses public merchant domains and blocks RFC1918 / private IPs (SSRF protection).
 
-## Next Recommended Tasks
-1. Execute controlled end-to-end smoke test on acquisition flow (single test URL -> local Ollama extraction -> Telegram notification).
-2. Monitor memory and latency of the local `qwen2.5:3b` model during inference under Docker.
+## Commercial Outreach States
+* `ready` -> `approved` -> `contacted` -> `replied` -> `interested` -> `pilot` -> `won`

@@ -107,16 +107,16 @@ function Auth({onDone}:{onDone:()=>void}) {
           </div>
           <div className="grid grid-cols-3 gap-6 pt-6 border-t border-slate-100 text-slate-500">
             <div>
-              <p className="text-2xl font-black text-blue-deep">98%</p>
-              <p className="text-xs">نسبة الوصول بالواتساب</p>
+              <p className="text-2xl font-black text-blue-deep">&lt; 30 ثانية</p>
+              <p className="text-xs">سرعة تأكيد الطلب وتحديد الموقع</p>
             </div>
             <div>
-              <p className="text-2xl font-black text-blue-deep">94.2%</p>
-              <p className="text-xs">دقة فرز وتصنيف الطلبات</p>
+              <p className="text-2xl font-black text-blue-deep">GPS دقيق</p>
+              <p className="text-xs">تحديث العنوان تلقائياً للشحن</p>
             </div>
             <div>
-              <p className="text-2xl font-black text-blue-deep">120+ متجر</p>
-              <p className="text-xs">يعتمدون على خوارزمياتنا</p>
+              <p className="text-2xl font-black text-blue-deep">50 طلباً</p>
+              <p className="text-xs">تجربة مجانية لقياس الأثر قبل الاشتراك</p>
             </div>
           </div>
         </div>

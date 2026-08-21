@@ -40,6 +40,37 @@ async def send_whatsapp_via_waapi(
         return res.json()
 
 
+async def send_whatsapp_media_via_waapi(
+    *,
+    instance_id: str,
+    api_token: str,
+    phone_number: str,
+    media_url: str,
+    caption: str,
+    base_url: str = "https://waapi.app/api/v1"
+) -> dict[str, Any]:
+    """Send a video demo or media attachment via WhatsApp with personalized caption."""
+    clean_phone = "".join(filter(str.isdigit, phone_number))
+    chat_id = f"{clean_phone}@c.us"
+    
+    url = f"{base_url.rstrip('/')}/instances/{instance_id}/client/action/send-media"
+    headers = {
+        "Authorization": f"Bearer {api_token}",
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+    }
+    payload = {
+        "chatId": chat_id,
+        "mediaUrl": media_url,
+        "mediaCaption": caption
+    }
+    
+    async with httpx.AsyncClient(timeout=45) as client:
+        res = await client.post(url, headers=headers, json=payload)
+        res.raise_for_status()
+        return res.json()
+
+
 async def send_email_via_resend(
     *,
     api_key: str,
@@ -58,6 +89,11 @@ async def send_email_via_resend(
     html_body = f"""
     <div dir="rtl" style="font-family: Arial, sans-serif; line-height: 1.8; color: #172033; max-width: 600px; margin: auto; padding: 20px;">
         <p style="white-space: pre-wrap;">{body_text}</p>
+        <div style="margin: 25px 0; text-align: center;">
+            <a href="https://usemujeeb.com/#book" style="background-color: #0f172a; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                مشاهدة فيديو تجربة النظام (15 ثانية) 🎬
+            </a>
+        </div>
         <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;">
         <p style="font-size: 12px; color: #64748b;">مجيب (Mujeeb) — منصة تأكيد طلبات الدفع عند الاستلام للمتاجر الإلكترونية</p>
     </div>

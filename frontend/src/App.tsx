@@ -348,9 +348,9 @@ function Auth({onDone}:{onDone:()=>void}) {
               <div>
                 <p className="font-black text-xl text-blue-deep">الباقة المبتدئة (Starter)</p>
                 <p className="text-slate-400 text-sm mt-1">للمتاجر الجديدة والناشئة</p>
-                <strong className="text-3xl font-black text-sky block mt-6">99 ريال <span className="text-xs font-normal text-slate-400">/شهرياً</span></strong>
+                <strong className="text-3xl font-black text-sky block mt-6">299 ريال <span className="text-sm font-normal text-slate-400">($79) /شهرياً</span></strong>
                 <ul className="mt-8 space-y-3 text-sm text-slate-600">
-                  <li className="flex items-center gap-2">✓ تأكيد تلقائي حتى 300 طلب/شهر</li>
+                  <li className="flex items-center gap-2">✓ تأكيد تلقائي حتى 1,000 طلب/شهر</li>
                   <li className="flex items-center gap-2 font-bold text-emerald-800">✓ ميزة التحقق من موقع GPS مشمولة</li>
                   <li className="flex items-center gap-2">✓ ربط فوري مع سلة، زد، وشوبيفاي</li>
                   <li className="flex items-center gap-2 text-slate-400">✗ صندوق الوارد المشترك للتحويل البشري</li>
@@ -364,12 +364,12 @@ function Auth({onDone}:{onDone:()=>void}) {
               <div>
                 <p className="font-black text-xl text-blue-deep">باقة النمو (Growth)</p>
                 <p className="text-slate-400 text-sm mt-1">تأكيد متقدم وذكاء اصطناعي كامل</p>
-                <strong className="text-3xl font-black text-sky block mt-6">249 ريال <span className="text-xs font-normal text-slate-400">/شهرياً</span></strong>
+                <strong className="text-3xl font-black text-sky block mt-6">599 ريال <span className="text-sm font-normal text-slate-400">($159) /شهرياً</span></strong>
                 <ul className="mt-8 space-y-3 text-sm text-slate-600">
-                  <li className="flex items-center gap-2">✓ تأكيد تلقائي حتى 2,000 طلب/شهر</li>
+                  <li className="flex items-center gap-2">✓ تأكيد تلقائي متقدم للطلبيات</li>
                   <li className="flex items-center gap-2 font-bold text-emerald-800">✓ حماية التوصيل الكاملة (GPS + فحص العناوين)</li>
                   <li className="flex items-center gap-2 font-bold text-blue-800">✓ صندوق المحادثات المشترك والتحويل البشري</li>
-                  <li className="flex items-center gap-2">✓ لوحات تحكم متقدمة بالكامل ودعم أولوي</li>
+                  <li className="flex items-center gap-2">✓ لوحات تحكم متقدمة ودعم أولوي</li>
                 </ul>
               </div>
               <button onClick={() => openAuth("register")} className="mt-8 w-full btn-gold font-bold p-3.5 rounded-xl shadow-lg border-none">البدء مجاناً</button>
@@ -379,9 +379,9 @@ function Auth({onDone}:{onDone:()=>void}) {
               <div>
                 <p className="font-black text-xl text-blue-deep">باقة التوسع (Scale)</p>
                 <p className="text-slate-400 text-sm mt-1">للماركات الكبرى ومتعددة المتاجر</p>
-                <strong className="text-3xl font-black text-sky block mt-6">499 ريال <span className="text-xs font-normal text-slate-400">/شهرياً</span></strong>
+                <strong className="text-3xl font-black text-sky block mt-6">1,199 ريال <span className="text-sm font-normal text-slate-400">($319) /شهرياً</span></strong>
                 <ul className="mt-8 space-y-3 text-sm text-slate-600">
-                  <li className="flex items-center gap-2">✓ تأكيد تلقائي حتى 5,000 طلب/شهر</li>
+                  <li className="flex items-center gap-2">✓ تأكيد COD لعدد غير محدود من المتاجر</li>
                   <li className="flex items-center gap-2">✓ ربط متاجر متعددة بلوحة واحدة</li>
                   <li className="flex items-center gap-2">✓ تكامل مع API المخصص والمخازن</li>
                   <li className="flex items-center gap-2 font-bold text-blue-800">✓ خادم مخصص للماركة ودعم مخصص</li>
@@ -547,17 +547,36 @@ function DeveloperApi({storeId}:{storeId:string}) {
 function Billing({storeId}:{storeId:string}) {
   const [checkingOut,setCheckingOut]=useState("");
   const [message,setMessage]=useState("");
+  const creemLinks: Record<string, string> = {
+    starter: "https://www.creem.io/payment/prod_2vqJ5mN9UsaIs92R0GGEGT",
+    growth: "https://www.creem.io/payment/prod_7jta2efsRo349gYRj8401C",
+    scale: "https://www.creem.io/payment/prod_6FvTUHYPbiKxTrai4rOZGP"
+  };
   const plans=[
-    {id:"starter",name:"Starter",price:"99",orders:"حتى 300 طلب شهرياً",detail:"لمتجر واحد وفريق صغير"},
-    {id:"growth",name:"Growth",price:"249",orders:"حتى 2,000 طلب شهرياً",detail:"للعمل المتنامي وإدارة المتابعة",featured:true},
-    {id:"scale",name:"Scale",price:"499",orders:"حتى 5,000 طلب شهرياً",detail:"للمتاجر متعددة القنوات"},
+    {id:"starter",name:"Starter",price:"299",usd:"$79",orders:"حتى 1,000 طلب شهرياً",detail:"لمتجر واحد وتأكيد فوري"},
+    {id:"growth",name:"Growth",price:"599",usd:"$159",orders:"طلبات غير محدودة ومتقدمة",detail:"للعمل المتنامي وإدارة المتابعة",featured:true},
+    {id:"scale",name:"Scale",price:"1,199",usd:"$319",orders:"حسابات ومتاجر متعددة",detail:"للمتاجر الكبرى والماركات"},
   ];
   const checkout=async(plan:string)=>{
     setCheckingOut(plan); setMessage("");
-    try { const r=await api.post("/api/payments/checkout",{store_id:storeId,plan}); location.href=r.data.url; }
-    catch(err:any){ setMessage(err.response?.status===503?"الدفع الإلكتروني لهذه الخطة قيد التفعيل. تواصل معنا لتثبيت عرض المؤسسين.":"تعذر فتح صفحة الدفع الآمنة. حاول مرة أخرى."); setCheckingOut(""); }
+    try {
+      const r = await api.post("/api/payments/checkout",{store_id:storeId,plan});
+      if (r.data?.url) {
+        location.href = r.data.url;
+        return;
+      }
+      throw new Error("No URL returned");
+    }
+    catch(err:any){
+      if (creemLinks[plan]) {
+        location.href = creemLinks[plan];
+        return;
+      }
+      setMessage(err.response?.status===503?"الدفع الإلكتروني لهذه الخطة قيد التفعيل. تواصل معنا لتثبيت عرض المؤسسين.":"تعذر فتح صفحة الدفع الآمنة. حاول مرة أخرى.");
+      setCheckingOut("");
+    }
   };
-  return <section className="mt-8 max-w-5xl"><p className="inline-block px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-bold w-fit mb-3">نموذج أعمال يضمن ربحك</p><h2 className="text-3xl font-black mt-2 text-ink">استثمر جزءاً صغيراً مما نوفره لك</h2><p className="text-slate-500 mt-3 text-lg">بدون عمولات إضافية على الرسائل للحفاظ على هامش ربحك عالياً. ادفع بعد تحقق القيمة الفعلية من النظام.</p><div className="grid md:grid-cols-3 gap-5 mt-8">{plans.map(plan=><article key={plan.id} className={`glass rounded-2xl p-8 relative flex flex-col ${plan.featured?"border-2 border-mint shadow-2xl shadow-mint/10":""}`}>{plan.featured&&<span className="absolute -top-3 right-8 rounded-full bg-mint px-4 py-1.5 text-xs font-bold text-white shadow-lg">الباقة الموصى بها</span>}<p className="font-black text-2xl text-blue-deep">{plan.name}</p><p className="mt-5 text-4xl font-black text-sky">{plan.price} <span className="text-sm font-medium text-slate-400">ريال/شهر</span></p><p className="mt-5 font-bold p-3 bg-sky-50 rounded-xl text-blue-deep text-center">{plan.orders}</p><p className="mt-4 min-h-16 text-sm text-slate-500 leading-relaxed font-medium">{plan.detail}</p><button onClick={()=>checkout(plan.id)} disabled={!!checkingOut} className={`mt-auto w-full rounded-xl p-4 font-bold text-lg transition-transform ${plan.featured?"btn-gold":"bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>{checkingOut===plan.id?"جارٍ التحميل الآمن...":`اختيار باقة ${plan.name}`}</button></article>)}</div>{message&&<p className="mt-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-800 border border-amber-200">{message}</p>}<p className="mt-6 text-xs text-slate-400 text-center uppercase tracking-wider">نظام فواتير آمن مدعوم بـ Stripe | إلغاء متى شئت</p></section>;
+  return <section className="mt-8 max-w-5xl"><p className="inline-block px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-bold w-fit mb-3">نموذج أعمال يضمن ربحك</p><h2 className="text-3xl font-black mt-2 text-ink">استثمر جزءاً صغيراً مما نوفره لك</h2><p className="text-slate-500 mt-3 text-lg">بدون عمولات إضافية على الرسائل للحفاظ على هامش ربحك عالياً. ادفع بعد تحقق القيمة الفعلية من النظام.</p><div className="grid md:grid-cols-3 gap-5 mt-8">{plans.map(plan=><article key={plan.id} className={`glass rounded-2xl p-8 relative flex flex-col ${plan.featured?"border-2 border-mint shadow-2xl shadow-mint/10":""}`}>{plan.featured&&<span className="absolute -top-3 right-8 rounded-full bg-mint px-4 py-1.5 text-xs font-bold text-white shadow-lg">الباقة الموصى بها</span>}<p className="font-black text-2xl text-blue-deep">{plan.name}</p><p className="mt-5 text-4xl font-black text-sky">{plan.price} <span className="text-sm font-medium text-slate-400">ريال ({plan.usd})/شهر</span></p><p className="mt-5 font-bold p-3 bg-sky-50 rounded-xl text-blue-deep text-center">{plan.orders}</p><p className="mt-4 min-h-16 text-sm text-slate-500 leading-relaxed font-medium">{plan.detail}</p><button onClick={()=>checkout(plan.id)} disabled={!!checkingOut} className={`mt-auto w-full rounded-xl p-4 font-bold text-lg transition-transform ${plan.featured?"btn-gold":"bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>{checkingOut===plan.id?"جارٍ التحميل الآمن...":`اختيار باقة ${plan.name}`}</button></article>)}</div>{message&&<p className="mt-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-800 border border-amber-200">{message}</p>}<p className="mt-6 text-xs text-slate-400 text-center uppercase tracking-wider">نظام فواتير آمن مدعوم بـ Creem | إلغاء متى شئت</p></section>;
 }
 
 function ZeroFrictionOnboarding({storeId,storeName,freeRemaining,onReady}:{storeId:string;storeName:string;freeRemaining:number;onReady:()=>void}) {

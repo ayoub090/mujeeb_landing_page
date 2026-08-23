@@ -9,6 +9,7 @@ from app.routers import (
     custom_orders,
     demo_salla,
     dev_whatsapp,
+    evolution,
     fsm_webhooks,
     health,
     integrations,
@@ -16,8 +17,8 @@ from app.routers import (
     orders,
     payments,
     privacy,
-    webhooks,
     waapi,
+    webhooks,
     whatsapp,
 )
 
@@ -63,5 +64,6 @@ for api_router in (
     marketing.router,
     automation.router,
     fsm_webhooks.router,
+    evolution.router,
 ):
     app.include_router(api_router)

@@ -1,20 +1,15 @@
-﻿import asyncio
+import asyncio
+import logging
 import os
-import sys
-from pathlib import Path
-
-backend_dir = Path(r'C:\Users\DELL\Desktop\mujeeb_landing_page\backend')
-sys.path.insert(0, str(backend_dir))
-sys.stdout.reconfigure(encoding='utf-8')
-
-os.environ['DATABASE_URL'] = 'sqlite+aiosqlite:///' + str(backend_dir / 'mujeeb.sqlite3')
-os.environ['TELEGRAM_BOT_TOKEN'] = '7989031523:AAG06PB2n4nrYkkThYXwczdpngMzL9RabqA'
-os.environ['TELEGRAM_CHAT_ID'] = '5547351734'
+from typing import Any
 
 from sqlalchemy import select
+from app.config import get_settings
 from app.database import SessionLocal
 from app.models import AcquisitionProspect
 from app.services.telegram import send_telegram_notification
+
+logger = logging.getLogger("mujeeb.instagram_cohort")
 
 async def generate_daily_instagram_cohort(limit: int = 30):
     print(f'=== GENERATING DAILY MANUAL INSTAGRAM OUTREACH COHORT (Target: {limit}) ===')

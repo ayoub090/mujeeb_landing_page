@@ -77,11 +77,32 @@ async def process_deletions() -> None:
         await session.commit()
 
 
+_last_outreach_day: str | None = None
+
+
+async def process_scheduled_outreach() -> None:
+    global _last_outreach_day
+    now = datetime.now(UTC)
+    today = now.strftime("%Y-%m-%d")
+    # Trigger daily at 07:00 UTC (10:00 AM AST in Riyadh)
+    if now.hour == 7 and _last_outreach_day != today:
+        logger.info("Triggering autonomous daily outreach and Instagram cohort for %s", today)
+        try:
+            from app.services.instagram_cohort_generator import generate_daily_instagram_cohort
+            from app.services.daily_outreach_scheduler import dispatch_daily_cohort
+            await generate_daily_instagram_cohort(limit=30)
+            await dispatch_daily_cohort(limit=30)
+            _last_outreach_day = today
+        except Exception:
+            logger.exception("Scheduled daily outreach failed")
+
+
 async def run() -> None:
     while True:
         try:
             await process_email_jobs()
             await process_deletions()
+            await process_scheduled_outreach()
         except Exception:
             # Keep the worker alive; individual errors are recorded on each job when possible.
             logger.exception("Lifecycle worker iteration failed")

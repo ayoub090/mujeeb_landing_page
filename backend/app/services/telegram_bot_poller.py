@@ -122,6 +122,20 @@ async def handle_update(update: dict, client: httpx.AsyncClient):
         else:
             await send_telegram_notification("Syntaxe : <code>/ig_dm target_username Votre message</code>")
 
+    elif text.startswith("/ig_batch") or text.startswith("ig_batch"):
+        from app.services.batch_outreach_runner import run_instagram_batch, is_batch_running
+        if is_batch_running():
+            await send_telegram_notification("⚠️ <b>Une campagne batch est déjà en cours !</b> Tapez <code>/ig_stop</code> pour l'interrompre.")
+        else:
+            parts = text.split()
+            count = int(parts[1]) if len(parts) >= 2 and parts[1].isdigit() else 15
+            asyncio.create_task(run_instagram_batch(limit=count))
+
+    elif text in ["/ig_stop", "ig_stop"]:
+        from app.services.batch_outreach_runner import stop_batch_runner
+        stop_batch_runner()
+        await send_telegram_notification("🛑 <b>Demande d'arrêt envoyée à la campagne en cours.</b>")
+
     elif text in ["/ig_poll", "ig_poll"]:
         from app.services.instagram_outreach import poll_instagram_replies
         replies = await poll_instagram_replies()
@@ -132,13 +146,15 @@ async def handle_update(update: dict, client: httpx.AsyncClient):
             "🤖 <b>CENTRE DE CONTRÔLE OUTREACH PRIVÉ (MUJEEB)</b>\n"
             "━━━━━━━━━━━━━━━━━━━━\n"
             "Voici vos commandes d'administration disponibles :\n\n"
-            "🟢 <b>WHATSAPP (BAILEYS) :</b>\n"
+            "🟢 <b>WHATSAPP (BAILEYS 0€) :</b>\n"
             "📲 <b>/qr</b> : Génère le QR Code WhatsApp\n"
             "📊 <b>/status</b> : Statut WhatsApp\n\n"
-            "📸 <b>INSTAGRAM (INSTAGRAPI) :</b>\n"
+            "📸 <b>INSTAGRAM (INSTAGRAPI 0€) :</b>\n"
+            "🚀 <b>/ig_batch [nombre]</b> : <b>LANCER UNE CAMPAGNE BATCH AUTOMATIQUE (ex: /ig_batch 15)</b>\n"
+            "🛑 <b>/ig_stop</b> : Arrêter la campagne en cours\n"
             "📸 <b>/ig_status</b> : Statut du compte Instagram\n"
-            "🔑 <b>/ig_login user pass [code]</b> : Connexion Instagram sécurisée\n"
-            "💬 <b>/ig_dm user message</b> : Envoyer un DM froid\n"
+            "🔑 <b>/ig_session cookie</b> : Connexion par cookie sessionid\n"
+            "💬 <b>/ig_dm user message</b> : Envoyer un DM unique\n"
             "📥 <b>/ig_poll</b> : Vérifier les réponses reçues\n\n"
             "🏓 <b>/ping</b> : Test de réactivité du serveur"
         )

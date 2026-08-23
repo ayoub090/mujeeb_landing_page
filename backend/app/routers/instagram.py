@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from app.services.instagram_outreach import (
     is_authenticated,
     login_instagram,
+    login_instagram_by_sessionid,
     send_instagram_dm,
     poll_instagram_replies,
     _logged_in_user,
@@ -21,6 +22,10 @@ class LoginRequest(BaseModel):
     username: str = Field(..., description="Instagram username or handle")
     password: str = Field(..., description="Instagram password")
     verification_code: str | None = Field(default=None, description="2FA code or SMS code")
+
+
+class SessionLoginRequest(BaseModel):
+    session_id: str = Field(..., description="Instagram browser sessionid cookie")
 
 
 class SendDmRequest(BaseModel):
@@ -44,6 +49,14 @@ async def get_instagram_status() -> dict[str, Any]:
 @router.post("/login")
 async def login(req: LoginRequest) -> dict[str, Any]:
     result = login_instagram(req.username, req.password, req.verification_code)
+    if result.get("status") == "error":
+        raise HTTPException(status_code=400, detail=result.get("error"))
+    return result
+
+
+@router.post("/login-session")
+async def login_session(req: SessionLoginRequest) -> dict[str, Any]:
+    result = login_instagram_by_sessionid(req.session_id)
     if result.get("status") == "error":
         raise HTTPException(status_code=400, detail=result.get("error"))
     return result

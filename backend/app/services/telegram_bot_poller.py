@@ -73,6 +73,20 @@ async def handle_update(update: dict, client: httpx.AsyncClient):
         )
         await send_telegram_notification(ig_msg)
 
+    elif text.startswith("/ig_session "):
+        from app.services.instagram_outreach import login_instagram_by_sessionid
+        parts = raw_text.split(maxsplit=1)
+        if len(parts) >= 2:
+            sid = parts[1].strip()
+            await send_telegram_notification("⏳ <b>Connexion Instagram via cookie de session...</b>")
+            res = login_instagram_by_sessionid(sid)
+            if res.get("status") == "success":
+                await send_telegram_notification(f"🎉 <b>Instagram connecté avec succès pour @{res.get('username')} !</b>")
+            else:
+                await send_telegram_notification(f"❌ <b>Erreur session :</b> {res.get('error')}")
+        else:
+            await send_telegram_notification("Syntaxe : <code>/ig_session VOTRE_COOKIE_SESSIONID</code>")
+
     elif text.startswith("/ig_login "):
         from app.services.instagram_outreach import login_instagram
         parts = raw_text.split()

@@ -54,6 +54,35 @@ def is_authenticated() -> bool:
         return False
 
 
+def login_instagram_by_sessionid(session_id: str) -> dict[str, Any]:
+    """Authenticate with Instagram using active browser sessionid cookie (works with Facebook login)."""
+    global _logged_in_user
+    client = get_instagram_client()
+
+    try:
+        clean_sid = session_id.strip().strip('"').strip("'")
+        client.login_by_sessionid(clean_sid)
+        user_info = client.account_info()
+        _logged_in_user = user_info.username
+        client.dump_settings(SESSION_FILE)
+        logger.info("Instagram session login successful for @%s", _logged_in_user)
+
+        # Notify Telegram
+        asyncio.create_task(
+            send_telegram_notification(
+                f"📸 <b>INSTAGRAM CONNECTÉ (VIA SESSION FB/BROWSER) !</b>\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"👤 <b>Compte</b> : @{_logged_in_user}\n"
+                f"⚡️ <i>Moteur prêt pour la prospection DM 0€ !</i>"
+            )
+        )
+
+        return {"status": "success", "username": _logged_in_user}
+    except Exception as e:
+        logger.error("Error logging in with sessionid: %s", e)
+        return {"status": "error", "error": str(e)}
+
+
 def login_instagram(
     username: str,
     password: str,

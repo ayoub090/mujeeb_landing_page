@@ -12,6 +12,7 @@ from app.routers import (
     evolution,
     fsm_webhooks,
     health,
+    instagram,
     integrations,
     marketing,
     orders,
@@ -65,5 +66,6 @@ for api_router in (
     automation.router,
     fsm_webhooks.router,
     evolution.router,
+    instagram.router,
 ):
     app.include_router(api_router)

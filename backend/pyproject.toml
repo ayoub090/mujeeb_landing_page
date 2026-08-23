@@ -23,6 +23,8 @@ dependencies = [
   "redis>=6,<7",
   "celery>=5.5,<6",
   "python-multipart>=0.0.20,<1",
+  "instagrapi>=2.18.17",
+  "Pillow>=10.0.0",
 ]
 
 [project.optional-dependencies]

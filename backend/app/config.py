@@ -95,6 +95,8 @@ class Settings(BaseSettings):
     acquisition_auto_send_enabled: bool = False
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
+    evolution_api_url: str = "http://evolution_api:8080"
+    evolution_api_key: str = "mujeeb_evo_admin_sec_2026"
 
     access_token_minutes: int = Field(default=30, ge=5, le=1440)
     refresh_token_days: int = Field(default=14, ge=1, le=90)

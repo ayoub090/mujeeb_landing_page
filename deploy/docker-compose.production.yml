@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: mujeeb
       POSTGRES_USER: mujeeb
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: 
     volumes: [postgres_data:/var/lib/postgresql/data]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U mujeeb"]
@@ -22,94 +22,87 @@ services:
     restart: unless-stopped
     environment: &api-environment
       ENVIRONMENT: production
-      DATABASE_URL: postgresql+asyncpg://mujeeb:${POSTGRES_PASSWORD}@postgres:5432/mujeeb
+      DATABASE_URL: postgresql+asyncpg://mujeeb:@postgres:5432/mujeeb
       REDIS_URL: redis://redis:6379/0
       FRONTEND_URL: https://app.usemujeeb.com
       COOKIE_DOMAIN: .usemujeeb.com
-      JWT_SECRET: ${JWT_SECRET}
-      DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY}
+      JWT_SECRET: 
+      DATA_ENCRYPTION_KEY: 
       TRUST_PROXY_HEADERS: "true"
-      GCC_ONLY_SIGNUPS: ${GCC_ONLY_SIGNUPS:-false}
-      MAXMIND_ACCOUNT_ID: ${MAXMIND_ACCOUNT_ID:-}
-      MAXMIND_LICENSE_KEY: ${MAXMIND_LICENSE_KEY:-}
-      META_APP_ID: ${META_APP_ID:-}
-      META_APP_SECRET: ${META_APP_SECRET:-}
-      META_CONFIG_ID: ${META_CONFIG_ID:-}
-      META_GRAPH_VERSION: ${META_GRAPH_VERSION:-v23.0}
-      META_WEBHOOK_VERIFY_TOKEN: ${META_WEBHOOK_VERIFY_TOKEN:-}
-      META_WABA_ID: ${META_WABA_ID:-}
-      META_PHONE_NUMBER_ID: ${META_PHONE_NUMBER_ID:-}
-      META_ACCESS_TOKEN: ${META_ACCESS_TOKEN:-}
-      META_PIXEL_ID: ${META_PIXEL_ID:-27526928870340659}
-      META_CAPI_ACCESS_TOKEN: ${META_CAPI_ACCESS_TOKEN:-}
-      META_EMBEDDED_SIGNUP_REDIRECT_URI: ${META_EMBEDDED_SIGNUP_REDIRECT_URI:-}
-      META_EMBEDDED_SIGNUP_ENABLED: ${META_EMBEDDED_SIGNUP_ENABLED:-false}
-      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
-      N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL:-}
-      WAAPI_BASE_URL: ${WAAPI_BASE_URL:-https://waapi.app/api/v1}
-      WAAPI_API_TOKEN: ${WAAPI_API_TOKEN:-}
-      WAAPI_WEBHOOK_BASE_URL: ${WAAPI_WEBHOOK_BASE_URL:-https://api.usemujeeb.com/api/waapi/webhooks}
-      SALLA_CLIENT_ID: ${SALLA_CLIENT_ID:-}
-      SALLA_CLIENT_SECRET: ${SALLA_CLIENT_SECRET:-}
+      GCC_ONLY_SIGNUPS: 
+      MAXMIND_ACCOUNT_ID: 
+      MAXMIND_LICENSE_KEY: 
+      META_APP_ID: 
+      META_APP_SECRET: 
+      META_CONFIG_ID: 
+      META_GRAPH_VERSION: 
+      META_WEBHOOK_VERIFY_TOKEN: 
+      META_WABA_ID: 
+      META_PHONE_NUMBER_ID: 
+      META_ACCESS_TOKEN: 
+      META_PIXEL_ID: 
+      META_CAPI_ACCESS_TOKEN: 
+      META_EMBEDDED_SIGNUP_REDIRECT_URI: 
+      META_EMBEDDED_SIGNUP_ENABLED: 
+      GOOGLE_MAPS_API_KEY: 
+      N8N_WEBHOOK_URL: 
+      N8N_SHARED_SECRET: 
+      WAAPI_BASE_URL: 
+      WAAPI_API_TOKEN: 
+      WAAPI_WEBHOOK_BASE_URL: 
+      SALLA_CLIENT_ID: 
+      SALLA_CLIENT_SECRET: 
       SALLA_REDIRECT_URI: https://api.usemujeeb.com/api/integrations/salla/callback
-      SALLA_WEBHOOK_SECRET: ${SALLA_WEBHOOK_SECRET:-}
-      ZID_CLIENT_ID: ${ZID_CLIENT_ID:-}
-      ZID_CLIENT_SECRET: ${ZID_CLIENT_SECRET:-}
+      SALLA_WEBHOOK_SECRET: 
+      ZID_CLIENT_ID: 
+      ZID_CLIENT_SECRET: 
       ZID_REDIRECT_URI: https://api.usemujeeb.com/api/integrations/zid/callback
-      ZID_WEBHOOK_SECRET: ${ZID_WEBHOOK_SECRET:-}
-      SHOPIFY_CLIENT_ID: ${SHOPIFY_CLIENT_ID:-}
-      SHOPIFY_CLIENT_SECRET: ${SHOPIFY_CLIENT_SECRET:-}
+      ZID_WEBHOOK_SECRET: 
+      SHOPIFY_CLIENT_ID: 
+      SHOPIFY_CLIENT_SECRET: 
       SHOPIFY_REDIRECT_URI: https://api.usemujeeb.com/api/integrations/shopify/callback
-      SHOPIFY_API_VERSION: ${SHOPIFY_API_VERSION:-2026-07}
-      CREEM_API_KEY: ${CREEM_API_KEY:-}
-      CREEM_WEBHOOK_SECRET: ${CREEM_WEBHOOK_SECRET:-}
-      CREEM_API_BASE: ${CREEM_API_BASE:-https://api.creem.io}
-      CREEM_PRODUCT_STARTER: ${CREEM_PRODUCT_STARTER:-}
-      CREEM_PRODUCT_GROWTH: ${CREEM_PRODUCT_GROWTH:-}
-      CREEM_PRODUCT_SCALE: ${CREEM_PRODUCT_SCALE:-}
+      SHOPIFY_API_VERSION: 
+      CREEM_API_KEY: 
+      CREEM_WEBHOOK_SECRET: 
+      CREEM_API_BASE: 
+      CREEM_PRODUCT_STARTER: 
+      CREEM_PRODUCT_GROWTH: 
+      CREEM_PRODUCT_SCALE: 
       APP_BASE_URL: https://api.usemujeeb.com
-      ANALYTICS_ADMIN_KEY: ${ANALYTICS_ADMIN_KEY}
-      ACQUISITION_ADMIN_KEY: ${ACQUISITION_ADMIN_KEY:-}
-      ACQUISITION_SCRAPER_URL: ${ACQUISITION_SCRAPER_URL:-http://acquisition:8080}
-      ACQUISITION_DAILY_LIMIT: ${ACQUISITION_DAILY_LIMIT:-30}
-      ACQUISITION_AUTO_SEND_ENABLED: ${ACQUISITION_AUTO_SEND_ENABLED:-false}
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
-      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
-      RESEND_API_KEY: ${RESEND_API_KEY:-}
-      RESEND_API_BASE: ${RESEND_API_BASE:-https://api.resend.com}
-      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-}
-      RESEND_FROM_NAME: ${RESEND_FROM_NAME:-Mujeeb}
-      SMTP_HOST: ${SMTP_HOST:-}
-      SMTP_PORT: ${SMTP_PORT:-587}
-      SMTP_USERNAME: ${SMTP_USERNAME:-}
-      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
-      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
-      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Mujeeb}
-      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
-      RESEND_API_KEY: ${RESEND_API_KEY:-}
-      RESEND_API_BASE: ${RESEND_API_BASE:-https://api.resend.com}
-      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-}
-      RESEND_FROM_NAME: ${RESEND_FROM_NAME:-Mujeeb}
-      SMTP_HOST: ${SMTP_HOST:-}
-      SMTP_PORT: ${SMTP_PORT:-587}
-      SMTP_USERNAME: ${SMTP_USERNAME:-}
-      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
-      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
-      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Mujeeb}
-      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
-      PRIVACY_DELETION_GRACE_DAYS: ${PRIVACY_DELETION_GRACE_DAYS:-7}
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
-      OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
-      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-deepseek/deepseek-chat-v3.1}
-      OPENROUTER_HTTP_REFERER: ${OPENROUTER_HTTP_REFERER:-https://usemujeeb.com}
-      OPENROUTER_APP_NAME: ${OPENROUTER_APP_NAME:-Mujeeb}
-      N8N_SHARED_SECRET: ${N8N_SHARED_SECRET:-}
-      EVOLUTION_API_URL: ${EVOLUTION_API_URL:-http://evolution_api:8080}
-      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY:-mujeeb_evo_admin_sec_2026}
+      ANALYTICS_ADMIN_KEY: 
+      ACQUISITION_ADMIN_KEY: 
+      ACQUISITION_SCRAPER_URL: 
+      ACQUISITION_DAILY_LIMIT: 
+      ACQUISITION_AUTO_SEND_ENABLED: 
+      TELEGRAM_BOT_TOKEN: 
+      TELEGRAM_CHAT_ID: 
+      RESEND_API_KEY: 
+      RESEND_API_BASE: 
+      RESEND_FROM_EMAIL: 
+      RESEND_FROM_NAME: 
+      SMTP_HOST: 
+      SMTP_PORT: 
+      SMTP_USERNAME: 
+      SMTP_PASSWORD: 
+      SMTP_FROM_EMAIL: 
+      SMTP_FROM_NAME: 
+      SMTP_USE_TLS: 
+      PRIVACY_DELETION_GRACE_DAYS: 
+      OPENROUTER_API_KEY: 
+      OPENROUTER_BASE_URL: 
+      OPENROUTER_MODEL: 
+      OPENROUTER_HTTP_REFERER: 
+      OPENROUTER_APP_NAME: 
     depends_on:
       postgres: {condition: service_healthy}
       redis: {condition: service_started}
     command: ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='*'"]
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.mujeeb-api.rule=Host("api.usemujeeb.com")
+      - traefik.http.routers.mujeeb-api.entrypoints=websecure
+      - traefik.http.routers.mujeeb-api.tls.certresolver=letsencrypt
+      - traefik.http.services.mujeeb-api.loadbalancer.server.port=8000
     ports: ["127.0.0.1:18000:8000"]
   worker:
     image: ghcr.io/ayoub090/mujeeb-api:latest
@@ -123,46 +116,50 @@ services:
     image: ghcr.io/ayoub090/mujeeb-dashboard:latest
     restart: unless-stopped
     depends_on: [api]
-    ports: ["127.0.0.1:13000:80"]
-  tg_poller:
-    image: ghcr.io/ayoub090/mujeeb-api:latest
-    restart: unless-stopped
-    environment: *api-environment
-    depends_on:
-      - redis
-      - evolution_api
-    command: ["python", "-m", "app.services.telegram_bot_poller"]
-  evolution_api:
-    image: atendai/evolution-api:v2.2.2
-    restart: unless-stopped
-    environment:
-      SERVER_URL: https://api.usemujeeb.com/evolution
-      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY:-mujeeb_evo_admin_sec_2026}
-      AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "true"
-      DATABASE_ENABLED: "false"
-      CACHE_REDIS_ENABLED: "true"
-      CACHE_REDIS_URI: redis://redis:6379/2
-      CACHE_REDIS_TTL: 604800
-      CACHE_REDIS_SAVE_INSTANCES: "true"
-      DEL_INSTANCE: "false"
-      WEBHOOK_GLOBAL_ENABLED: "false"
-      CONFIG_SESSION_PHONE_CLIENT: "Mujeeb Outreach"
-      CONFIG_SESSION_PHONE_NAME: "Chrome"
-      LOG_LEVEL: "ERROR,WARN,DEBUG,INFO"
-      QRCODE_LIMIT: 30
     labels:
       - traefik.enable=true
-      - traefik.http.routers.evolution.rule=Host("api.usemujeeb.com") && PathPrefix("/evolution")
-      - traefik.http.routers.evolution.entrypoints=websecure
-      - traefik.http.routers.evolution.tls.certresolver=letsencrypt
-      - traefik.http.middlewares.evolution-strip.stripprefix.prefixes=/evolution
-      - traefik.http.routers.evolution.middlewares=evolution-strip
-      - traefik.http.services.evolution.loadbalancer.server.port=8080
+      - traefik.http.routers.mujeeb.rule=Host("usemujeeb.com") || Host("www.usemujeeb.com")
+      - traefik.http.routers.mujeeb.entrypoints=websecure
+      - traefik.http.routers.mujeeb.tls.certresolver=letsencrypt
+      - traefik.http.services.mujeeb.loadbalancer.server.port=80
+    ports: ["127.0.0.1:13000:80"]
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes: [ollama_data:/root/.ollama]
+  acquisition:
+    image: ghcr.io/ayoub090/mujeeb-acquisition:latest
+    restart: unless-stopped
+    environment:
+      ACQUISITION_ADMIN_KEY: 8ca1b0f2523a1a616d9c2c303c5271e728328958dbdfe624d687ad5f6a7912c7
+      OLLAMA_MODEL: qwen2.5:3b
+      OLLAMA_BASE_URL: http://ollama:11434
+    depends_on: [ollama]
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    restart: unless-stopped
+    environment:
+      - N8N_HOST=n8n.usemujeeb.com
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - NODE_ENV=production
+      - WEBHOOK_URL=https://n8n.usemujeeb.com/
+      - GENERIC_TIMEZONE=Asia/Riyadh
+      - N8N_SECURE_COOKIE=false
+      - EXECUTIONS_DATA_PRUNE=true
+      - EXECUTIONS_DATA_MAX_AGE=168
+    ports:
+      - "5678:5678"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.n8n.rule=Host("n8n.usemujeeb.com")
+      - traefik.http.routers.n8n.entrypoints=websecure
+      - traefik.http.routers.n8n.tls.certresolver=letsencrypt
+      - traefik.http.services.n8n.loadbalancer.server.port=5678
     volumes:
-      - evolution_instances:/evolution/instances
-    depends_on:
-      - redis
+      - n8n_data:/home/node/.n8n
 volumes:
   postgres_data:
   redis_data:
-  evolution_instances:
+  ollama_data:
+  n8n_data:

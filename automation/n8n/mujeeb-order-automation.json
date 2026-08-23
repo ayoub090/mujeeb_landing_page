@@ -1,0 +1,131 @@
+{
+  "name": "Mujeeb - Order Automation & Store Sync",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mujeeb/order-automation",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-order-inbound",
+      "name": "Webhook Mujeeb Order Inbound",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -800,
+        100
+      ],
+      "webhookId": "mujeeb-order-automation"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = .body || ;\nreturn [{ json: {\n  event: body.event || 'UNKNOWN',\n  order_id: body.order_id,\n  external_order_id: body.external_order_id,\n  store_id: body.store_id,\n  status: body.status,\n  amount: body.amount,\n  currency: body.currency,\n  carrier_name: body.carrier_name || 'Non assigné',\n  tracking_number: body.tracking_number || null,\n  order_note: body.order_note || null,\n  internal_tags: body.internal_tags || [],\n  received_at: new Date().toISOString()\n} }];"
+      },
+      "id": "parse-order-payload",
+      "name": "Parse Order Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -560,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ .event }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "FINAL_STORE_SYNC",
+              "output": 0
+            },
+            {
+              "value2": "COD_CONFIRMED",
+              "output": 1
+            }
+          ]
+        }
+      },
+      "id": "route-by-event",
+      "name": "Route by Event",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        -320,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/bot7989031523:AAG06PB2n4nrYkkThYXwczdpngMzL9RabqA/sendMessage",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({\n  chat_id: '5547351734',\n  text: 🚚 <b>COMMANDE COD CONFIRMÉE & GPS CAPTURÉ !</b>\\n━━━━━━━━━━━━━━━━━━━━\\n📦 <b>Commande</b> : #\\n💰 <b>Montant</b> :  \\n📍 <b>Note / GPS</b> : \\n⚡️ <i>Synchronisé automatiquement avec votre boutique !</i>,\n  parse_mode: 'HTML'\n}) }}",
+        "options": {}
+      },
+      "id": "notify-telegram-success",
+      "name": "Notify Telegram COD Success",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        40,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Mujeeb Order Inbound": {
+      "main": [
+        [
+          {
+            "node": "Parse Order Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Order Payload": {
+      "main": [
+        [
+          {
+            "node": "Route by Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Event": {
+      "main": [
+        [
+          {
+            "node": "Notify Telegram COD Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Telegram COD Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "active": true,
+  "versionId": "f781a932-51c0-43b8-93dc-8a5991823a01",
+  "tags": []
+}

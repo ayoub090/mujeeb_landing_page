@@ -1,4 +1,4 @@
-﻿import asyncio
+import asyncio
 import os
 import sys
 import time
@@ -78,7 +78,8 @@ async def send_email_via_resend(
     to_email: str,
     subject: str,
     body_text: str,
-    from_name: str = "Mujeeb"
+    from_name: str = "Mujeeb",
+    reply_to: str = "ldfaziz@gmail.com"
 ) -> dict[str, Any]:
     """Send a personalized B2B outreach email via Resend API."""
     url = "https://api.resend.com/emails"
@@ -90,8 +91,8 @@ async def send_email_via_resend(
     <div dir="rtl" style="font-family: Arial, sans-serif; line-height: 1.8; color: #172033; max-width: 600px; margin: auto; padding: 20px;">
         <p style="white-space: pre-wrap;">{body_text}</p>
         <div style="margin: 25px 0; text-align: center;">
-            <a href="https://usemujeeb.com/#book" style="background-color: #0f172a; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
-                مشاهدة فيديو تجربة النظام (15 ثانية) 🎬
+            <a href="https://usemujeeb.com/videos/video_outreach_20s.mp4" style="background-color: #1e3a8a; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                مشاهدة فيديو تجربة النظام (20 ثانية) 🎬
             </a>
         </div>
         <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;">
@@ -101,6 +102,7 @@ async def send_email_via_resend(
     payload = {
         "from": f"{from_name} <{from_email}>",
         "to": [to_email],
+        "reply_to": [reply_to],
         "subject": subject,
         "text": body_text,
         "html": html_body

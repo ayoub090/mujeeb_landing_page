@@ -1,0 +1,15 @@
+{
+  "name": "whatsapp-order-confirmation-starter",
+  "version": "1.0.0",
+  "description": "Open source WhatsApp order confirmation bot for GCC e-commerce",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.12",
+    "express": "^4.21.0",
+    "qrcode-terminal": "^0.12.0"
+  },
+  "keywords": ["whatsapp", "baileys", "salla", "zid", "shopify", "cod", "saudi-arabia", "ecommerce"]
+}

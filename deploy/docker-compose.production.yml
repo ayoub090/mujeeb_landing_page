@@ -124,11 +124,19 @@ services:
     restart: unless-stopped
     depends_on: [api]
     ports: ["127.0.0.1:13000:80"]
+  tg_poller:
+    image: ghcr.io/ayoub090/mujeeb-api:latest
+    restart: unless-stopped
+    environment: *api-environment
+    depends_on:
+      - redis
+      - evolution_api
+    command: ["python", "-m", "app.services.telegram_bot_poller"]
   evolution_api:
     image: atendai/evolution-api:v2.2.2
     restart: unless-stopped
     environment:
-      SERVER_URL: http://localhost:8080
+      SERVER_URL: https://api.usemujeeb.com/evolution
       AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY:-mujeeb_evo_admin_sec_2026}
       AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "true"
       DATABASE_ENABLED: "false"
@@ -142,12 +150,18 @@ services:
       CONFIG_SESSION_PHONE_NAME: "Chrome"
       LOG_LEVEL: "ERROR,WARN,DEBUG,INFO"
       QRCODE_LIMIT: 30
-    ports:
-      - "127.0.0.1:18085:8080"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.evolution.rule=Host("api.usemujeeb.com") && PathPrefix("/evolution")
+      - traefik.http.routers.evolution.entrypoints=websecure
+      - traefik.http.routers.evolution.tls.certresolver=letsencrypt
+      - traefik.http.middlewares.evolution-strip.stripprefix.prefixes=/evolution
+      - traefik.http.routers.evolution.middlewares=evolution-strip
+      - traefik.http.services.evolution.loadbalancer.server.port=8080
     volumes:
       - evolution_instances:/evolution/instances
     depends_on:
-      redis: {condition: service_started}
+      - redis
 volumes:
   postgres_data:
   redis_data:

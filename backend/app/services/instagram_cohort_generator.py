@@ -34,31 +34,41 @@ async def generate_daily_instagram_cohort(limit: int = 30):
         
         for idx, p in enumerate(prospects, 1):
             company_name = p.company.split('(')[0].strip()
+            city = (p.social_profiles or {}).get("city", "المملكة")
+            evidence = p.evidence or {}
+            pain = evidence.get("pain_snippet") or evidence.get("pain") or "تأخر استلام عنوان التوصيل من العميل"
+            rating = evidence.get("google_rating") or evidence.get("rating") or "4.0"
+            phone_display = p.public_phone or "N/A"
+            video_url = "https://usemujeeb.com/videos/video_outreach_20s.mp4"
             
             # Extract clean domain name for fallback IG search
             domain_handle = p.canonical_website.replace('https://', '').replace('http://', '').replace('www.', '').split('/')[0].split('.')[0]
             ig_url = f'https://instagram.com/{domain_handle}'
             
             ig_pitch = (
-                f'مرحباً أخي العزيز، تحياتي لفريق متجر {company_name} 🌸\n\n'
-                f'شفت متجركم الجميل على سلة، ونظام الدفع عند الاستلام عندكم.\n\n'
-                f'نحن في منصة «مجيب» نساعدكم تأكدوا طلبيات الـ COD وتستلموا اللوكيشن الجغرافي للعميل تلقائياً عبر الواتساب في ثوانٍ قبل ما يطلع المندوب (يقلل المرتجعات للصفر تقريباً).\n\n'
+                f'🎬 مرحباً أخي العزيز، تحياتي لفريق متجر {company_name} ({city}) 🌸\n\n'
+                f'لفت انتباهي تقييم متجركم ({rating} ⭐)، وبعض ملاحظات العملاء حول: «_{pain}_».\n\n'
+                f'👆 بالفيديو المرفق (20 ثانية): كيف يساعدكم «مجيب» على أتمتة تأكيد طلبات الدفع عند الاستلام (COD) واستلام اللوكيشن الجغرافي (GPS) عبر الواتساب في ثوانٍ قبل ما يطلع المندوب (يقلل المرتجعات للصفر تقريباً).\n\n'
                 f'حابين نفعّل لكم 50 تأكيد مجاني لتجربة النظام؟\n'
-                f'الفيديو والتفاصيل هنا: usemujeeb.com/#book'
+                f'فيديو التجربة والنظام: {video_url}'
             )
             
             card = (
-                f'📸 <b>PROSPECT INSTAGRAM #{idx}/{len(prospects)}</b>\n'
-                f'🏬 <b>Boutique</b> : {p.company}\n'
+                f'📸 <b>PROSPECT #{idx}/{len(prospects)} : {company_name}</b>\n'
+                f'🏬 <b>Boutique</b> : {p.company} ({city})\n'
+                f'⭐ <b>Note Google Maps</b> : <b>{rating}/5</b>\n'
+                f'⚠️ <b>Point de douleur extrait</b> : <i>« {pain} »</i>\n'
                 f'🌐 <b>Site</b> : {p.canonical_website}\n'
-                f'📊 <b>Score ICP</b> : <b>{p.score}/100</b>\n\n'
-                f'💬 <b>Message DM à copier :</b>\n'
+                f'📊 <b>Score ICP</b> : <b>{p.score}/100</b>\n'
+                f'📞 <b>Tel/WA</b> : <code>{phone_display}</code>\n\n'
+                f'🎬 <b>Lien Vidéo 20s</b> : <a href="{video_url}"><b>[Vidéo Démo 20s]</b></a>\n\n'
+                f'💬 <b>Message DM / WhatsApp à envoyer :</b>\n'
                 f'<blockquote>{ig_pitch}</blockquote>\n\n'
-                f'👉 <a href=\"{ig_url}\"><b>[📸 CLIQUER POUR OUVRIR LE PROFIL INSTAGRAM]</b></a>'
+                f'👉 <a href="{ig_url}"><b>[📸 OUVRIR LE PROFIL INSTAGRAM]</b></a>'
             )
             
             await send_telegram_notification(card)
-            await asyncio.sleep(0.4)
+            await asyncio.sleep(0.5)
             
         print('\n=== ALL INSTAGRAM PROSPECT CARDS DISPATCHED TO TELEGRAM! ===')
 

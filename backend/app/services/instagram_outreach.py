@@ -1,5 +1,5 @@
 """Dedicated Instagram DM Outreach Engine powered by instagrapi.
-Supports session persistence, humanized rate-limiting, and Telegram lead forwarding.
+Supports session persistence, TOTP/SMS 2FA handling, humanized rate-limiting, and Telegram lead forwarding.
 """
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ import asyncio
 import logging
 import os
 import random
+import urllib.parse
 from pathlib import Path
 from typing import Any
 
@@ -17,9 +18,9 @@ from instagrapi.exceptions import (
     PleaseWaitFewMinutes,
     TwoFactorRequired,
     UserNotFound,
+    BadPassword,
 )
 
-from app.config import get_settings
 from app.services.telegram import send_telegram_notification
 
 logger = logging.getLogger("mujeeb.instagram_outreach")
@@ -54,72 +55,62 @@ def is_authenticated() -> bool:
         return False
 
 
-def login_instagram_by_sessionid(session_id: str) -> dict[str, Any]:
-    """Authenticate with Instagram using active browser sessionid cookie (works with Facebook login)."""
-    global _logged_in_user
-    client = get_instagram_client()
-
-    try:
-        clean_sid = session_id.strip().strip('"').strip("'")
-        client.login_by_sessionid(clean_sid)
-        user_info = client.account_info()
-        _logged_in_user = user_info.username
-        client.dump_settings(SESSION_FILE)
-        logger.info("Instagram session login successful for @%s", _logged_in_user)
-
-        # Notify Telegram
-        asyncio.create_task(
-            send_telegram_notification(
-                f"📸 <b>INSTAGRAM CONNECTÉ (VIA SESSION FB/BROWSER) !</b>\n"
-                f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"👤 <b>Compte</b> : @{_logged_in_user}\n"
-                f"⚡️ <i>Moteur prêt pour la prospection DM 0€ !</i>"
-            )
-        )
-
-        return {"status": "success", "username": _logged_in_user}
-    except Exception as e:
-        logger.error("Error logging in with sessionid: %s", e)
-        return {"status": "error", "error": str(e)}
-
-
 def login_instagram(
     username: str,
     password: str,
     verification_code: str | None = None
 ) -> dict[str, Any]:
-    """Authenticate with Instagram and persist session to avoid checkpoints."""
-    global _logged_in_user
+    """Authenticate with Instagram with full support for TOTP / SMS 2FA."""
+    global _logged_in_user, _ig_client
     client = get_instagram_client()
 
+    clean_user = username.strip().lstrip("@")
+    clean_code = str(verification_code).strip() if verification_code else ""
+
     try:
-        if SESSION_FILE.exists():
-            try:
-                client.load_settings(SESSION_FILE)
-                client.login(username, password)
-                _logged_in_user = username
-                client.dump_settings(SESSION_FILE)
-                return {"status": "success", "message": f"Connected as @{username} (from saved session)"}
-            except LoginRequired:
-                logger.info("Saved session expired, performing fresh login...")
-
-        if verification_code:
-            client.login(username, password, verification_code=verification_code)
+        if clean_code:
+            logger.info("Attempting 2FA login for @%s with verification code...", clean_user)
+            # Try login with code
+            client.login(clean_user, password, verification_code=clean_code)
         else:
-            client.login(username, password)
+            logger.info("Attempting initial login for @%s...", clean_user)
+            client.login(clean_user, password)
 
+        # Successful login
+        _logged_in_user = clean_user
         client.dump_settings(SESSION_FILE)
-        _logged_in_user = username
-        logger.info("Instagram login successful for @%s", username)
+        logger.info("Instagram login SUCCESS for @%s", clean_user)
 
-        return {"status": "success", "username": username}
+        # Notify Telegram
+        asyncio.create_task(
+            send_telegram_notification(
+                f"🎉 <b>INSTAGRAM CONNECTÉ AVEC SUCCÈS !</b>\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"👤 <b>Compte</b> : @{clean_user}\n"
+                f"📱 <b>Appareil</b> : Mobile Android (Session Active)\n"
+                f"⚡️ <i>Moteur prêt pour la prospection DM 0€ !</i>"
+            )
+        )
 
-    except TwoFactorRequired:
-        return {"status": "2fa_required", "message": "Two-factor authentication code required"}
+        return {"status": "success", "username": clean_user}
+
+    except TwoFactorRequired as e:
+        last_json = getattr(client, "last_json", {}) or {}
+        tf_info = last_json.get("two_factor_info", {})
+        is_totp = tf_info.get("totp_two_factor_on", True)
+        msg_type = "Authenticator App (Google/MS Authenticator)" if is_totp else "SMS"
+        logger.info("2FA required for @%s (Type: %s)", clean_user, msg_type)
+        return {
+            "status": "2fa_required",
+            "message": f"Code 2FA requis ({msg_type})",
+            "is_totp": is_totp
+        }
+    except BadPassword:
+        return {"status": "error", "error": "Mot de passe incorrect."}
     except ChallengeRequired:
-        return {"status": "challenge_required", "message": "Instagram security challenge required (check your email/SMS)"}
+        return {"status": "challenge_required", "message": "Challenge de sécurité requis par Instagram (vérifiez vos emails)."}
     except PleaseWaitFewMinutes:
-        return {"status": "rate_limited", "message": "Instagram requested a few minutes cooldown"}
+        return {"status": "rate_limited", "message": "Instagram demande de patienter quelques minutes."}
     except Exception as e:
         logger.error("Instagram login error: %s", e)
         return {"status": "error", "error": str(e)}
@@ -139,15 +130,27 @@ async def send_instagram_dm(
     clean_target = target_username.lstrip("@").strip()
     logger.info("Resolving Instagram user @%s...", clean_target)
 
+    user_id = None
     try:
-        user_id = client.user_id_from_username(clean_target)
-    except UserNotFound:
-        return {"status": "error", "error": f"User @{clean_target} not found"}
-    except Exception as e:
-        return {"status": "error", "error": f"Failed to resolve user: {e}"}
+        # 1. Try native v1 mobile endpoint
+        info = client.user_info_by_username_v1(clean_target)
+        user_id = info.pk
+    except Exception:
+        try:
+            # 2. Try search API fallback
+            users = client.search_users(clean_target)
+            for u in users:
+                if u.username.lower() == clean_target.lower():
+                    user_id = u.pk
+                    break
+        except Exception as e:
+            return {"status": "error", "error": f"Failed to resolve user @{clean_target}: {e}"}
 
-    # Humanized jitter delay: 35 to 65 seconds
-    delay = random.uniform(35, 65)
+    if not user_id:
+        return {"status": "error", "error": f"User @{clean_target} not found on Instagram"}
+
+    # Humanized jitter delay: 40 to 70 seconds
+    delay = random.uniform(40, 70)
     logger.info("Applying humanized delay of %.1fs before DM dispatch...", delay)
     await asyncio.sleep(delay)
 

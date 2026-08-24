@@ -234,3 +234,70 @@ async def list_business_leads(
         for l in leads
     ]
 
+
+@router.get("/outreach/config", dependencies=[Depends(require_admin_access)])
+async def get_outreach_config(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
+    from app.services.telegram_bot_poller import load_quotas
+    from app.services.instagram_outreach import is_authenticated as ig_auth
+    
+    quotas = load_quotas()
+    total_prospects = await session.scalar(select(func.count(AcquisitionProspect.id))) or 0
+    ready_prospects = await session.scalar(select(func.count(AcquisitionProspect.id)).where(AcquisitionProspect.status == "ready")) or 0
+    contacted_prospects = await session.scalar(select(func.count(AcquisitionProspect.id)).where(AcquisitionProspect.status == "contacted")) or 0
+
+    return {
+        "quotas": quotas,
+        "stats": {
+            "total": total_prospects,
+            "ready": ready_prospects,
+            "contacted": contacted_prospects,
+        },
+        "channels": {
+            "whatsapp": "Baileys (Actif)",
+            "email": "Resend API (Actif)",
+            "instagram": "Connecté ✅" if ig_auth() else "En attente ❌",
+        }
+    }
+
+
+@router.post("/outreach/config", dependencies=[Depends(require_admin_access)])
+async def update_outreach_config(payload: dict[str, Any]) -> dict[str, Any]:
+    from app.services.telegram_bot_poller import load_quotas, save_quotas
+    quotas = load_quotas()
+    for k in ["wa_limit", "email_limit", "ig_limit", "scrape_limit"]:
+        if k in payload and isinstance(payload[k], int):
+            quotas[k] = payload[k]
+    save_quotas(quotas)
+    return {"status": "saved", "quotas": quotas}
+
+
+@router.post("/outreach/launch", dependencies=[Depends(require_admin_access)])
+async def trigger_outreach_campaign(payload: dict[str, Any] | None = None) -> dict[str, Any]:
+    import asyncio
+    from app.services.telegram_bot_poller import load_quotas
+    from app.services.multi_channel_outreach import dispatch_custom_outreach
+    
+    quotas = load_quotas()
+    payload = payload or {}
+    wa_c = payload.get("wa_count", quotas.get("wa_limit", 10))
+    mail_c = payload.get("email_count", quotas.get("email_limit", 30))
+    ig_c = payload.get("ig_count", quotas.get("ig_limit", 10))
+    
+    asyncio.create_task(dispatch_custom_outreach(wa_count=wa_c, email_count=mail_c, ig_count=ig_c))
+    return {"status": "launched", "wa": wa_c, "email": mail_c, "ig": ig_c}
+
+
+@router.post("/outreach/scrape", dependencies=[Depends(require_admin_access)])
+async def trigger_scraping_run(payload: dict[str, Any] | None = None) -> dict[str, Any]:
+    import asyncio
+    from app.services.telegram_bot_poller import load_quotas
+    from app.services.daily_scraper import scrape_and_qualify_stores
+    
+    quotas = load_quotas()
+    payload = payload or {}
+    count = payload.get("target_count", quotas.get("scrape_limit", 50))
+    
+    asyncio.create_task(scrape_and_qualify_stores(target_count=count))
+    return {"status": "scraping_started", "target_count": count}
+
+

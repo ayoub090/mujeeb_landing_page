@@ -78,6 +78,7 @@ async def process_deletions() -> None:
 
 
 _last_outreach_day: str | None = None
+_poller_task: asyncio.Task | None = None
 
 
 async def process_scheduled_outreach() -> None:
@@ -86,25 +87,37 @@ async def process_scheduled_outreach() -> None:
     today = now.strftime("%Y-%m-%d")
     # Trigger daily at 07:00 UTC (10:00 AM AST in Riyadh)
     if now.hour == 7 and _last_outreach_day != today:
-        logger.info("Triggering autonomous daily outreach and Instagram cohort for %s", today)
+        logger.info("Triggering autonomous daily multi-channel outreach for %s", today)
         try:
-            from app.services.instagram_cohort_generator import generate_daily_instagram_cohort
-            from app.services.daily_outreach_scheduler import dispatch_daily_cohort
-            await generate_daily_instagram_cohort(limit=30)
-            await dispatch_daily_cohort(limit=30)
+            from app.services.telegram_bot_poller import load_quotas
+            from app.services.multi_channel_outreach import dispatch_custom_outreach
+            quotas = load_quotas()
+            await dispatch_custom_outreach(
+                wa_count=quotas.get("wa_limit", 10),
+                email_count=quotas.get("email_limit", 30),
+                ig_count=quotas.get("ig_limit", 10),
+            )
             _last_outreach_day = today
         except Exception:
-            logger.exception("Scheduled daily outreach failed")
+            logger.exception("Scheduled daily multi-channel outreach failed")
 
 
 async def run() -> None:
+    global _poller_task
+    # Start Telegram interactive bot poller in background
+    try:
+        from app.services.telegram_bot_poller import start_polling
+        _poller_task = asyncio.create_task(start_polling())
+        logger.info("Telegram interactive bot poller started in background.")
+    except Exception as e:
+        logger.warning("Could not launch Telegram bot poller: %s", e)
+
     while True:
         try:
             await process_email_jobs()
             await process_deletions()
             await process_scheduled_outreach()
         except Exception:
-            # Keep the worker alive; individual errors are recorded on each job when possible.
             logger.exception("Lifecycle worker iteration failed")
         await asyncio.sleep(20)
 

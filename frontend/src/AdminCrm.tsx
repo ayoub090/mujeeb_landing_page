@@ -113,9 +113,14 @@ export function AdminCrm({
   onLogout: () => void;
   onSwitchToMerchant?: () => void;
 }) {
-  const [tab, setTab] = useState<"overview" | "users" | "sessions" | "subscriptions" | "leads">("overview");
+  const [tab, setTab] = useState<"overview" | "users" | "sessions" | "subscriptions" | "leads" | "outreach">("overview");
   const [userSearch, setUserSearch] = useState("");
   const [sessionFilter, setSessionFilter] = useState("");
+  const [outreachActionMsg, setOutreachActionMsg] = useState<string | null>(null);
+  const [customWa, setCustomWa] = useState(10);
+  const [customEmail, setCustomEmail] = useState(30);
+  const [customIg, setCustomIg] = useState(10);
+  const [customScrape, setCustomScrape] = useState(50);
 
   const overviewQuery = useQuery<KPIOverview>({
     queryKey: ["admin", "overview"],
@@ -145,6 +150,16 @@ export function AdminCrm({
     queryKey: ["admin", "leads"],
     queryFn: async () => (await api.get<AdminLead[]>("/api/admin/leads")).data,
     refetchInterval: 20000,
+  });
+
+  const outreachQuery = useQuery<{
+    quotas: { wa_limit: number; email_limit: number; ig_limit: number; scrape_limit: number };
+    stats: { total: number; ready: number; contacted: number };
+    channels: { whatsapp: string; email: string; instagram: string };
+  }>({
+    queryKey: ["admin", "outreach"],
+    queryFn: async () => (await api.get("/api/admin/outreach/config")).data,
+    refetchInterval: 10000,
   });
 
   const kpis = overviewQuery.data?.kpis;
@@ -264,6 +279,15 @@ export function AdminCrm({
             }`}
           >
             <MessageSquare size={16} /> العملاء المحتملين والطلبات ({leadsQuery.data?.length ?? 0})
+          </button>
+
+          <button
+            onClick={() => setTab("outreach")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
+              tab === "outreach" ? "bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20" : "bg-slate-900 text-slate-400 hover:text-white"
+            }`}
+          >
+            <Sparkles size={16} /> التحكم في الـ Outreach والاستحواذ ⚡️
           </button>
         </div>
 
@@ -630,6 +654,191 @@ export function AdminCrm({
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 6: OUTREACH & ACQUISITION CONTROL */}
+        {tab === "outreach" && (
+          <div className="space-y-6">
+            {outreachActionMsg && (
+              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm font-bold flex items-center justify-between">
+                <span>{outreachActionMsg}</span>
+                <button onClick={() => setOutreachActionMsg(null)} className="text-emerald-400 hover:text-white text-xs">إغلاق</button>
+              </div>
+            )}
+
+            {/* Channels & DB Overview Cards */}
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
+                <p className="text-xs font-bold text-slate-400 uppercase">جاهزون للإرسال (Ready Pool)</p>
+                <h3 className="text-2xl font-black text-emerald-400 mt-1">{outreachQuery.data?.stats.ready ?? 0} متجر</h3>
+                <p className="text-[11px] text-slate-400 mt-1">مؤهلون ومزودون بأرقام وبيانات مستهدفة</p>
+              </div>
+
+              <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
+                <p className="text-xs font-bold text-slate-400 uppercase">تم التواصل معهم (Contacted)</p>
+                <h3 className="text-2xl font-black text-blue-400 mt-1">{outreachQuery.data?.stats.contacted ?? 0} متجر</h3>
+                <p className="text-[11px] text-slate-400 mt-1">عبر واتساب، الإيميل و إنستغرام</p>
+              </div>
+
+              <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
+                <p className="text-xs font-bold text-slate-400 uppercase">إجمالي قاعدة البيانات</p>
+                <h3 className="text-2xl font-black text-white mt-1">{outreachQuery.data?.stats.total ?? 0} متجر</h3>
+                <p className="text-[11px] text-slate-400 mt-1">سوق السعودية والخليج (GCC)</p>
+              </div>
+
+              <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
+                <p className="text-xs font-bold text-slate-400 uppercase">حالة القنوات الثلاث</p>
+                <div className="text-xs space-y-1 mt-2 font-mono">
+                  <p className="text-emerald-400">🟢 WA: {outreachQuery.data?.channels.whatsapp || "Baileys"}</p>
+                  <p className="text-blue-400">✉️ Mail: {outreachQuery.data?.channels.email || "Resend"}</p>
+                  <p className="text-pink-400">📸 IG: {outreachQuery.data?.channels.instagram || "Instagrapi"}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Quotas Configuration & Launch Panel */}
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Box 1: Quota Configuration */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Sparkles size={18} className="text-emerald-400" />
+                  تعديل كوتة الإرسال اليومية (Daily Quotas)
+                </h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  حدد عدد الرسائل اليومية التي يقوم النظام بإرسالها تلقائياً أو عند إطلاق الحملة.
+                </p>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">🟢 رسائل واتساب (Baileys / يوم) :</label>
+                    <input
+                      type="number"
+                      value={customWa}
+                      onChange={(e) => setCustomWa(Number(e.target.value))}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white font-mono"
+                      min={1}
+                      max={50}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">✉️ إيميلات B2B (Resend / يوم) :</label>
+                    <input
+                      type="number"
+                      value={customEmail}
+                      onChange={(e) => setCustomEmail(Number(e.target.value))}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white font-mono"
+                      min={1}
+                      max={200}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">📸 رسائل إنستغرام (DMs / يوم) :</label>
+                    <input
+                      type="number"
+                      value={customIg}
+                      onChange={(e) => setCustomIg(Number(e.target.value))}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white font-mono"
+                      min={1}
+                      max={30}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">🕷️ حجم السكرابينغ اليومي (متاجر جديدة) :</label>
+                    <input
+                      type="number"
+                      value={customScrape}
+                      onChange={(e) => setCustomScrape(Number(e.target.value))}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white font-mono"
+                      min={10}
+                      max={200}
+                    />
+                  </div>
+
+                  <button
+                    onClick={async () => {
+                      try {
+                        await api.post("/api/admin/outreach/config", {
+                          wa_limit: customWa,
+                          email_limit: customEmail,
+                          ig_limit: customIg,
+                          scrape_limit: customScrape,
+                        });
+                        setOutreachActionMsg("✅ تم حفظ الكوتة اليومية بنجاح ومزامنتها مع روبوت تيليجرام!");
+                        outreachQuery.refetch();
+                      } catch (err: any) {
+                        setOutreachActionMsg(`❌ خطأ: ${err.message}`);
+                      }
+                    }}
+                    className="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition border border-slate-700 shadow-md"
+                  >
+                    💾 حفظ وتحديث الكوتة
+                  </button>
+                </div>
+              </div>
+
+              {/* Box 2: Instant Action Triggers */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5 flex flex-col justify-between">
+                <div className="space-y-4">
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <TrendingUp size={18} className="text-emerald-400" />
+                    إطلاق فوري للحملات والسكرابينغ (1-Click Trigger)
+                  </h3>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    قم بإطلاق حملة فورية بالتقسيم المخصص الذي اخترته أعلاه، أو شغّل محرك البحث لجلب متاجر جديدة من خرائط جوجل.
+                  </p>
+
+                  <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-2">
+                    <p className="text-slate-300 font-bold">الحملة الحالية ستتضمن :</p>
+                    <p className="text-emerald-400">🟢 <b>{customWa}</b> رسالة واتساب مع فيديو 20s</p>
+                    <p className="text-blue-400">✉️ <b>{customEmail}</b> إيميل رسمي B2B</p>
+                    <p className="text-pink-400">📸 <b>{customIg}</b> رسالة إنستغرام DM</p>
+                    <p className="text-white font-bold border-t border-slate-800 pt-1">
+                      المجموع : <b>{customWa + customEmail + customIg}</b> متجر مستهدف
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-4">
+                  <button
+                    onClick={async () => {
+                      try {
+                        await api.post("/api/admin/outreach/launch", {
+                          wa_count: customWa,
+                          email_count: customEmail,
+                          ig_count: customIg,
+                        });
+                        setOutreachActionMsg("🚀 تم إطلاق الحملة بنجاح! يتم الإرسال الآن وموافاتك بالتفاصيل على تيليجرام.");
+                        outreachQuery.refetch();
+                      } catch (err: any) {
+                        setOutreachActionMsg(`❌ خطأ في الإطلاق: ${err.message}`);
+                      }
+                    }}
+                    className="w-full py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-2"
+                  >
+                    <Sparkles size={18} /> 🚀 إطلاق الحملة الآن ({customWa} WA | {customEmail} Mail | {customIg} DM)
+                  </button>
+
+                  <button
+                    onClick={async () => {
+                      try {
+                        await api.post("/api/admin/outreach/scrape", { target_count: customScrape });
+                        setOutreachActionMsg(`🕷️ بدأ محرك السكرابينغ في جلب ${customScrape} متجر خليجي جديد عبر Apify و ScrapeGraphAI!`);
+                        outreachQuery.refetch();
+                      } catch (err: any) {
+                        setOutreachActionMsg(`❌ خطأ: ${err.message}`);
+                      }
+                    }}
+                    className="w-full py-3 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 font-bold text-xs border border-blue-500/30 transition flex items-center justify-center gap-2"
+                  >
+                    🕷️ جلب وسكرابينغ متاجر جديدة ({customScrape} متجر)
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}

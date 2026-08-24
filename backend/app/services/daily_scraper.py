@@ -30,13 +30,13 @@ SCRAPEGRAPH_URL = os.getenv("ACQUISITION_SCRAPER_URL", "http://acquisition:8080"
 ACQUISITION_KEY = os.getenv("ACQUISITION_ADMIN_KEY", "8ca1b0f2523a1a616d9c2c303c5271e728328958dbdfe624d687ad5f6a7912c7")
 
 GCC_SEARCH_QUERIES = [
-    {"query": "متجر الكتروني سلة الرياض دفع عند الاستلام", "country": "SA", "city": "الرياض"},
-    {"query": "متجر عطور سلة زد جدة", "country": "SA", "city": "جدة"},
-    {"query": "متجر عبايات سلة الرياض اونلاين", "country": "SA", "city": "الرياض"},
-    {"query": "متجر تمور ومكسرات الكتروني السعودية", "country": "SA", "city": "الدمام"},
-    {"query": "متجر عدسات ومكياج سلة الرياض", "country": "SA", "city": "الرياض"},
-    {"query": "boutique online store kuwait salla", "country": "KW", "city": "الكويت"},
-    {"query": "متجر هدايا ورد الكتروني الرياض", "country": "SA", "city": "الرياض"},
+    {"query": "متجر عطور الرياض", "country": "SA", "city": "الرياض"},
+    {"query": "متجر عبايات الرياض", "country": "SA", "city": "الرياض"},
+    {"query": "متجر عطور جدة", "country": "SA", "city": "جدة"},
+    {"query": "متجر هدايا الرياض", "country": "SA", "city": "الرياض"},
+    {"query": "متجر تمور ومكسرات الرياض", "country": "SA", "city": "الرياض"},
+    {"query": "boutique kuwait", "country": "KW", "city": "الكويت"},
+    {"query": "متجر عبايات الدمام", "country": "SA", "city": "الدمام"},
 ]
 
 

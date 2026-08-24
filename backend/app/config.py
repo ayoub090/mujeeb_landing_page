@@ -65,8 +65,8 @@ class Settings(BaseSettings):
     app_base_url: AnyHttpUrl = "http://localhost:8000"
 
     analytics_admin_key: str = ""
-    # An empty value means development tools remain inaccessible in production.
-    internal_admin_email: str = ""
+    # Super admin email for back-office CRM and diagnostic tools
+    internal_admin_email: str = "contact@usemujeeb.com"
     resend_api_key: str = ""
     resend_api_base: str = "https://api.resend.com"
     resend_from_email: str = ""

@@ -116,6 +116,21 @@ def login_instagram(
         return {"status": "error", "error": str(e)}
 
 
+def login_instagram_by_sessionid(session_id: str) -> dict[str, Any]:
+    """Authenticate with Instagram using a raw sessionid cookie."""
+    global _logged_in_user, _ig_client
+    client = get_instagram_client()
+    try:
+        client.login_by_sessionid(session_id.strip())
+        _logged_in_user = "session_user"
+        client.dump_settings(SESSION_FILE)
+        return {"status": "success", "username": "authenticated_user"}
+    except Exception as e:
+        logger.error("Sessionid login error: %s", e)
+        return {"status": "error", "error": str(e)}
+
+
+
 async def send_instagram_dm(
     *,
     target_username: str,

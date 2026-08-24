@@ -30,22 +30,24 @@ SCRAPEGRAPH_URL = os.getenv("ACQUISITION_SCRAPER_URL", "http://acquisition:8080"
 ACQUISITION_KEY = os.getenv("ACQUISITION_ADMIN_KEY", "8ca1b0f2523a1a616d9c2c303c5271e728328958dbdfe624d687ad5f6a7912c7")
 
 GCC_SEARCH_QUERIES = [
-    {"query": "متجر عبايات الرياض دفع عند الاستلام", "country": "SA", "city": "الرياض"},
-    {"query": "متجر عطور جدة متجر الكتروني", "country": "SA", "city": "جدة"},
-    {"query": "متجر الكتروني سلة زد الرياض", "country": "SA", "city": "الرياض"},
-    {"query": "boutique abaya kuwait online store", "country": "KW", "city": "الكويت"},
-    {"query": "متجر هدايا تمور الدمام متجر الكتروني", "country": "SA", "city": "الدمام"},
-    {"query": "متجر الكتروني شحن توصيل الكويت", "country": "KW", "city": "الكويت"},
-    {"query": "متجر مجوهرات واكسسوارات سلة الرياض", "country": "SA", "city": "الرياض"},
+    {"query": "متجر الكتروني سلة الرياض دفع عند الاستلام", "country": "SA", "city": "الرياض"},
+    {"query": "متجر عطور سلة زد جدة", "country": "SA", "city": "جدة"},
+    {"query": "متجر عبايات سلة الرياض اونلاين", "country": "SA", "city": "الرياض"},
+    {"query": "متجر تمور ومكسرات الكتروني السعودية", "country": "SA", "city": "الدمام"},
+    {"query": "متجر عدسات ومكياج سلة الرياض", "country": "SA", "city": "الرياض"},
+    {"query": "boutique online store kuwait salla", "country": "KW", "city": "الكويت"},
+    {"query": "متجر هدايا ورد الكتروني الرياض", "country": "SA", "city": "الرياض"},
 ]
 
 
 async def extract_via_scrapegraph(client: httpx.AsyncClient, website: str, country_hint: str = "SA") -> dict[str, Any]:
     """Call ScrapeGraphAI extractor on the store website."""
+    if not website or "wa.me" in website or "google.com" in website:
+        return {}
     try:
         url = f"{SCRAPEGRAPH_URL.rstrip('/')}/extract"
         headers = {"X-Mujeeb-Acquisition-Key": ACQUISITION_KEY}
-        r = await client.post(url, json={"url": website, "country_hint": country_hint}, headers=headers, timeout=60)
+        r = await client.post(url, json={"url": website, "country_hint": country_hint}, headers=headers, timeout=45)
         if r.status_code == 200:
             return r.json()
     except Exception as e:
@@ -53,13 +55,14 @@ async def extract_via_scrapegraph(client: httpx.AsyncClient, website: str, count
     return {}
 
 
-async def scrape_apify_maps(query: str, max_items: int = 15) -> list[dict[str, Any]]:
+async def scrape_apify_maps(query: str, max_items: int = 20) -> list[dict[str, Any]]:
     """Run Apify Google Maps Scraper for target GCC queries."""
-    if not APIFY_TOKEN:
+    token = os.getenv("APIFY_API_TOKEN") or APIFY_TOKEN
+    if not token:
         return []
     
     actor_id = "compass~crawler-google-places"
-    url = f"https://api.apify.com/v2/acts/{actor_id}/run-sync-get-dataset-items?token={APIFY_TOKEN}"
+    url = f"https://api.apify.com/v2/acts/{actor_id}/run-sync-get-dataset-items?token={token}"
     payload = {
         "searchStringsArray": [query],
         "maxCrawledPlacesPerSearch": max_items,
@@ -70,7 +73,9 @@ async def scrape_apify_maps(query: str, max_items: int = 15) -> list[dict[str, A
         async with httpx.AsyncClient(timeout=120) as client:
             r = await client.post(url, json=payload)
             if r.status_code in (200, 201):
-                return r.json()
+                data = r.json()
+                if isinstance(data, list):
+                    return data
     except Exception as e:
         logger.warning("Apify Maps scraper error for query '%s': %s", query, e)
     return []
@@ -83,7 +88,7 @@ async def scrape_and_qualify_stores(target_count: int = 50) -> dict[str, Any]:
         f"🕷️ <b>DÉMARRAGE DU SCRAPING GCC EN COURS...</b>\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
         f"🎯 <b>Objectif</b> : <b>{target_count} nouvelles boutiques</b>\n"
-        f"📍 <b>Marchés cibles</b> : Arabie Saoudite (Riyad, Djeddah, Dammam) & Koweït\n"
+        f"📍 <b>Marchés cibles</b> : Arabie Saoudite & Koweït (Salla, Zid, D2C)\n"
         f"🤖 <b>Moteurs actifs</b> : Apify Google Maps + ScrapeGraphAI Local"
     )
 
@@ -112,10 +117,21 @@ async def scrape_and_qualify_stores(target_count: int = 50) -> dict[str, Any]:
                 if inserted_count >= target_count:
                     break
 
-                website = place.get("website") or place.get("url")
                 name = place.get("title") or place.get("name")
-                if not name or not website or "google.com" in website:
+                phone = place.get("phone") or place.get("phoneUnformatted")
+                website = place.get("website") or place.get("url")
+
+                if not name:
                     continue
+
+                clean_name = name.split("(")[0].replace("|", "").strip()
+                slug = re.sub(r"[^a-zA-Z0-9]", "", clean_name.lower()) or "store"
+
+                if not website or "google.com" in website:
+                    if phone:
+                        website = f"https://wa.me/{re.sub(r'\\D', '', phone)}"
+                    else:
+                        continue
 
                 try:
                     canonical = canonicalize_website(website)

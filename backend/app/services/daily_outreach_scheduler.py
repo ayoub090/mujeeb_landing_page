@@ -14,6 +14,12 @@ from app.services.automated_outreach import send_whatsapp_via_waapi, send_email_
 logger = logging.getLogger('mujeeb.outreach')
 
 async def dispatch_daily_cohort(limit: int = 30, interval_seconds: int = 3):
+    settings = get_settings()
+    resend_api_key = settings.resend_api_key or os.getenv('RESEND_API_KEY', '')
+    from_email = settings.resend_from_email or os.getenv('RESEND_FROM_EMAIL', 'contact@usemujeeb.com')
+    waapi_token = settings.waapi_api_token or os.getenv('WAAPI_API_TOKEN', '')
+    waapi_instance = os.getenv('WAAPI_INSTANCE_ID', '')
+    
     print(f'=== LAUNCHING AUTONOMOUS OUTREACH DISPATCHER (Target: {limit} stores) ===')
     
     async with SessionLocal() as session:
@@ -27,6 +33,7 @@ async def dispatch_daily_cohort(limit: int = 30, interval_seconds: int = 3):
         
         sent_wa = 0
         sent_email = 0
+        sent_ig = 0
         
         for idx, prospect in enumerate(prospects, 1):
             company_name = prospect.company.split('(')[0].strip()
@@ -42,12 +49,12 @@ async def dispatch_daily_cohort(limit: int = 30, interval_seconds: int = 3):
             
             dispatched = False
             # 1. Primary: WhatsApp via WaAPI
-            if prospect.public_phone:
+            if waapi_token and waapi_instance and prospect.public_phone:
                 clean_phone = ''.join(filter(str.isdigit, prospect.public_phone))
                 try:
                     res = await send_whatsapp_via_waapi(
-                        instance_id=WAAPI_INSTANCE_ID,
-                        api_token=WAAPI_API_TOKEN,
+                        instance_id=waapi_instance,
+                        api_token=waapi_token,
                         phone_number=clean_phone,
                         message=arabic_pitch
                     )
@@ -60,11 +67,11 @@ async def dispatch_daily_cohort(limit: int = 30, interval_seconds: int = 3):
                     print(f'[{idx}/{len(prospects)}] WA Failed for {prospect.company}: {e}')
                     
             # 2. Secondary / Fallback: B2B Email via Resend
-            if not dispatched and prospect.public_email:
+            if not dispatched and prospect.public_email and resend_api_key:
                 try:
                     await send_email_via_resend(
-                        api_key=RESEND_API_KEY,
-                        from_email=FROM_EMAIL,
+                        api_key=resend_api_key,
+                        from_email=from_email,
                         to_email=prospect.public_email,
                         subject=f'تجربة مجانية لتأكيد طلبات الدفع عند الاستلام — متجر {company_name}',
                         body_text=arabic_pitch
@@ -87,7 +94,7 @@ async def dispatch_daily_cohort(limit: int = 30, interval_seconds: int = 3):
                 
         # Send Daily Report to Owner Telegram
         summary = (
-            f'🚀 <b>RAPPORT DE PROSPECTION AUTOMATISÉE (30/JOUR)</b>\n'
+            f'🚀 <b>RAPPORT DE PROSPECTION AUTOMATISÉE ({limit}/JOUR)</b>\n'
             f'━━━━━━━━━━━━━━━━━━━━\n'
             f'📱 <b>WhatsApp (WaAPI)</b> : <b>{sent_wa}</b>\n'
             f'✉️ <b>Emails B2B (Resend)</b> : <b>{sent_email}</b>\n'
@@ -99,3 +106,4 @@ async def dispatch_daily_cohort(limit: int = 30, interval_seconds: int = 3):
 
 if __name__ == '__main__':
     asyncio.run(dispatch_daily_cohort(limit=10, interval_seconds=2))
+

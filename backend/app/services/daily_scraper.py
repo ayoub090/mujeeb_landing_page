@@ -129,7 +129,8 @@ async def scrape_and_qualify_stores(target_count: int = 50) -> dict[str, Any]:
 
                 if not website or "google.com" in website:
                     if phone:
-                        website = f"https://wa.me/{re.sub(r'\\D', '', phone)}"
+                        digits = re.sub(r"\D", "", phone)
+                        website = f"https://wa.me/{digits}"
                     else:
                         continue
 

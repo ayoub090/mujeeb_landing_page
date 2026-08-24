@@ -136,25 +136,22 @@ services:
       OLLAMA_BASE_URL: http://ollama:11434
     depends_on: [ollama]
   n8n:
-    image: docker.n8n.io/n8nio/n8n:latest
+    image: n8nio/n8n:latest
     restart: unless-stopped
     environment:
-      - N8N_HOST=api.usemujeeb.com
+      - N8N_HOST=n8n.usemujeeb.com
       - N8N_PORT=5678
       - N8N_PROTOCOL=https
-      - N8N_PATH=/n8n/
-      - WEBHOOK_URL=https://api.usemujeeb.com/n8n/
+      - WEBHOOK_URL=https://n8n.usemujeeb.com/
       - GENERIC_TIMEZONE=Asia/Riyadh
       - N8N_SECURE_COOKIE=false
-      - EXECUTIONS_DATA_PRUNE=true
-      - EXECUTIONS_DATA_MAX_AGE=168
     ports:
       - "5678:5678"
     labels:
       - traefik.enable=true
-      - traefik.http.routers.n8n.rule=Host("api.usemujeeb.com") && PathPrefix("/n8n")
-      - traefik.http.routers.n8n.priority=1000
-      - traefik.http.routers.n8n.entrypoints=websecure
+      - traefik.http.routers.n8n.rule=Host("n8n.usemujeeb.com")
+      - traefik.http.routers.n8n.entrypoints=web,websecure
+      - traefik.http.routers.n8n.tls=true
       - traefik.http.routers.n8n.tls.certresolver=letsencrypt
       - traefik.http.services.n8n.loadbalancer.server.port=5678
     volumes:

@@ -7,6 +7,7 @@ import {
   Zap, Coins, FileText, Search, Star, MapPin, Store
 } from "lucide-react";
 import {api} from "./api";
+import {AdminCrm} from "./AdminCrm";
 import {launchEmbeddedSignup} from "./meta";
 import type {Order, Summary, User} from "./types";
 
@@ -920,6 +921,42 @@ function Dashboard({user,onLogout}:{user:User;onLogout:()=>void}) {
   </main></div>;
 }
 
-function InternalAdmin({user,onLogout}:{user:User;onLogout:()=>void}) { const store=user.stores[0]; return <main className="mesh min-h-screen p-6 lg:p-12" dir="rtl"><div className="max-w-5xl mx-auto"><header className="flex items-center justify-between rounded-2xl bg-slate-950 text-white p-5"><div><p className="text-xs text-slate-400">لوحة داخلية</p><h1 className="text-2xl font-black mt-1">أدوات اختبار مجيب</h1></div><button onClick={onLogout} className="rounded-xl bg-white/10 px-4 py-2 font-bold">تسجيل الخروج</button></header><p className="mt-6 text-sm text-slate-600">هذه الصفحة مخصصة للفريق فقط، ولا تظهر في تجربة التاجر.</p><div className="mt-6 grid gap-6"><DevWhatsAppSimulator storeId={store.id}/><DeveloperApi storeId={store.id}/></div></div></main>; }
+export default function App() {
+  const [viewAdmin, setViewAdmin] = useState(location.pathname === "/admin");
+  const me = useQuery({
+    queryKey: ["me"],
+    queryFn: async () => (await api.get<User>("/api/auth/me")).data,
+    retry: false,
+  });
 
-export default function App(){const me=useQuery({queryKey:["me"],queryFn:async()=> (await api.get<User>("/api/auth/me")).data,retry:false});const logout=async()=>{await api.post("/api/auth/logout");location.reload();};if(me.isLoading)return <div className="min-h-screen grid place-items-center font-black">مُجيب</div>;if(!me.data)return <Auth onDone={()=>me.refetch()}/>;if(location.pathname==="/admin")return me.data.is_internal_admin?<InternalAdmin user={me.data} onLogout={logout}/>:<Dashboard user={me.data} onLogout={logout}/>;return <Dashboard user={me.data} onLogout={logout}/>;}
+  const logout = async () => {
+    await api.post("/api/auth/logout");
+    location.reload();
+  };
+
+  if (me.isLoading)
+    return <div className="min-h-screen grid place-items-center font-black">مُجيب</div>;
+  if (!me.data)
+    return <Auth onDone={() => me.refetch()} />;
+
+  if (viewAdmin || location.pathname === "/admin") {
+    return (
+      <AdminCrm
+        user={me.data}
+        onLogout={logout}
+        onSwitchToMerchant={() => {
+          setViewAdmin(false);
+          window.history.pushState({}, "", "/");
+        }}
+      />
+    );
+  }
+
+  return (
+    <Dashboard
+      user={me.data}
+      onLogout={logout}
+    />
+  );
+}
+

@@ -136,29 +136,174 @@ async def handle_update(update: dict, client: httpx.AsyncClient):
         stop_batch_runner()
         await send_telegram_notification("🛑 <b>Demande d'arrêt envoyée à la campagne en cours.</b>")
 
+    elif text.startswith("/outreach_daily") or text.startswith("outreach_daily") or text.startswith("/launch"):
+        from app.services.multi_channel_outreach import run_daily_multi_channel_campaign
+        parts = text.split()
+        count = int(parts[1]) if len(parts) >= 2 and parts[1].isdigit() else 25
+        asyncio.create_task(run_daily_multi_channel_campaign(limit=count))
+
     elif text in ["/ig_poll", "ig_poll"]:
         from app.services.instagram_outreach import poll_instagram_replies
         replies = await poll_instagram_replies()
         await send_telegram_notification(f"🔍 <b>Vérification de la boîte IG terminée.</b> {len(replies)} nouvelle(s) réponse(s) détectée(s).")
 
-    elif text in ["/start", "/help", "help"]:
-        help_msg = (
-            "🤖 <b>CENTRE DE CONTRÔLE OUTREACH PRIVÉ (MUJEEB)</b>\n"
-            "━━━━━━━━━━━━━━━━━━━━\n"
-            "Voici vos commandes d'administration disponibles :\n\n"
-            "🟢 <b>WHATSAPP (BAILEYS 0€) :</b>\n"
-            "📲 <b>/qr</b> : Génère le QR Code WhatsApp\n"
-            "📊 <b>/status</b> : Statut WhatsApp\n\n"
-            "📸 <b>INSTAGRAM (INSTAGRAPI 0€) :</b>\n"
-            "🚀 <b>/ig_batch [nombre]</b> : <b>LANCER UNE CAMPAGNE BATCH AUTOMATIQUE (ex: /ig_batch 15)</b>\n"
-            "🛑 <b>/ig_stop</b> : Arrêter la campagne en cours\n"
-            "📸 <b>/ig_status</b> : Statut du compte Instagram\n"
-            "🔑 <b>/ig_session cookie</b> : Connexion par cookie sessionid\n"
-            "💬 <b>/ig_dm user message</b> : Envoyer un DM unique\n"
-            "📥 <b>/ig_poll</b> : Vérifier les réponses reçues\n\n"
-            "🏓 <b>/ping</b> : Test de réactivité du serveur"
+async def send_interactive_menu(chat_id: str, client: httpx.AsyncClient):
+    settings = get_settings()
+    token = settings.telegram_bot_token
+    text = (
+        "🤖 <b>CENTRE DE CONTRÔLE OUTREACH PRIVÉ (MUJEEB)</b>\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "Sélectionnez une action ci-dessous ou tapez <code>/</code> pour voir les commandes :"
+    )
+    keyboard = {
+        "inline_keyboard": [
+            [
+                {"text": "🚀 Lancer Campagne (25 boutiques)", "callback_data": "cmd_outreach"},
+            ],
+            [
+                {"text": "📊 Statut Global", "callback_data": "cmd_status"},
+                {"text": "🟢 QR Code WhatsApp", "callback_data": "cmd_qr"},
+            ],
+            [
+                {"text": "📸 Statut Instagram", "callback_data": "cmd_ig_status"},
+                {"text": "📥 Vérifier Réponses IG", "callback_data": "cmd_ig_poll"},
+            ],
+            [
+                {"text": "🛑 Arrêter la Campagne", "callback_data": "cmd_stop"},
+            ]
+        ]
+    }
+    try:
+        await client.post(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            json={
+                "chat_id": chat_id,
+                "text": text,
+                "parse_mode": "HTML",
+                "reply_markup": keyboard
+            }
         )
-        await send_telegram_notification(help_msg)
+    except Exception as e:
+        logger.error("Error sending interactive menu: %s", e)
+
+
+async def handle_update(update: dict, client: httpx.AsyncClient):
+    settings = get_settings()
+    
+    # Check for callback query (button click)
+    callback_query = update.get("callback_query")
+    if callback_query:
+        cq_data = callback_query.get("data")
+        cq_id = callback_query.get("id")
+        chat_id = str(callback_query.get("message", {}).get("chat", {}).get("id"))
+        
+        # Acknowledge callback
+        token = settings.telegram_bot_token
+        try:
+            await client.post(f"https://api.telegram.org/bot{token}/answerCallbackQuery", json={"callback_query_id": cq_id})
+        except Exception:
+            pass
+            
+        if cq_data == "cmd_outreach":
+            from app.services.multi_channel_outreach import run_daily_multi_channel_campaign
+            asyncio.create_task(run_daily_multi_channel_campaign(limit=25))
+        elif cq_data == "cmd_qr":
+            await send_telegram_notification("⏳ <b>Génération du QR Code WhatsApp en cours...</b>")
+            await init_evolution_instance()
+            await fetch_and_send_qr_to_telegram()
+        elif cq_data == "cmd_status":
+            from app.services.instagram_outreach import is_authenticated as ig_auth, _logged_in_user
+            ig_status = "Connecté ✅" if ig_auth() else "Déconnecté ❌"
+            msg = (
+                "📊 <b>STATUT DES 3 CANAUX OUTREACH :</b>\n\n"
+                f"• 📧 <b>Email (Resend)</b> : Opérationnel ✅ (contact@usemujeeb.com)\n"
+                f"• 🟢 <b>WhatsApp (Baileys)</b> : Connecté ✅ (+13349014364)\n"
+                f"• 📸 <b>Instagram</b> : {ig_status} (@{_logged_in_user or 'leocreativehub4'})"
+            )
+            await send_telegram_notification(msg)
+        elif cq_data == "cmd_ig_status":
+            from app.services.instagram_outreach import is_authenticated, _logged_in_user, _dms_sent_today
+            auth = is_authenticated()
+            ig_msg = (
+                "📸 <b>STATUT OUTREACH INSTAGRAM :</b>\n\n"
+                f"• Authentifié : <code>{'Oui ✅' if auth else 'Non ❌'}</code>\n"
+                f"• Compte : <code>@{_logged_in_user or 'leocreativehub4'}</code>\n"
+                f"• DMs envoyés aujourd'hui : <code>{_dms_sent_today}/30</code>\n"
+            )
+            await send_telegram_notification(ig_msg)
+        elif cq_data == "cmd_ig_poll":
+            from app.services.instagram_outreach import poll_instagram_replies
+            replies = await poll_instagram_replies()
+            await send_telegram_notification(f"🔍 <b>Boîte Instagram vérifiée :</b> {len(replies)} nouvelle(s) réponse(s).")
+        elif cq_data == "cmd_stop":
+            from app.services.batch_outreach_runner import stop_batch_runner
+            stop_batch_runner()
+            await send_telegram_notification("🛑 <b>Arrêt de la campagne demandé.</b>")
+        return
+
+    message = update.get("message", {})
+    raw_text = (message.get("text") or "").strip()
+    text = raw_text.lower()
+    chat_id = str(message.get("chat", {}).get("id"))
+
+    if chat_id != str(settings.telegram_chat_id):
+        logger.warning("Ignored message from unauthorized chat_id: %s", chat_id)
+        return
+
+    logger.info("Received command from owner: %s", text)
+
+    if text in ["/start", "/menu", "menu", "/help", "help"]:
+        await send_interactive_menu(chat_id, client)
+
+    elif text in ["/qr", "qr", "/connect", "connect"]:
+        await send_telegram_notification("⏳ <b>Génération du QR Code WhatsApp en cours...</b>")
+        await init_evolution_instance()
+        success = await fetch_and_send_qr_to_telegram()
+        if not success:
+            conn = await check_instance_connection()
+            state = conn.get("instance", {}).get("state")
+            if state == "open":
+                await send_telegram_notification("✅ <b>Votre WhatsApp est DÉJÀ connecté et actif sur Evolution API !</b>")
+            else:
+                await send_telegram_notification("⚠️ <i>Impossible de récupérer le QR code.</i>")
+
+    elif text in ["/status", "status"]:
+        from app.services.instagram_outreach import is_authenticated as ig_auth, _logged_in_user
+        ig_status = "Connecté ✅" if ig_auth() else "Déconnecté ❌"
+        status_msg = (
+            "📊 <b>STATUT GLOBAL DES 3 CANAUX :</b>\n\n"
+            f"• 📧 <b>Email (Resend)</b> : Opérationnel ✅ (contact@usemujeeb.com)\n"
+            f"• 🟢 <b>WhatsApp (Baileys)</b> : Connecté ✅ (+13349014364)\n"
+            f"• 📸 <b>Instagram</b> : {ig_status} (@{_logged_in_user or 'leocreativehub4'})"
+        )
+        await send_telegram_notification(status_msg)
+
+    elif text in ["/ig_status", "ig_status"]:
+        from app.services.instagram_outreach import is_authenticated, _logged_in_user, _dms_sent_today
+        auth = is_authenticated()
+        ig_msg = (
+            "📸 <b>STATUT OUTREACH INSTAGRAM :</b>\n\n"
+            f"• Authentifié : <code>{'Oui ✅' if auth else 'Non ❌'}</code>\n"
+            f"• Compte : <code>@{_logged_in_user or 'leocreativehub4'}</code>\n"
+            f"• DMs envoyés aujourd'hui : <code>{_dms_sent_today}/30</code>\n"
+        )
+        await send_telegram_notification(ig_msg)
+
+    elif text.startswith("/outreach_daily") or text.startswith("outreach_daily") or text.startswith("/launch"):
+        from app.services.multi_channel_outreach import run_daily_multi_channel_campaign
+        parts = text.split()
+        count = int(parts[1]) if len(parts) >= 2 and parts[1].isdigit() else 25
+        asyncio.create_task(run_daily_multi_channel_campaign(limit=count))
+
+    elif text in ["/ig_poll", "ig_poll"]:
+        from app.services.instagram_outreach import poll_instagram_replies
+        replies = await poll_instagram_replies()
+        await send_telegram_notification(f"🔍 <b>Vérification IG terminée :</b> {len(replies)} nouvelle(s) réponse(s).")
+
+    elif text in ["/ig_stop", "ig_stop"]:
+        from app.services.batch_outreach_runner import stop_batch_runner
+        stop_batch_runner()
+        await send_telegram_notification("🛑 <b>Demande d'arrêt envoyée.</b>")
 
 
 async def run_poller():
@@ -172,14 +317,26 @@ async def run_poller():
     url = f"https://api.telegram.org/bot{token}"
     offset = 0
 
+    # Auto register commands menu
+    try:
+        commands = [
+            {"command": "outreach_daily", "description": "🚀 Lancer la campagne Multi-Canal (25 boutiques)"},
+            {"command": "menu", "description": "📱 Menu interactif avec boutons"},
+            {"command": "status", "description": "📊 Statut des 3 canaux (WA, IG, Email)"},
+            {"command": "qr", "description": "🟢 Scanner le QR Code WhatsApp"},
+            {"command": "ig_status", "description": "📸 Statut de la session Instagram"},
+            {"command": "ig_poll", "description": "📥 Vérifier les réponses Instagram"},
+            {"command": "ig_stop", "description": "🛑 Arrêter la campagne en cours"},
+            {"command": "help", "description": "❓ Guide et aide des fonctionnalités"}
+        ]
+        async with httpx.AsyncClient(timeout=10) as cl:
+            await cl.post(f"{url}/setMyCommands", json={"commands": commands})
+    except Exception as e:
+        logger.warning("Could not set bot commands: %s", e)
+
     async with httpx.AsyncClient(timeout=30) as client:
-        # Send a ready message on startup
-        ready_msg = (
-            "🚀 <b>BOT OUTREACH PRIVÉ EN LIGNE !</b>\n\n"
-            "Pour générer le QR Code de connexion WhatsApp à tout moment, tapez simplement :\n"
-            "👉 <b>/qr</b>"
-        )
-        await send_telegram_notification(ready_msg)
+        # Send interactive menu on start
+        await send_interactive_menu(str(settings.telegram_chat_id), client)
 
         while True:
             try:
@@ -197,3 +354,4 @@ async def run_poller():
 
 if __name__ == "__main__":
     asyncio.run(run_poller())
+

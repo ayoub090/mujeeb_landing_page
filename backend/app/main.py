@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.routers import (
     acquisition,
+    admin_crm,
     auth,
     automation,
     custom_orders,
@@ -67,5 +68,6 @@ for api_router in (
     fsm_webhooks.router,
     evolution.router,
     instagram.router,
+    admin_crm.router,
 ):
     app.include_router(api_router)

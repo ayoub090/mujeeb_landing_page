@@ -23,3 +23,14 @@ coverage/
 *.egg-info/
 *.tsbuildinfo
 frontend/.vite/
+backend/outreach_engine/auth_info_baileys/
+instagram_session.json
+run_*.py
+daily_*.py
+persistent_*.py
+start_*.py
+outreach_*.json
+apify_*.json
+real_*.json
+verified_*.json
+scraped_*.json

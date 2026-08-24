@@ -102,11 +102,22 @@ async function startWhatsApp() {
             isConnected = false;
             const statusCode = lastDisconnect?.error?.output?.statusCode;
             const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-            console.log('Connection closed, reconnecting:', shouldReconnect);
+            console.log('Connection closed, statusCode:', statusCode, 'reconnecting:', shouldReconnect);
             if (shouldReconnect) {
                 setTimeout(startWhatsApp, 5000);
             } else {
-                console.log('Session logged out. Clean auth folder to restart.');
+                console.log('Session logged out or expired. Cleaning auth folder and regenerating QR code...');
+                try {
+                    const files = fs.readdirSync(authDir);
+                    for (const file of files) {
+                        fs.unlinkSync(path.join(authDir, file));
+                    }
+                } catch (cleanErr) {
+                    console.error('Error cleaning auth folder:', cleanErr.message);
+                }
+                hasSentInitialQr = false;
+                lastQr = null;
+                setTimeout(startWhatsApp, 2000);
             }
         } else if (connection === 'open') {
             isConnected = true;
@@ -175,7 +186,8 @@ app.post('/send-media', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log('🚀 Outreach Engine listening on http://127.0.0.1:' + PORT);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log('🚀 Outreach Engine listening on port ' + PORT);
     startWhatsApp();
 });
+

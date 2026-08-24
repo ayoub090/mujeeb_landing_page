@@ -167,13 +167,17 @@ async def dispatch_custom_outreach(
         # 1. Dispatch WhatsApp (top prospects with phone)
         if wa_count > 0:
             query_wa = select(AcquisitionProspect).where(
-                AcquisitionProspect.status.in_(["ready", "new", "qualified"]),
                 AcquisitionProspect.public_phone.is_not(None),
                 AcquisitionProspect.id.notin_(contacted_ids) if contacted_ids else True,
-            ).order_by(AcquisitionProspect.score.desc()).limit(wa_count)
+            ).order_by(
+                AcquisitionProspect.status == "ready",
+                AcquisitionProspect.score.desc()
+            ).limit(wa_count)
             
             wa_prospects = list((await session.scalars(query_wa)).all())
             for p in wa_prospects:
+                if sent_wa >= wa_count:
+                    break
                 ok = await send_whatsapp_baileys(p.public_phone, p.company, p.message_draft)
                 if ok:
                     sent_wa += 1
@@ -183,18 +187,30 @@ async def dispatch_custom_outreach(
                     p.contact_attempts = (p.contact_attempts or 0) + 1
                     contacted_ids.add(p.id)
                     await session.commit()
-                await asyncio.sleep(random.uniform(2, 5))
+                    await send_telegram_notification(
+                        f"🟢 <b>WHATSAPP ENVOYÉ !</b>\n"
+                        f"━━━━━━━━━━━━━━━━━━━━\n"
+                        f"🏬 <b>Boutique</b> : <b>{p.company}</b>\n"
+                        f"📱 <b>Numéro</b> : <code>{p.public_phone}</code>\n"
+                        f"🎥 <b>Contenu</b> : Vidéo Démo 20s + Pitch arabe\n"
+                        f"📊 <b>Progression WA</b> : <b>{sent_wa}/{wa_count}</b>"
+                    )
+                await asyncio.sleep(random.uniform(2, 4))
 
         # 2. Dispatch Email (top prospects with email)
         if email_count > 0:
             query_mail = select(AcquisitionProspect).where(
-                AcquisitionProspect.status.in_(["ready", "new", "qualified"]),
                 AcquisitionProspect.public_email.is_not(None),
                 AcquisitionProspect.id.notin_(contacted_ids) if contacted_ids else True,
-            ).order_by(AcquisitionProspect.score.desc()).limit(email_count)
+            ).order_by(
+                AcquisitionProspect.status == "ready",
+                AcquisitionProspect.score.desc()
+            ).limit(email_count)
             
             mail_prospects = list((await session.scalars(query_mail)).all())
             for p in mail_prospects:
+                if sent_email >= email_count:
+                    break
                 ok = await send_email_resend(p.public_email, p.company, p.country_code or "SA")
                 if ok:
                     sent_email += 1
@@ -204,14 +220,24 @@ async def dispatch_custom_outreach(
                     p.contact_attempts = (p.contact_attempts or 0) + 1
                     contacted_ids.add(p.id)
                     await session.commit()
+                    await send_telegram_notification(
+                        f"✉️ <b>EMAIL B2B ENVOYÉ !</b>\n"
+                        f"━━━━━━━━━━━━━━━━━━━━\n"
+                        f"🏬 <b>Boutique</b> : <b>{p.company}</b>\n"
+                        f"📬 <b>Email</b> : <code>{p.public_email}</code>\n"
+                        f"📝 <b>Gabarit</b> : RTL Arabie / Démo Vidéo\n"
+                        f"📊 <b>Progression Emails</b> : <b>{sent_email}/{email_count}</b>"
+                    )
                 await asyncio.sleep(1)
 
         # 3. Dispatch Instagram DM (top prospects with instagram handle)
         if ig_count > 0:
             query_ig = select(AcquisitionProspect).where(
-                AcquisitionProspect.status.in_(["ready", "new", "qualified"]),
                 AcquisitionProspect.id.notin_(contacted_ids) if contacted_ids else True,
-            ).order_by(AcquisitionProspect.score.desc()).limit(ig_count * 2)
+            ).order_by(
+                AcquisitionProspect.status == "ready",
+                AcquisitionProspect.score.desc()
+            ).limit(ig_count * 2)
             
             ig_prospects = list((await session.scalars(query_ig)).all())
             for p in ig_prospects:

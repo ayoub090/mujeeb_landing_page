@@ -1,7 +1,7 @@
-﻿\"\"\"Automated GCC E-commerce Scraper & Prospect Qualification Engine for Mujeeb.
+"""Automated GCC E-commerce Scraper & Prospect Qualification Engine for Mujeeb.
 Discovers high-intent e-commerce stores in SA/KW/GCC, extracts contacts via ScrapeGraphAI / Apify / Maps,
 and upserts enriched prospects directly into the PostgreSQL database.
-\"\"\"
+"""
 from __future__ import annotations
 
 import asyncio
@@ -23,48 +23,48 @@ from app.models import AcquisitionProspect
 from app.services.prospecting import canonicalize_website, prospect_score
 from app.services.telegram import send_telegram_notification
 
-logger = logging.getLogger(\"mujeeb.daily_scraper\")
+logger = logging.getLogger("mujeeb.daily_scraper")
 
-APIFY_TOKEN = os.getenv(\"APIFY_API_TOKEN\", \"\")
-SCRAPEGRAPH_URL = os.getenv(\"ACQUISITION_SCRAPER_URL\", \"http://acquisition:8080\")
-ACQUISITION_KEY = os.getenv(\"ACQUISITION_ADMIN_KEY\", \"8ca1b0f2523a1a616d9c2c303c5271e728328958dbdfe624d687ad5f6a7912c7\")
+APIFY_TOKEN = os.getenv("APIFY_API_TOKEN", "")
+SCRAPEGRAPH_URL = os.getenv("ACQUISITION_SCRAPER_URL", "http://acquisition:8080")
+ACQUISITION_KEY = os.getenv("ACQUISITION_ADMIN_KEY", "8ca1b0f2523a1a616d9c2c303c5271e728328958dbdfe624d687ad5f6a7912c7")
 
 GCC_SEARCH_QUERIES = [
-    {\"query\": \"متجر عبايات الرياض دفع عند الاستلام\", \"country\": \"SA\", \"city\": \"الرياض\"},
-    {\"query\": \"متجر عطور جدة متجر الكتروني\", \"country\": \"SA\", \"city\": \"جدة\"},
-    {\"query\": \"متجر الكتروني سلة زد الرياض\", \"country\": \"SA\", \"city\": \"الرياض\"},
-    {\"query\": \"boutique abaya kuwait online store\", \"country\": \"KW\", \"city\": \"الكويت\"},
-    {\"query\": \"متجر هدايا تمور الدمام متجر الكتروني\", \"country\": \"SA\", \"city\": \"الدمام\"},
-    {\"query\": \"متجر الكتروني شحن توصيل الكويت\", \"country\": \"KW\", \"city\": \"الكويت\"},
-    {\"query\": \"متجر مجوهرات واكسسوارات سلة الرياض\", \"country\": \"SA\", \"city\": \"الرياض\"},
+    {"query": "متجر عبايات الرياض دفع عند الاستلام", "country": "SA", "city": "الرياض"},
+    {"query": "متجر عطور جدة متجر الكتروني", "country": "SA", "city": "جدة"},
+    {"query": "متجر الكتروني سلة زد الرياض", "country": "SA", "city": "الرياض"},
+    {"query": "boutique abaya kuwait online store", "country": "KW", "city": "الكويت"},
+    {"query": "متجر هدايا تمور الدمام متجر الكتروني", "country": "SA", "city": "الدمام"},
+    {"query": "متجر الكتروني شحن توصيل الكويت", "country": "KW", "city": "الكويت"},
+    {"query": "متجر مجوهرات واكسسوارات سلة الرياض", "country": "SA", "city": "الرياض"},
 ]
 
 
-async def extract_via_scrapegraph(client: httpx.AsyncClient, website: str, country_hint: str = \"SA\") -> dict[str, Any]:
-    \"\"\"Call ScrapeGraphAI extractor on the store website.\"\"\"
+async def extract_via_scrapegraph(client: httpx.AsyncClient, website: str, country_hint: str = "SA") -> dict[str, Any]:
+    """Call ScrapeGraphAI extractor on the store website."""
     try:
-        url = f\"{SCRAPEGRAPH_URL.rstrip('/')}/extract\"
-        headers = {\"X-Mujeeb-Acquisition-Key\": ACQUISITION_KEY}
-        r = await client.post(url, json={\"url\": website, \"country_hint\": country_hint}, headers=headers, timeout=60)
+        url = f"{SCRAPEGRAPH_URL.rstrip('/')}/extract"
+        headers = {"X-Mujeeb-Acquisition-Key": ACQUISITION_KEY}
+        r = await client.post(url, json={"url": website, "country_hint": country_hint}, headers=headers, timeout=60)
         if r.status_code == 200:
             return r.json()
     except Exception as e:
-        logger.debug(\"ScrapeGraph extraction error for %s: %s\", website, e)
+        logger.debug("ScrapeGraph extraction error for %s: %s", website, e)
     return {}
 
 
 async def scrape_apify_maps(query: str, max_items: int = 15) -> list[dict[str, Any]]:
-    \"\"\"Run Apify Google Maps Scraper for target GCC queries.\"\"\"
+    """Run Apify Google Maps Scraper for target GCC queries."""
     if not APIFY_TOKEN:
         return []
     
-    actor_id = \"compass~crawler-google-places\"
-    url = f\"https://api.apify.com/v2/acts/{actor_id}/run-sync-get-dataset-items?token={APIFY_TOKEN}\"
+    actor_id = "compass~crawler-google-places"
+    url = f"https://api.apify.com/v2/acts/{actor_id}/run-sync-get-dataset-items?token={APIFY_TOKEN}"
     payload = {
-        \"searchStringsArray\": [query],
-        \"maxCrawledPlacesPerSearch\": max_items,
-        \"language\": \"ar\",
-        \"skipClosed\": True,
+        "searchStringsArray": [query],
+        "maxCrawledPlacesPerSearch": max_items,
+        "language": "ar",
+        "skipClosed": True,
     }
     try:
         async with httpx.AsyncClient(timeout=120) as client:
@@ -72,19 +72,19 @@ async def scrape_apify_maps(query: str, max_items: int = 15) -> list[dict[str, A
             if r.status_code in (200, 201):
                 return r.json()
     except Exception as e:
-        logger.warning(\"Apify Maps scraper error for query '%s': %s\", query, e)
+        logger.warning("Apify Maps scraper error for query '%s': %s", query, e)
     return []
 
 
 async def scrape_and_qualify_stores(target_count: int = 50) -> dict[str, Any]:
-    \"\"\"Scrape, qualify, and store target_count new GCC e-commerce prospects.\"\"\"
-    logger.info(\"Starting automated GCC scraping run (Target: %d stores)...\", target_count)
+    """Scrape, qualify, and store target_count new GCC e-commerce prospects."""
+    logger.info("Starting automated GCC scraping run (Target: %d stores)...", target_count)
     await send_telegram_notification(
-        f\"🕷️ <b>DÉMARRAGE DU SCRAPING GCC EN COURS...</b>\n\"
-        f\"━━━━━━━━━━━━━━━━━━━━\n\"
-        f\"🎯 <b>Objectif</b> : <b>{target_count} nouvelles boutiques</b>\n\"
-        f\"📍 <b>Marchés cibles</b> : Arabie Saoudite (Riyad, Djeddah, Dammam) & Koweït\n\"
-        f\"🤖 <b>Moteurs actifs</b> : Apify Google Maps + ScrapeGraphAI Local\"
+        f"🕷️ <b>DÉMARRAGE DU SCRAPING GCC EN COURS...</b>\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"🎯 <b>Objectif</b> : <b>{target_count} nouvelles boutiques</b>\n"
+        f"📍 <b>Marchés cibles</b> : Arabie Saoudite (Riyad, Djeddah, Dammam) & Koweït\n"
+        f"🤖 <b>Moteurs actifs</b> : Apify Google Maps + ScrapeGraphAI Local"
     )
 
     discovered_raw = []
@@ -93,14 +93,14 @@ async def scrape_and_qualify_stores(target_count: int = 50) -> dict[str, Any]:
     for seed in GCC_SEARCH_QUERIES:
         if len(discovered_raw) >= target_count * 2:
             break
-        items = await scrape_apify_maps(seed[\"query\"], max_items=15)
+        items = await scrape_apify_maps(seed["query"], max_items=15)
         for it in items:
-            it[\"_city\"] = seed[\"city\"]
-            it[\"_country\"] = seed[\"country\"]
+            it["_city"] = seed["city"]
+            it["_country"] = seed["country"]
             discovered_raw.append(it)
         await asyncio.sleep(2)
 
-    logger.info(\"Retrieved %d raw places from Maps scraping.\", len(discovered_raw))
+    logger.info("Retrieved %d raw places from Maps scraping.", len(discovered_raw))
 
     # 2. Process, qualify, and save to PostgreSQL
     inserted_count = 0
@@ -112,59 +112,59 @@ async def scrape_and_qualify_stores(target_count: int = 50) -> dict[str, Any]:
                 if inserted_count >= target_count:
                     break
 
-                website = place.get(\"website\") or place.get(\"url\")
-                name = place.get(\"title\") or place.get(\"name\")
-                if not name or not website or \"google.com\" in website:
+                website = place.get("website") or place.get("url")
+                name = place.get("title") or place.get("name")
+                if not name or not website or "google.com" in website:
                     continue
 
                 try:
                     canonical = canonicalize_website(website)
                 except Exception:
-                    canonical = website.strip().lower().rstrip(\"/\")
+                    canonical = website.strip().lower().rstrip("/")
 
                 # Check if already exists in DB
                 existing = await session.scalar(
                     select(AcquisitionProspect).where(AcquisitionProspect.canonical_website == canonical)
                 )
 
-                phone = place.get(\"phone\") or place.get(\"phoneUnformatted\")
-                rating = str(place.get(\"totalScore\") or place.get(\"rating\") or \"4.2\")
-                city = place.get(\"_city\") or place.get(\"city\") or \"الرياض\"
-                country = place.get(\"_country\") or place.get(\"countryCode\") or \"SA\"
+                phone = place.get("phone") or place.get("phoneUnformatted")
+                rating = str(place.get("totalScore") or place.get("rating") or "4.2")
+                city = place.get("_city") or place.get("city") or "الرياض"
+                country = place.get("_country") or place.get("countryCode") or "SA"
 
                 # Extract domain name for handle fallback
                 parsed = urlparse(canonical)
-                domain_clean = parsed.netloc.replace(\"www.\", \"\").split(\".\")[0]
+                domain_clean = parsed.netloc.replace("www.", "").split(".")[0]
 
                 # Run ScrapeGraph enrichment
                 sg_data = await extract_via_scrapegraph(client, canonical, country)
-                email = sg_data.get(\"public_email\") or place.get(\"email\")
-                ig_handle = (sg_data.get(\"social_profiles\") or {}).get(\"instagram\") or domain_clean
+                email = sg_data.get("public_email") or place.get("email")
+                ig_handle = (sg_data.get("social_profiles") or {}).get("instagram") or domain_clean
 
                 evidence = {
-                    \"google_rating\": rating,
-                    \"pain_snippet\": \"تأخر تأكيد عنوان التوصيل من العميل وسحب اللوكيشن\",
-                    \"cod_available\": True,
-                    \"whatsapp_available\": True,
+                    "google_rating": rating,
+                    "pain_snippet": "تأخر تأكيد عنوان التوصيل من العميل وسحب اللوكيشن",
+                    "cod_available": True,
+                    "whatsapp_available": True,
                 }
 
                 score = prospect_score(
                     country_code=country,
-                    platform=sg_data.get(\"platform\") or \"salla\",
+                    platform=sg_data.get("platform") or "salla",
                     public_email=email,
                     public_phone=phone,
                     evidence=evidence,
                 )
 
-                company_clean = name.split(\"(\")[0].strip()
+                company_clean = name.split("(")[0].strip()
                 arabic_pitch = (
-                    f\"السلام عليكم ورحمة الله وبركاته،\n\n\"
-                    f\"معك أيوب من منصة مجيب (Mujeeb.com).\n\n\"
-                    f\"لاحظت تميز متجركم «{company_clean}» في السوق الخليجي وتوفيركم لخيار الدفع عند الاستلام (COD).\n\n\"
-                    f\"نحن نساعد المتاجر على أتمتة تأكيد الطلبات وسحب موقع العميل الجغرافي (GPS) فورياً عبر واتساب لتفادي المرتجعات وتوفير تكاليف الاتصال اليدوي.\n\n\"
-                    f\"يسعدنا تفعيل تجربة مجانية لمتجركم على 50 طلباً حقيقياً:\n\"
-                    f\"https://usemujeeb.com/#book\n\n\"
-                    f\"شكراً لوقتكم.\"
+                    f"السلام عليكم ورحمة الله وبركاته،\n\n"
+                    f"معك أيوب من منصة مجيب (Mujeeb.com).\n\n"
+                    f"لاحظت تميز متجركم «{company_clean}» في السوق الخليجي وتوفيركم لخيار الدفع عند الاستلام (COD).\n\n"
+                    f"نحن نساعد المتاجر على أتمتة تأكيد الطلبات وسحب موقع العميل الجغرافي (GPS) فورياً عبر واتساب لتفادي المرتجعات وتوفير تكاليف الاتصال اليدوي.\n\n"
+                    f"يسعدنا تفعيل تجربة مجانية لمتجركم على 50 طلباً حقيقياً:\n"
+                    f"https://usemujeeb.com/#book\n\n"
+                    f"شكراً لوقتكم."
                 )
 
                 if not existing:
@@ -173,21 +173,21 @@ async def scrape_and_qualify_stores(target_count: int = 50) -> dict[str, Any]:
                         canonical_website=canonical,
                         source_url=website,
                         country_code=country,
-                        platform=sg_data.get(\"platform\") or \"salla\",
+                        platform=sg_data.get("platform") or "salla",
                         public_email=email,
                         public_phone=phone,
-                        social_profiles={\"instagram\": ig_handle, \"city\": city},
+                        social_profiles={"instagram": ig_handle, "city": city},
                         evidence=evidence,
                         score=score,
-                        status=\"ready\",
+                        status="ready",
                         message_draft=arabic_pitch,
                         contact_attempts=0,
                     )
                     session.add(new_p)
                     inserted_count += 1
                 else:
-                    if existing.status == \"research\":
-                        existing.status = \"ready\"
+                    if existing.status == "research":
+                        existing.status = "ready"
                     if phone and not existing.public_phone:
                         existing.public_phone = phone
                     if email and not existing.public_email:
@@ -197,13 +197,13 @@ async def scrape_and_qualify_stores(target_count: int = 50) -> dict[str, Any]:
             await session.commit()
 
     report_msg = (
-        f\"✅ <b>SCRAPING & QUALIFICATION GCC TERMINÉS !</b>\n\"
-        f\"━━━━━━━━━━━━━━━━━━━━\n\"
-        f\"🆕 <b>Nouvelles boutiques prêtes</b> : <b>+{inserted_count}</b>\n\"
-        f\"🔄 <b>Boutiques enrichies</b> : <b>+{updated_count}</b>\n\"
-        f\"📊 <b>Statut</b> : Qualifiées à 100% avec contacts et pitchs prêts.\n\n\"
-        f\"⚡️ <i>Tapez <code>/launch</code> ou utilisez le bouton ci-dessous pour déclencher l'outreach.</i>\"
+        f"✅ <b>SCRAPING & QUALIFICATION GCC TERMINÉS !</b>\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"🆕 <b>Nouvelles boutiques prêtes</b> : <b>+{inserted_count}</b>\n"
+        f"🔄 <b>Boutiques enrichies</b> : <b>+{updated_count}</b>\n"
+        f"📊 <b>Statut</b> : Qualifiées à 100% avec contacts et pitchs prêts.\n\n"
+        f"⚡️ <i>Tapez <code>/launch</code> ou utilisez le bouton ci-dessous pour déclencher l'outreach.</i>"
     )
     await send_telegram_notification(report_msg)
-    logger.info(\"Scraping completed. Inserted: %d, Updated: %d\", inserted_count, updated_count)
-    return {\"status\": \"success\", \"inserted\": inserted_count, \"updated\": updated_count}
+    logger.info("Scraping completed. Inserted: %d, Updated: %d", inserted_count, updated_count)
+    return {"status": "success", "inserted": inserted_count, "updated": updated_count}

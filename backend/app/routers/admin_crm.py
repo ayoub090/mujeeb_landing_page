@@ -301,3 +301,26 @@ async def trigger_scraping_run(payload: dict[str, Any] | None = None) -> dict[st
     return {"status": "scraping_started", "target_count": count}
 
 
+@router.post("/outreach/instagram/login", dependencies=[Depends(require_admin_access)])
+async def admin_instagram_login(payload: dict[str, Any]) -> dict[str, Any]:
+    """Login Instagram account directly from Admin CRM with okgram phone-grade session."""
+    from app.services.instagram_outreach import login_instagram
+    u = payload.get("username", "").strip()
+    p = payload.get("password", "").strip()
+    code = payload.get("code")
+    if not u or not p:
+        raise HTTPException(status_code=400, detail="Identifiant et mot de passe Instagram requis.")
+    return login_instagram(u, p, verification_code=code)
+
+
+@router.post("/outreach/instagram/sessionid", dependencies=[Depends(require_admin_access)])
+async def admin_instagram_sessionid(payload: dict[str, Any]) -> dict[str, Any]:
+    """Inject raw Instagram sessionid cookie."""
+    from app.services.instagram_outreach import login_instagram_by_sessionid
+    sid = payload.get("session_id", "").strip()
+    if not sid:
+        raise HTTPException(status_code=400, detail="Cookie sessionid requis.")
+    return login_instagram_by_sessionid(sid)
+
+
+

@@ -146,7 +146,8 @@ async def handle_update(update: dict, client: httpx.AsyncClient):
                 f"• Authentifié : <code>{'Oui ✅' if auth else 'Non ❌'}</code>\n"
                 f"• Compte : <code>@{_logged_in_user or 'leocreativehub4'}</code>\n"
                 f"• DMs envoyés aujourd'hui : <code>{_dms_sent_today}/30</code>\n"
-                f"• Moteur : <code>instagrapi (0€ / Mobile API)</code>"
+                f"• Moteur : <code>okgram (0€ / Phone-Grade TLS)</code>\n\n"
+                f"{'⚡️ <b>Session active et prête !</b>' if auth else '👉 <b>Pour vous connecter :</b> tapez <code>/ig_login username motdepasse</code>'}"
             )
             await send_telegram_notification(ig_msg)
         elif cq_data == "cmd_quota_std":
@@ -240,6 +241,54 @@ async def handle_update(update: dict, client: httpx.AsyncClient):
                 await send_telegram_notification(f"📱 <b>WhatsApp Baileys :</b> {r.json().get('message')}")
         except Exception as e:
             await send_telegram_notification(f"⚠️ <i>Erreur Baileys : {e}</i>")
+
+    # Command: /ig_login [username] [password]
+    elif text.startswith("/ig_login") or text.startswith("/login_ig") or text.startswith("login_ig"):
+        parts = raw_text.split()
+        if len(parts) >= 3:
+            u, p = parts[1], parts[2]
+            await send_telegram_notification(f"⏳ <b>Connexion Instagram en cours pour @{u} avec okgram (Phone-Grade)...</b>")
+            from app.services.instagram_outreach import login_instagram
+            res = login_instagram(u, p)
+            st = res.get("status")
+            if st == "success":
+                await send_telegram_notification(f"🎉 <b>Instagram connecté avec succès !</b>\n👤 Compte : @{u}\n⚡️ <i>Session persistée avec TLS Android & routage IG-U-RUR.</i>")
+            elif st == "2fa_required":
+                await send_telegram_notification(f"🔐 <b>Code 2FA requis ({res.get('message')}) !</b>\nTapez : <code>/ig_code {u} {p} VOTRE_CODE</code>")
+            else:
+                await send_telegram_notification(f"⚠️ <b>Erreur login Instagram :</b> {res.get('error') or res.get('message')}")
+        else:
+            await send_telegram_notification("ℹ️ <b>Format :</b> <code>/ig_login username motdepasse</code>")
+
+    # Command: /ig_code [username] [password] [2fa_code]
+    elif text.startswith("/ig_code") or text.startswith("/code_ig"):
+        parts = raw_text.split()
+        if len(parts) >= 4:
+            u, p, code = parts[1], parts[2], parts[3]
+            await send_telegram_notification(f"⏳ <b>Validation du code 2FA pour @{u}...</b>")
+            from app.services.instagram_outreach import login_instagram
+            res = login_instagram(u, p, verification_code=code)
+            st = res.get("status")
+            if st == "success":
+                await send_telegram_notification(f"🎉 <b>Instagram connecté avec succès après 2FA !</b>\n👤 Compte : @{u}")
+            else:
+                await send_telegram_notification(f"⚠️ <b>Erreur 2FA Instagram :</b> {res.get('error') or res.get('message')}")
+        else:
+            await send_telegram_notification("ℹ️ <b>Format :</b> <code>/ig_code username motdepasse 123456</code>")
+
+    # Command: /ig_session [sessionid]
+    elif text.startswith("/ig_session") or text.startswith("/session_ig"):
+        parts = raw_text.split()
+        if len(parts) >= 2:
+            sid = parts[1]
+            from app.services.instagram_outreach import login_instagram_by_sessionid
+            res = login_instagram_by_sessionid(sid)
+            if res.get("status") == "success":
+                await send_telegram_notification("🎉 <b>Session Instagram injectée avec succès !</b>")
+            else:
+                await send_telegram_notification(f"⚠️ <b>Erreur session :</b> {res.get('error')}")
+        else:
+            await send_telegram_notification("ℹ️ <b>Format :</b> <code>/ig_session VOTRE_COOKIE_SESSIONID</code>")
 
     else:
         # Unknown command: show quick menu

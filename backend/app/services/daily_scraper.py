@@ -30,13 +30,13 @@ SCRAPEGRAPH_URL = os.getenv("ACQUISITION_SCRAPER_URL", "http://acquisition:8080"
 ACQUISITION_KEY = os.getenv("ACQUISITION_ADMIN_KEY", "8ca1b0f2523a1a616d9c2c303c5271e728328958dbdfe624d687ad5f6a7912c7")
 
 GCC_SEARCH_QUERIES = [
-    {"query": "متجر عطور الرياض", "country": "SA", "city": "الرياض"},
-    {"query": "متجر عبايات الرياض", "country": "SA", "city": "الرياض"},
-    {"query": "متجر عطور جدة", "country": "SA", "city": "جدة"},
-    {"query": "متجر هدايا الرياض", "country": "SA", "city": "الرياض"},
-    {"query": "متجر تمور ومكسرات الرياض", "country": "SA", "city": "الرياض"},
-    {"query": "boutique kuwait", "country": "KW", "city": "الكويت"},
-    {"query": "متجر عبايات الدمام", "country": "SA", "city": "الدمام"},
+    {"search": "boutique", "location": "Riyadh, Saudi Arabia", "country": "SA", "city": "الرياض"},
+    {"search": "abaya", "location": "Riyadh, Saudi Arabia", "country": "SA", "city": "الرياض"},
+    {"search": "perfume store", "location": "Jeddah, Saudi Arabia", "country": "SA", "city": "جدة"},
+    {"search": "boutique", "location": "Kuwait City, Kuwait", "country": "KW", "city": "الكويت"},
+    {"search": "gift shop", "location": "Riyadh, Saudi Arabia", "country": "SA", "city": "الرياض"},
+    {"search": "abaya", "location": "Dammam, Saudi Arabia", "country": "SA", "city": "الدمام"},
+    {"search": "dates and sweets", "location": "Riyadh, Saudi Arabia", "country": "SA", "city": "الرياض"},
 ]
 
 
@@ -55,8 +55,8 @@ async def extract_via_scrapegraph(client: httpx.AsyncClient, website: str, count
     return {}
 
 
-async def scrape_apify_maps(query: str, max_items: int = 20) -> list[dict[str, Any]]:
-    """Run Apify Google Maps Scraper for target GCC queries."""
+async def scrape_apify_maps(search: str, location: str, max_items: int = 15) -> list[dict[str, Any]]:
+    """Run Apify Google Maps Scraper for target GCC queries with explicit locationQuery."""
     token = os.getenv("APIFY_API_TOKEN") or APIFY_TOKEN
     if not token:
         return []
@@ -64,9 +64,9 @@ async def scrape_apify_maps(query: str, max_items: int = 20) -> list[dict[str, A
     actor_id = "compass~crawler-google-places"
     url = f"https://api.apify.com/v2/acts/{actor_id}/run-sync-get-dataset-items?token={token}"
     payload = {
-        "searchStringsArray": [query],
+        "searchStringsArray": [search],
+        "locationQuery": location,
         "maxCrawledPlacesPerSearch": max_items,
-        "language": "ar",
         "skipClosed": True,
     }
     try:
@@ -77,7 +77,7 @@ async def scrape_apify_maps(query: str, max_items: int = 20) -> list[dict[str, A
                 if isinstance(data, list):
                     return data
     except Exception as e:
-        logger.warning("Apify Maps scraper error for query '%s': %s", query, e)
+        logger.warning("Apify Maps scraper error for query '%s' in '%s': %s", search, location, e)
     return []
 
 
@@ -89,7 +89,7 @@ async def scrape_and_qualify_stores(target_count: int = 50) -> dict[str, Any]:
         f"━━━━━━━━━━━━━━━━━━━━\n"
         f"🎯 <b>Objectif</b> : <b>{target_count} nouvelles boutiques</b>\n"
         f"📍 <b>Marchés cibles</b> : Arabie Saoudite & Koweït (Salla, Zid, D2C)\n"
-        f"🤖 <b>Moteurs actifs</b> : Apify Google Maps + ScrapeGraphAI Local"
+        f"🤖 <b>Moteurs actifs</b> : Apify Google Maps (Ciblage GPS)"
     )
 
     discovered_raw = []
@@ -98,12 +98,12 @@ async def scrape_and_qualify_stores(target_count: int = 50) -> dict[str, Any]:
     for seed in GCC_SEARCH_QUERIES:
         if len(discovered_raw) >= target_count * 2:
             break
-        items = await scrape_apify_maps(seed["query"], max_items=15)
+        items = await scrape_apify_maps(seed["search"], seed["location"], max_items=15)
         for it in items:
             it["_city"] = seed["city"]
             it["_country"] = seed["country"]
             discovered_raw.append(it)
-        await asyncio.sleep(2)
+        await asyncio.sleep(1)
 
     logger.info("Retrieved %d raw places from Maps scraping.", len(discovered_raw))
 

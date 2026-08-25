@@ -16,7 +16,7 @@ from app.services.telegram import send_telegram_notification
 
 logger = logging.getLogger("mujeeb.instagram_outreach")
 
-SESSION_FILE = Path("/app/data/instagram_session.json")
+SESSION_FILE = Path(os.getenv("INSTAGRAM_SESSION_PATH", "/tmp/instagram_session.json"))
 _ig_client: InstagramAPI | None = None
 _logged_in_user: str | None = None
 _dms_sent_today: int = 0
@@ -43,7 +43,8 @@ def is_authenticated() -> bool:
     try:
         if SESSION_FILE.exists():
             return True
-        return client.user_id is not None
+        is_auth = getattr(client, "is_authenticated", False)
+        return bool(is_auth) if not callable(is_auth) else bool(client.user_id)
     except Exception:
         return False
 
@@ -63,7 +64,6 @@ def login_instagram(
     try:
         if clean_code:
             logger.info("Attempting 2FA login for @%s with verification code...", clean_user)
-            # Try login with code
             client.login(clean_user, password, verification_code=clean_code)
         else:
             logger.info("Attempting initial login for @%s...", clean_user)
@@ -73,12 +73,17 @@ def login_instagram(
         try:
             client.bootstrap()
         except Exception as e:
-            logger.warning("Bootstrap failed (may not be an issue if session is restored): %s", e)
+            logger.warning("Bootstrap note: %s", e)
 
         # Successful login
         _logged_in_user = clean_user
-        SESSION_FILE.parent.mkdir(parents=True, exist_ok=True)
-        client.dump_settings(SESSION_FILE)
+        try:
+            SESSION_FILE.parent.mkdir(parents=True, exist_ok=True)
+            client.dump_settings(SESSION_FILE)
+            logger.info("Instagram session saved to %s", SESSION_FILE)
+        except Exception as se:
+            logger.warning("Session dump warning: %s", se)
+
         logger.info("Instagram login SUCCESS for @%s", clean_user)
 
         # Notify Telegram
@@ -87,7 +92,7 @@ def login_instagram(
                 f"🎉 <b>INSTAGRAM CONNECTÉ AVEC SUCCÈS !</b>\n"
                 f"━━━━━━━━━━━━━━━━━━━━\n"
                 f"👤 <b>Compte</b> : @{clean_user}\n"
-                f"📱 <b>Appareil</b> : Mobile Android (Session Active)\n"
+                f"📱 <b>Appareil</b> : Mobile Android (Session okgram Active)\n"
                 f"⚡️ <i>Moteur prêt pour la prospection DM 0€ !</i>"
             )
         )
@@ -96,26 +101,27 @@ def login_instagram(
 
     except Exception as e:
         err_name = type(e).__name__
-        if "TwoFactor" in err_name:
+        err_str = str(e)
+        if "TwoFactor" in err_name or "2fa" in err_str.lower():
             last_json = getattr(client, "last_json", {}) or {}
             tf_info = last_json.get("two_factor_info", {})
             is_totp = tf_info.get("totp_two_factor_on", True)
-            msg_type = "Authenticator App (Google/MS Authenticator)" if is_totp else "SMS"
+            msg_type = "Authenticator App" if is_totp else "SMS"
             logger.info("2FA required for @%s (Type: %s)", clean_user, msg_type)
             return {
                 "status": "2fa_required",
                 "message": f"Code 2FA requis ({msg_type})",
                 "is_totp": is_totp
             }
-        elif "BadPassword" in err_name:
+        elif "BadPassword" in err_name or "password" in err_str.lower():
             return {"status": "error", "error": "Mot de passe incorrect."}
         elif "ChallengeRequired" in err_name:
-            return {"status": "challenge_required", "message": "Challenge de sécurité requis par Instagram (vérifiez vos emails)."}
-        elif "PleaseWaitFewMinutes" in err_name or "rate_limit" in str(e).lower():
-            return {"status": "rate_limited", "message": "Instagram demande de patienter quelques minutes."}
+            return {"status": "challenge_required", "message": "Challenge de sécurité requis par Instagram."}
+        elif "PleaseWaitFewMinutes" in err_name or "429" in err_str or "rate_limit" in err_str.lower():
+            return {"status": "rate_limited", "message": "Instagram demande de patienter quelques minutes (Rate limit temporaire). Utilisez /ig_session avec votre cookie sessionid pour contourner."}
         else:
             logger.error("Instagram login error: %s", e)
-            return {"status": "error", "error": str(e)}
+            return {"status": "error", "error": err_str}
 
 
 def login_instagram_by_sessionid(session_id: str) -> dict[str, Any]:
@@ -125,13 +131,25 @@ def login_instagram_by_sessionid(session_id: str) -> dict[str, Any]:
     try:
         client.login_by_sessionid(session_id.strip())
         _logged_in_user = "session_user"
-        SESSION_FILE.parent.mkdir(parents=True, exist_ok=True)
-        client.dump_settings(SESSION_FILE)
+        try:
+            SESSION_FILE.parent.mkdir(parents=True, exist_ok=True)
+            client.dump_settings(SESSION_FILE)
+            logger.info("Session saved to %s", SESSION_FILE)
+        except Exception as se:
+            logger.warning("Session dump warning: %s", se)
+
+        asyncio.create_task(
+            send_telegram_notification(
+                "🎉 <b>INSTAGRAM CONNECTÉ AVEC SUCCÈS VIA SESSIONID !</b>\n"
+                "━━━━━━━━━━━━━━━━━━━━\n"
+                "📱 <b>Session</b> : Active et persistée dans okgram\n"
+                "⚡️ <i>Moteur prêt pour la prospection DM 0€ !</i>"
+            )
+        )
         return {"status": "success", "username": "authenticated_user"}
     except Exception as e:
         logger.error("Sessionid login error: %s", e)
         return {"status": "error", "error": str(e)}
-
 
 
 async def send_instagram_dm(
@@ -150,19 +168,18 @@ async def send_instagram_dm(
 
     user_id = None
     try:
-        # 1. Try native v1 mobile endpoint
-        if hasattr(client, "user_info_by_username_v1"):
-            info = client.user_info_by_username_v1(clean_target)
+        info = client.user_info_by_username(clean_target)
+        if isinstance(info, dict):
+            user_id = info.get("pk") or info.get("id") or info.get("user", {}).get("pk")
         else:
-            info = client.user_info_by_username(clean_target)
-        user_id = info.pk
+            user_id = getattr(info, "pk", getattr(info, "id", None))
     except Exception:
         try:
-            # 2. Try search API fallback
             users = client.search_users(clean_target)
             for u in users:
-                if u.username.lower() == clean_target.lower():
-                    user_id = u.pk
+                u_name = u.get("username") if isinstance(u, dict) else getattr(u, "username", "")
+                if u_name.lower() == clean_target.lower():
+                    user_id = u.get("pk") if isinstance(u, dict) else getattr(u, "pk", None)
                     break
         except Exception as e:
             return {"status": "error", "error": f"Failed to resolve user @{clean_target}: {e}"}
@@ -177,12 +194,15 @@ async def send_instagram_dm(
 
     try:
         if media_path and os.path.exists(media_path):
-            if media_path.endswith((".mp4", ".mov")):
-                result = client.direct_send_video(media_path, user_ids=[user_id], text=message)
+            if hasattr(client, "direct_send_photo"):
+                result = client.direct_send_photo(media_path, user_ids=[user_id])
             else:
-                result = client.direct_send_photo(media_path, user_ids=[user_id], text=message)
+                result = client.direct_send_text(message, user_ids=[user_id])
         else:
-            result = client.direct_send(message, user_ids=[user_id])
+            if hasattr(client, "direct_send_text"):
+                result = client.direct_send_text(message, user_ids=[user_id])
+            else:
+                result = client.direct_send(message, user_ids=[user_id])
 
         _dms_sent_today += 1
 
@@ -211,14 +231,18 @@ async def poll_instagram_replies() -> list[dict[str, Any]]:
         return []
 
     try:
-        threads = client.direct_threads(selected_filter="unread")
+        threads = client.direct_threads() if hasattr(client, "direct_threads") else []
         new_replies = []
 
         for thread in threads:
-            for item in thread.messages[:1]:
-                if not item.is_sent_by_viewer and item.item_type == "text":
-                    reply_text = item.text
-                    sender_username = thread.users[0].username if thread.users else "Prospect"
+            messages = thread.get("messages", []) if isinstance(thread, dict) else getattr(thread, "messages", [])
+            for item in messages[:1]:
+                is_sent = item.get("is_sent_by_viewer") if isinstance(item, dict) else getattr(item, "is_sent_by_viewer", False)
+                item_type = item.get("item_type") if isinstance(item, dict) else getattr(item, "item_type", "")
+                if not is_sent and item_type == "text":
+                    reply_text = item.get("text") if isinstance(item, dict) else getattr(item, "text", "")
+                    users = thread.get("users", []) if isinstance(thread, dict) else getattr(thread, "users", [])
+                    sender_username = (users[0].get("username") if isinstance(users[0], dict) else getattr(users[0], "username", "Prospect")) if users else "Prospect"
 
                     # Alert Telegram
                     tg_text = (
@@ -236,3 +260,4 @@ async def poll_instagram_replies() -> list[dict[str, Any]]:
     except Exception as e:
         logger.error("Error polling Instagram replies: %s", e)
         return []
+

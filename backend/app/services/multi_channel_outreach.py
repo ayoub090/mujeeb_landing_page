@@ -30,6 +30,20 @@ logger = logging.getLogger("mujeeb.multi_channel_outreach")
 
 BAILEYS_URL = os.getenv("BAILEYS_URL", "http://baileys:8085")
 VIDEO_URL = "https://usemujeeb.com/videos/video_outreach_20s.mp4"
+REACHER_URL = os.getenv("REACHER_URL", "http://reacher:8080")
+
+
+async def verify_email_reacher(email: str) -> dict:
+    """Verify email deliverability via Reacher before sending."""
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            res = await client.post(f"{REACHER_URL}/v0/check_email", json={"to_email": email})
+            if res.status_code == 200:
+                return res.json()
+    except Exception as e:
+        logger.warning(f"Reacher verification failed for {email}: {e}")
+    return {"is_reachable": "unknown"}
+
 
 
 def build_email_pitch(store_name: str, country: str = "السعودية") -> tuple[str, str]:
@@ -205,12 +219,20 @@ async def dispatch_custom_outreach(
             ).order_by(
                 AcquisitionProspect.status == "ready",
                 AcquisitionProspect.score.desc()
-            ).limit(email_count)
+            ).limit(email_count * 2)
             
             mail_prospects = list((await session.scalars(query_mail)).all())
             for p in mail_prospects:
                 if sent_email >= email_count:
                     break
+                
+                verify_res = await verify_email_reacher(p.public_email)
+                reachable_status = verify_res.get("is_reachable", "unknown")
+                if reachable_status not in ("safe", "risky"):
+                    logger.info("Skipping email %s, status: %s", p.public_email, reachable_status)
+                    await send_telegram_notification(f"🚫 <b>EMAIL SKIPPED</b>: <code>{p.public_email}</code> (Status: {reachable_status})")
+                    continue
+
                 ok = await send_email_resend(p.public_email, p.company, p.country_code or "SA")
                 if ok:
                     sent_email += 1

@@ -1,11 +1,9 @@
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const QRCode = require('qrcode');
 const axios = require('axios');
 const FormData = require('form-data');
 const express = require('express');
-const path = require('path');
-const fs = require('fs');
+const { createWasp } = require('wasp-protocol');
 
 const TG_BOT_TOKEN = '7989031523:AAG06PB2n4nrYkkThYXwczdpngMzL9RabqA';
 const TG_CHAT_ID = '5547351734';
@@ -14,7 +12,8 @@ const PORT = 8085;
 const app = express();
 app.use(express.json());
 
-let sock = null;
+let wasp = null;
+let session = null;
 let isConnected = false;
 let lastQr = null;
 let hasSentInitialQr = false; // ANTI-SPAM: only send once on startup!
@@ -60,23 +59,13 @@ async function sendTelegramText(text) {
 }
 
 async function startWhatsApp() {
-    const authDir = path.join(__dirname, 'auth_info_baileys');
-    const { state, saveCreds } = await useMultiFileAuthState(authDir);
-    const { version } = await fetchLatestBaileysVersion();
-
-    sock = makeWASocket({
-        version,
-        logger: pino({ level: 'silent' }),
-        printQRInTerminal: false,
-        auth: state,
-        browser: ['Mujeeb Outreach Engine', 'Chrome', '120.0.0']
+    wasp = createWasp({ 
+        provider: 'BAILEYS', 
+        store: { type: 'redis', url: 'redis://redis:6379/1' } 
     });
 
-    sock.ev.on('creds.update', saveCreds);
-
-    sock.ev.on('connection.update', async (update) => {
-        const { connection, lastDisconnect, qr } = update;
-
+    wasp.on('SESSION_QR', async (...args) => {
+        let qr = args[0]?.qr || (typeof args[1] === 'string' ? args[1] : (typeof args[0] === 'string' ? args[0] : null));
         if (qr) {
             lastQr = qr;
             console.log('⚡️ QR Code updated in memory.');
@@ -97,36 +86,22 @@ async function startWhatsApp() {
                 }
             }
         }
-
-        if (connection === 'close') {
-            isConnected = false;
-            const statusCode = lastDisconnect?.error?.output?.statusCode;
-            const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-            console.log('Connection closed, statusCode:', statusCode, 'reconnecting:', shouldReconnect);
-            if (shouldReconnect) {
-                setTimeout(startWhatsApp, 5000);
-            } else {
-                console.log('Session logged out or expired. Cleaning auth folder and regenerating QR code...');
-                try {
-                    const files = fs.readdirSync(authDir);
-                    for (const file of files) {
-                        fs.unlinkSync(path.join(authDir, file));
-                    }
-                } catch (cleanErr) {
-                    console.error('Error cleaning auth folder:', cleanErr.message);
-                }
-                hasSentInitialQr = false;
-                lastQr = null;
-                setTimeout(startWhatsApp, 2000);
-            }
-        } else if (connection === 'open') {
-            isConnected = true;
-            lastQr = null;
-            hasSentInitialQr = true;
-            console.log('🎉 WhatsApp Connected successfully via Baileys!');
-            await sendTelegramText('🎉 <b>WHATSAPP CONNECTÉ AVEC SUCCÈS !</b>\n\nVotre moteur d\'outreach privé est prêt.');
-        }
     });
+
+    wasp.on('SESSION_CONNECTED', async (...args) => {
+        isConnected = true;
+        lastQr = null;
+        hasSentInitialQr = true;
+        console.log('🎉 WhatsApp Connected successfully via WaSP!');
+        await sendTelegramText('🎉 <b>WHATSAPP CONNECTÉ AVEC SUCCÈS !</b>\n\nVotre moteur d\'outreach privé est prêt.');
+    });
+
+    wasp.on('SESSION_DISCONNECTED', (...args) => {
+        isConnected = false;
+        console.log('Session disconnected. WaSP will auto-reconnect...');
+    });
+
+    session = await wasp.createSession('mujeeb_session', 'BAILEYS');
 }
 
 // HTTP API Endpoints
@@ -154,11 +129,11 @@ app.post('/send-text', async (req, res) => {
         const cleanPhone = phone.replace(/[^0-9]/g, '');
         const jid = cleanPhone + '@s.whatsapp.net';
 
-        if (!isConnected || !sock) {
+        if (!isConnected || !session || !session.socket) {
             return res.status(503).json({ error: 'WhatsApp is not connected' });
         }
 
-        const result = await sock.sendMessage(jid, { text: message });
+        const result = await session.socket.sendMessage(jid, { text: message });
         res.json({ success: true, result });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -171,7 +146,7 @@ app.post('/send-media', async (req, res) => {
         const cleanPhone = phone.replace(/[^0-9]/g, '');
         const jid = cleanPhone + '@s.whatsapp.net';
 
-        if (!isConnected || !sock) {
+        if (!isConnected || !session || !session.socket) {
             return res.status(503).json({ error: 'WhatsApp is not connected' });
         }
 
@@ -179,7 +154,7 @@ app.post('/send-media', async (req, res) => {
             ? { video: { url: mediaUrl }, caption: caption, mimetype: 'video/mp4' }
             : { image: { url: mediaUrl }, caption: caption };
 
-        const result = await sock.sendMessage(jid, messagePayload);
+        const result = await session.socket.sendMessage(jid, messagePayload);
         res.json({ success: true, result });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -190,4 +165,3 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log('🚀 Outreach Engine listening on port ' + PORT);
     startWhatsApp();
 });
-

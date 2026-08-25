@@ -1,4 +1,4 @@
-"""Dedicated Instagram DM Outreach Engine powered by instagrapi.
+"""Dedicated Instagram DM Outreach Engine powered by okgram.
 Supports session persistence, TOTP/SMS 2FA handling, humanized rate-limiting, and Telegram lead forwarding.
 """
 from __future__ import annotations
@@ -7,35 +7,28 @@ import asyncio
 import logging
 import os
 import random
-import urllib.parse
 from pathlib import Path
 from typing import Any
 
-from instagrapi import Client
-from instagrapi.exceptions import (
-    ChallengeRequired,
-    LoginRequired,
-    PleaseWaitFewMinutes,
-    TwoFactorRequired,
-    UserNotFound,
-    BadPassword,
-)
+from okgram import InstagramAPI
 
 from app.services.telegram import send_telegram_notification
 
 logger = logging.getLogger("mujeeb.instagram_outreach")
 
-SESSION_FILE = Path("instagram_session.json")
-_ig_client: Client | None = None
+SESSION_FILE = Path("/app/data/instagram_session.json")
+_ig_client: InstagramAPI | None = None
 _logged_in_user: str | None = None
 _dms_sent_today: int = 0
 
 
-def get_instagram_client() -> Client:
+def get_instagram_client() -> InstagramAPI:
     global _ig_client
     if _ig_client is None:
-        _ig_client = Client()
-        _ig_client.delay_range = [3, 7]
+        _ig_client = InstagramAPI(
+            device_seed="mujeeb_outreach",
+            delay_range=(1.0, 3.0),
+        )
         if SESSION_FILE.exists():
             try:
                 _ig_client.load_settings(SESSION_FILE)
@@ -76,8 +69,15 @@ def login_instagram(
             logger.info("Attempting initial login for @%s...", clean_user)
             client.login(clean_user, password)
 
+        # CRUCIAL: aligns geo, pulls live config, warms up
+        try:
+            client.bootstrap()
+        except Exception as e:
+            logger.warning("Bootstrap failed (may not be an issue if session is restored): %s", e)
+
         # Successful login
         _logged_in_user = clean_user
+        SESSION_FILE.parent.mkdir(parents=True, exist_ok=True)
         client.dump_settings(SESSION_FILE)
         logger.info("Instagram login SUCCESS for @%s", clean_user)
 
@@ -94,26 +94,28 @@ def login_instagram(
 
         return {"status": "success", "username": clean_user}
 
-    except TwoFactorRequired as e:
-        last_json = getattr(client, "last_json", {}) or {}
-        tf_info = last_json.get("two_factor_info", {})
-        is_totp = tf_info.get("totp_two_factor_on", True)
-        msg_type = "Authenticator App (Google/MS Authenticator)" if is_totp else "SMS"
-        logger.info("2FA required for @%s (Type: %s)", clean_user, msg_type)
-        return {
-            "status": "2fa_required",
-            "message": f"Code 2FA requis ({msg_type})",
-            "is_totp": is_totp
-        }
-    except BadPassword:
-        return {"status": "error", "error": "Mot de passe incorrect."}
-    except ChallengeRequired:
-        return {"status": "challenge_required", "message": "Challenge de sécurité requis par Instagram (vérifiez vos emails)."}
-    except PleaseWaitFewMinutes:
-        return {"status": "rate_limited", "message": "Instagram demande de patienter quelques minutes."}
     except Exception as e:
-        logger.error("Instagram login error: %s", e)
-        return {"status": "error", "error": str(e)}
+        err_name = type(e).__name__
+        if "TwoFactor" in err_name:
+            last_json = getattr(client, "last_json", {}) or {}
+            tf_info = last_json.get("two_factor_info", {})
+            is_totp = tf_info.get("totp_two_factor_on", True)
+            msg_type = "Authenticator App (Google/MS Authenticator)" if is_totp else "SMS"
+            logger.info("2FA required for @%s (Type: %s)", clean_user, msg_type)
+            return {
+                "status": "2fa_required",
+                "message": f"Code 2FA requis ({msg_type})",
+                "is_totp": is_totp
+            }
+        elif "BadPassword" in err_name:
+            return {"status": "error", "error": "Mot de passe incorrect."}
+        elif "ChallengeRequired" in err_name:
+            return {"status": "challenge_required", "message": "Challenge de sécurité requis par Instagram (vérifiez vos emails)."}
+        elif "PleaseWaitFewMinutes" in err_name or "rate_limit" in str(e).lower():
+            return {"status": "rate_limited", "message": "Instagram demande de patienter quelques minutes."}
+        else:
+            logger.error("Instagram login error: %s", e)
+            return {"status": "error", "error": str(e)}
 
 
 def login_instagram_by_sessionid(session_id: str) -> dict[str, Any]:
@@ -123,6 +125,7 @@ def login_instagram_by_sessionid(session_id: str) -> dict[str, Any]:
     try:
         client.login_by_sessionid(session_id.strip())
         _logged_in_user = "session_user"
+        SESSION_FILE.parent.mkdir(parents=True, exist_ok=True)
         client.dump_settings(SESSION_FILE)
         return {"status": "success", "username": "authenticated_user"}
     except Exception as e:
@@ -148,7 +151,10 @@ async def send_instagram_dm(
     user_id = None
     try:
         # 1. Try native v1 mobile endpoint
-        info = client.user_info_by_username_v1(clean_target)
+        if hasattr(client, "user_info_by_username_v1"):
+            info = client.user_info_by_username_v1(clean_target)
+        else:
+            info = client.user_info_by_username(clean_target)
         user_id = info.pk
     except Exception:
         try:

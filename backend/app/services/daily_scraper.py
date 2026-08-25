@@ -41,17 +41,17 @@ GCC_SEARCH_QUERIES = [
 
 
 async def extract_via_scrapegraph(client: httpx.AsyncClient, website: str, country_hint: str = "SA") -> dict[str, Any]:
-    """Call ScrapeGraphAI extractor on the store website."""
+    """Call ScrapeGraphAI extractor on the store website with fast fallback."""
     if not website or "wa.me" in website or "google.com" in website:
         return {}
     try:
         url = f"{SCRAPEGRAPH_URL.rstrip('/')}/extract"
         headers = {"X-Mujeeb-Acquisition-Key": ACQUISITION_KEY}
-        r = await client.post(url, json={"url": website, "country_hint": country_hint}, headers=headers, timeout=45)
+        r = await client.post(url, json={"url": website, "country_hint": country_hint}, headers=headers, timeout=3)
         if r.status_code == 200:
             return r.json()
-    except Exception as e:
-        logger.debug("ScrapeGraph extraction error for %s: %s", website, e)
+    except Exception:
+        pass
     return {}
 
 

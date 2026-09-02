@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 import pytest
 from pydantic import ValidationError
 
-from app.models import RiskLevel
+from app.models import OAuthState, RiskLevel, ShopifyPendingInstall
 from app.models import Subscription, User
 from fastapi import BackgroundTasks, HTTPException
 
@@ -237,6 +237,16 @@ def test_shopify_domain_and_callback_hmac():
     assert verify_shopify_callback(params)
     params["code"] = "tampered"
     assert not verify_shopify_callback(params)
+
+
+def test_shopify_public_install_contract_is_available_and_one_time():
+    paths = {route.path for route in integrations_router.routes}
+    assert "/api/integrations/shopify/install" in paths
+    assert "/api/integrations/shopify/claim" in paths
+    assert "/api/integrations/shopify/pricing" in paths
+    assert OAuthState.__table__.c.store_id.nullable
+    assert ShopifyPendingInstall.__table__.c.shop.unique
+    assert ShopifyPendingInstall.__table__.c.claim_token_hash.unique
 
 
 def test_merchant_connection_token_contract():
@@ -505,7 +515,7 @@ def test_shopify_webhooks_use_current_graphql_input_shape(monkeypatch):
         integration_settings.app_base_url = "https://api.example.test"
         monkeypatch.setattr(integrations.httpx, "AsyncClient", _WebhookClient)
         asyncio.run(register_shopify_webhooks("store.myshopify.com", "shop-token"))
-        assert len(_WebhookClient.calls) == 6
+        assert len(_WebhookClient.calls) == 3
         first = _WebhookClient.calls[0]["json"]
         assert "$webhookSubscription: WebhookSubscriptionInput!" in first["query"]
         assert first["variables"]["webhookSubscription"] == {

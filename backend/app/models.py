@@ -264,11 +264,34 @@ class OAuthState(Base):
     __tablename__ = "oauth_states"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    store_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("stores.id", ondelete="CASCADE"), index=True)
+    store_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("stores.id", ondelete="CASCADE"), index=True)
     provider: Mapped[str] = mapped_column(String(32))
+    external_reference: Mapped[str | None] = mapped_column(String(180), index=True)
     state_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class ShopifyPendingInstall(Base):
+    """Short-lived Shopify installation waiting for a Mujeeb owner.
+
+    Shopify App Store installation starts before the merchant necessarily has
+    a Mujeeb account.  The access token stays encrypted and can only be claimed
+    once with the one-time secret returned after OAuth.
+    """
+
+    __tablename__ = "shopify_pending_installs"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    shop: Mapped[str] = mapped_column(String(180), unique=True, index=True)
+    shop_name: Mapped[str | None] = mapped_column(String(160))
+    currency: Mapped[str | None] = mapped_column(String(3))
+    country_code: Mapped[str | None] = mapped_column(String(2))
+    access_token_encrypted: Mapped[str] = mapped_column(Text)
+    claim_token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 class WebhookEvent(Base):

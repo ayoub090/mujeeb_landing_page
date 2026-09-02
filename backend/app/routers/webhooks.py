@@ -11,7 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.database import SessionLocal, get_session
-from app.models import Integration, Order, OrderStatus, Platform, WebhookEvent
+from app.crypto import stable_hash
+from app.models import Customer, FSMConversation, Integration, Order, OrderStatus, Platform, Store, WebhookEvent
 from app.services.order_ingest import ingest_order
 from app.services.confirmation import start_cod_confirmation
 
@@ -186,7 +187,68 @@ async def _process_shopify(payload: dict, session: AsyncSession) -> None:
                 await start_cod_confirmation(session, order, str(phone), customer_name)
         if topic == "orders/updated":
             await update_order_status(session, store_id=store_id, external_order_id=payload.get("id"), external_status="cancelled" if payload.get("cancelled_at") else (payload.get("fulfillment_status") or payload.get("financial_status")))
-    elif topic in {"shop/redact", "app/uninstalled"}:
+    elif topic == "customers/data_request":
+        # The verified request is retained as an auditable work item. Mujeeb's
+        # privacy operator can export the referenced orders to the merchant;
+        # Shopify allows up to 30 days to complete the request.
+        return
+    elif topic == "customers/redact":
+        integration = await session.scalar(select(Integration).where(
+            Integration.platform == Platform.shopify,
+            Integration.external_store_id == shop,
+        ))
+        if not integration:
+            return
+        requested_ids = {str(value) for value in payload.get("orders_to_redact") or []}
+        customer_payload = payload.get("customer") or {}
+        phone = customer_payload.get("phone")
+        order_rows = []
+        if requested_ids:
+            order_rows = list((await session.scalars(select(Order).where(
+                Order.store_id == integration.store_id,
+                Order.external_order_id.in_(requested_ids),
+            ))).all())
+        customer_ids = {order.customer_id for order in order_rows}
+        if phone:
+            phone_customer = await session.scalar(select(Customer).where(
+                Customer.store_id == integration.store_id,
+                Customer.phone_hash == stable_hash(str(phone)),
+            ))
+            if phone_customer:
+                customer_ids.add(phone_customer.id)
+        for order in order_rows:
+            order.shipping_city = None
+            order.shipping_address_encrypted = None
+            order.gps_lat = None
+            order.gps_lng = None
+            order.address_data = {}
+            order.llm_decision = {}
+        if customer_ids:
+            conversations = (await session.scalars(select(FSMConversation).join(
+                Order, FSMConversation.order_id == Order.id
+            ).where(Order.customer_id.in_(customer_ids)))).all()
+            for conversation in conversations:
+                conversation.phone_number = f"redacted-{str(conversation.id)[:8]}"
+                conversation.session_data = {}
+            customers = (await session.scalars(select(Customer).where(Customer.id.in_(customer_ids)))).all()
+            for customer in customers:
+                customer.name_encrypted = None
+                customer.phone_encrypted = ""
+                customer.phone_hash = stable_hash(f"redacted:{customer.id}")
+                customer.marketing_opt_in_at = None
+        # Do not preserve the incoming phone/email in the audit payload after
+        # fulfilling a redaction request.
+        payload["customer"] = {"id": customer_payload.get("id")}
+    elif topic == "shop/redact":
+        integration = await session.scalar(select(Integration).where(
+            Integration.platform == Platform.shopify,
+            Integration.external_store_id == shop,
+        ))
+        if integration:
+            store = await session.get(Store, integration.store_id)
+            if store:
+                await session.delete(store)
+    elif topic == "app/uninstalled":
         integration = await session.scalar(select(Integration).where(Integration.platform == Platform.shopify, Integration.external_store_id == shop))
         if integration:
             integration.is_connected = False

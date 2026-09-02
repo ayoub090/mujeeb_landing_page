@@ -1,4 +1,4 @@
-import {useRef, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import {useQuery} from "@tanstack/react-query";
 import {
   BarChart3, Boxes, CheckCircle2, Clipboard, Code2, CreditCard, Link2,
@@ -19,8 +19,10 @@ const statusLabel: Record<string,string> = {
 
 // 12/10 Conversion Landing Page + Interactive Auth modal
 function Auth({onDone}:{onDone:()=>void}) {
-  const [mode,setMode]=useState<"login"|"register">("login");
-  const [modalOpen,setModalOpen]=useState(false);
+  const shopifyInstall = new URLSearchParams(location.search).get("shopify") === "ready";
+  const shopifyDomain = new URLSearchParams(location.search).get("shop") || "";
+  const [mode,setMode]=useState<"login"|"register">(shopifyInstall ? "register" : "login");
+  const [modalOpen,setModalOpen]=useState(shopifyInstall);
   const [error,setError]=useState("");
 
   // ROI Calculator States
@@ -32,7 +34,11 @@ function Auth({onDone}:{onDone:()=>void}) {
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); setError("");
     try { 
-      await api.post(`/api/auth/${mode}`, Object.fromEntries(new FormData(e.currentTarget))); 
+      await api.post(`/api/auth/${mode}`, Object.fromEntries(new FormData(e.currentTarget)));
+      if (shopifyInstall) {
+        await api.post("/api/integrations/shopify/claim", {});
+        history.replaceState({}, "", "/dashboard/integrations?connected=shopify");
+      }
       if (mode === "register") (window as any).twq?.("event", "tw-re98e-reaq4", {});
       onDone(); 
     }
@@ -480,14 +486,15 @@ function Auth({onDone}:{onDone:()=>void}) {
               <p className="inline-block px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold w-fit mb-3">50 تأكيد طلب مجاناً</p>
               <h3 className="text-2xl font-black mt-2 text-ink">{mode === "login" ? "مرحباً بعودتك" : "ابدأ تأكيد طلباتك مجاناً"}</h3>
               <p className="text-slate-500 text-sm mt-1">اربط متجرك وWhatsApp، ثم ابدأ تأكيد طلبات الدفع عند الاستلام بلا بطاقة بنكية.</p>
+              {shopifyInstall && <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-800">تمت موافقة Shopify لمتجر {shopifyDomain}. أنشئ حسابك أو سجّل الدخول لإكمال الربط تلقائياً.</p>}
 
               <div className="grid gap-3 mt-7">
                 {mode === "register" && (
                   <>
                     <input name="full_name" required placeholder="الاسم الكامل" className="rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-sky" />
                     <input name="phone" required placeholder="+9665xxxxxxxx" dir="ltr" className="rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-sky" />
-                    <input name="store_name" required placeholder="اسم المتجر" className="rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-sky" />
-                    <input type="hidden" name="platform" value="custom" />
+                    <input name="store_name" required defaultValue={shopifyDomain.replace(".myshopify.com", "")} placeholder="اسم المتجر" className="rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-sky" />
+                    <input type="hidden" name="platform" value={shopifyInstall ? "shopify" : "custom"} />
                     <input type="hidden" name="country_code" value="SA" />
                     <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-500">ستختار طريقة ربط متجرك في الخطوة التالية.</p>
                   </>
@@ -545,7 +552,7 @@ function DeveloperApi({storeId}:{storeId:string}) {
     <article className="glass rounded-2xl p-6"><h3 className="font-black">أرسل أول طلب</h3><pre dir="ltr" className="mt-4 overflow-auto rounded-xl bg-slate-950 p-4 text-[11px] leading-5 text-slate-200">{snippet}</pre><button onClick={()=>navigator.clipboard.writeText(snippet)} className="mt-3 flex items-center gap-2 text-sky font-bold"><Clipboard size={16}/> نسخ المثال</button></article></div></section>;
 }
 
-function Billing({storeId}:{storeId:string}) {
+function Billing({storeId,shopifyConnected}:{storeId:string;shopifyConnected:boolean}) {
   const [checkingOut,setCheckingOut]=useState("");
   const [message,setMessage]=useState("");
   const creemLinks: Record<string, string> = {
@@ -554,13 +561,18 @@ function Billing({storeId}:{storeId:string}) {
     scale: "https://www.creem.io/payment/prod_6FvTUHYPbiKxTrai4rOZGP"
   };
   const plans=[
-    {id:"starter",name:"Starter",price:"299",usd:"$79",orders:"حتى 1,000 طلب شهرياً",detail:"لمتجر واحد وتأكيد فوري"},
-    {id:"growth",name:"Growth",price:"599",usd:"$159",orders:"طلبات غير محدودة ومتقدمة",detail:"للعمل المتنامي وإدارة المتابعة",featured:true},
-    {id:"scale",name:"Scale",price:"1,199",usd:"$319",orders:"حسابات ومتاجر متعددة",detail:"للمتاجر الكبرى والماركات"},
+    {id:"starter",name:"Starter",price:"99",usd:"$29",orders:"حتى 300 طلب شهرياً",detail:"لمتجر واحد وتأكيد فوري مع GPS"},
+    {id:"growth",name:"Growth",price:"249",usd:"$69",orders:"حتى 2,000 طلب شهرياً",detail:"صندوق مشترك وتحويل للفريق البشري",featured:true},
+    {id:"scale",name:"Scale",price:"499",usd:"$139",orders:"حتى 5,000 طلب شهرياً",detail:"للمتاجر الكبرى وحجم الطلبات المرتفع"},
   ];
   const checkout=async(plan:string)=>{
     setCheckingOut(plan); setMessage("");
     try {
+      if (shopifyConnected) {
+        const pricing = await api.get("/api/integrations/shopify/pricing", {params:{store_id:storeId}});
+        location.href = pricing.data.url;
+        return;
+      }
       const r = await api.post("/api/payments/checkout",{store_id:storeId,plan});
       if (r.data?.url) {
         location.href = r.data.url;
@@ -577,7 +589,7 @@ function Billing({storeId}:{storeId:string}) {
       setCheckingOut("");
     }
   };
-  return <section className="mt-8 max-w-5xl"><p className="inline-block px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-bold w-fit mb-3">نموذج أعمال يضمن ربحك</p><h2 className="text-3xl font-black mt-2 text-ink">استثمر جزءاً صغيراً مما نوفره لك</h2><p className="text-slate-500 mt-3 text-lg">بدون عمولات إضافية على الرسائل للحفاظ على هامش ربحك عالياً. ادفع بعد تحقق القيمة الفعلية من النظام.</p><div className="grid md:grid-cols-3 gap-5 mt-8">{plans.map(plan=><article key={plan.id} className={`glass rounded-2xl p-8 relative flex flex-col ${plan.featured?"border-2 border-mint shadow-2xl shadow-mint/10":""}`}>{plan.featured&&<span className="absolute -top-3 right-8 rounded-full bg-mint px-4 py-1.5 text-xs font-bold text-white shadow-lg">الباقة الموصى بها</span>}<p className="font-black text-2xl text-blue-deep">{plan.name}</p><p className="mt-5 text-4xl font-black text-sky">{plan.price} <span className="text-sm font-medium text-slate-400">ريال ({plan.usd})/شهر</span></p><p className="mt-5 font-bold p-3 bg-sky-50 rounded-xl text-blue-deep text-center">{plan.orders}</p><p className="mt-4 min-h-16 text-sm text-slate-500 leading-relaxed font-medium">{plan.detail}</p><button onClick={()=>checkout(plan.id)} disabled={!!checkingOut} className={`mt-auto w-full rounded-xl p-4 font-bold text-lg transition-transform ${plan.featured?"btn-gold":"bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>{checkingOut===plan.id?"جارٍ التحميل الآمن...":`اختيار باقة ${plan.name}`}</button></article>)}</div>{message&&<p className="mt-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-800 border border-amber-200">{message}</p>}<p className="mt-6 text-xs text-slate-400 text-center uppercase tracking-wider">نظام فواتير آمن مدعوم بـ Creem | إلغاء متى شئت</p></section>;
+  return <section className="mt-8 max-w-5xl"><p className="inline-block px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-bold w-fit mb-3">نموذج أعمال يضمن ربحك</p><h2 className="text-3xl font-black mt-2 text-ink">استثمر جزءاً صغيراً مما نوفره لك</h2><p className="text-slate-500 mt-3 text-lg">بدون عمولات إضافية على الرسائل للحفاظ على هامش ربحك عالياً. ادفع بعد تحقق القيمة الفعلية من النظام.</p><div className="grid md:grid-cols-3 gap-5 mt-8">{plans.map(plan=><article key={plan.id} className={`glass rounded-2xl p-8 relative flex flex-col ${plan.featured?"border-2 border-mint shadow-2xl shadow-mint/10":""}`}>{plan.featured&&<span className="absolute -top-3 right-8 rounded-full bg-mint px-4 py-1.5 text-xs font-bold text-white shadow-lg">الباقة الموصى بها</span>}<p className="font-black text-2xl text-blue-deep">{plan.name}</p><p className="mt-5 text-4xl font-black text-sky">{plan.price} <span className="text-sm font-medium text-slate-400">ريال ({plan.usd})/شهر</span></p><p className="mt-5 font-bold p-3 bg-sky-50 rounded-xl text-blue-deep text-center">{plan.orders}</p><p className="mt-4 min-h-16 text-sm text-slate-500 leading-relaxed font-medium">{plan.detail}</p><button onClick={()=>checkout(plan.id)} disabled={!!checkingOut} className={`mt-auto w-full rounded-xl p-4 font-bold text-lg transition-transform ${plan.featured?"btn-gold":"bg-slate-100 text-slate-700 hover:bg-slate-200"}`}>{checkingOut===plan.id?"جارٍ التحميل الآمن...":`اختيار باقة ${plan.name}`}</button></article>)}</div>{message&&<p className="mt-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-800 border border-amber-200">{message}</p>}<p className="mt-6 text-xs text-slate-400 text-center uppercase tracking-wider">{shopifyConnected?"الفوترة تتم مباشرة وآمان عبر Shopify":"نظام فواتير آمن مدعوم بـ Creem"} | إلغاء متى شئت</p></section>;
 }
 
 function ZeroFrictionOnboarding({storeId,storeName,freeRemaining,onReady}:{storeId:string;storeName:string;freeRemaining:number;onReady:()=>void}) {
@@ -916,7 +928,7 @@ function Dashboard({user,onLogout}:{user:User;onLogout:()=>void}) {
   
   {tab === "orders" && <OperationalDashboard summary={s} orders={orders.data || []}/>}
   {tab==="integrations"&&<ZeroFrictionOnboarding storeId={store.id} storeName={store.name} freeRemaining={s.free_pilot_remaining ?? 50} onReady={() => {summary.refetch();integrationStatus.refetch();waapiStatus.refetch();}}/>}
-  {tab==="billing"&&<Billing storeId={store.id}/>}
+  {tab==="billing"&&<Billing storeId={store.id} shopifyConnected={Boolean(integrationStatus.data?.shopify?.connected)}/>}
   {tab==="privacy"&&<Privacy/>}
   </main></div>;
 }
@@ -928,6 +940,19 @@ export default function App() {
     queryFn: async () => (await api.get<User>("/api/auth/me")).data,
     retry: false,
   });
+  const shopifyInstall = new URLSearchParams(location.search).get("shopify") === "ready";
+  useEffect(() => {
+    if (!me.data || !shopifyInstall) return;
+    void api.post("/api/integrations/shopify/claim", {}).then(() => {
+      history.replaceState({}, "", "/dashboard/integrations?connected=shopify");
+      void me.refetch();
+    }).catch(() => {
+      // Keep the merchant signed in and return them to the connection screen.
+      // The integration card exposes a clear retry path without an unhandled
+      // promise or a blank Shopify hand-off.
+      history.replaceState({}, "", "/dashboard/integrations?shopify=retry");
+    });
+  }, [me.data?.id, shopifyInstall]);
 
   const logout = async () => {
     await api.post("/api/auth/logout");

@@ -6,16 +6,16 @@ from datetime import UTC, datetime, timedelta
 from urllib.parse import urlencode
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import get_current_user
 from app.config import get_settings
-from app.crypto import encrypt_text
+from app.crypto import decrypt_text, encrypt_text
 from app.database import get_session
-from app.models import Integration, OAuthState, Platform, Store, StoreApiKey, User
+from app.models import Integration, OAuthState, Platform, ShopifyPendingInstall, Store, StoreApiKey, User
 from app.schemas import MerchantTokenInput, OAuthStartInput, ShopifyStartInput, UrlOut, GoogleSheetsConnectInput
 from app.services.lifecycle import record_lifecycle_event
 
@@ -74,18 +74,42 @@ async def zid_store_id(token: str) -> str:
     return str(store_id)
 
 
-async def make_state(provider: str, store_id: uuid.UUID, session: AsyncSession) -> str:
+async def make_state(
+    provider: str,
+    store_id: uuid.UUID | None,
+    session: AsyncSession,
+    *,
+    external_reference: str | None = None,
+) -> str:
     state = secrets.token_urlsafe(32)
     session.add(
         OAuthState(
             provider=provider,
             store_id=store_id,
+            external_reference=external_reference,
             state_hash=hashlib.sha256(state.encode()).hexdigest(),
             expires_at=datetime.now(UTC) + timedelta(minutes=10),
         )
     )
     await session.commit()
     return state
+
+
+async def consume_shopify_state(state: str, session: AsyncSession) -> OAuthState:
+    now = datetime.now(UTC)
+    row = await session.scalar(
+        select(OAuthState).where(
+            OAuthState.provider.in_(("shopify", "shopify_public")),
+            OAuthState.state_hash == hashlib.sha256(state.encode()).hexdigest(),
+            OAuthState.consumed_at.is_(None),
+            OAuthState.expires_at > now,
+        )
+    )
+    if not row:
+        raise HTTPException(status_code=400, detail="Invalid or expired OAuth state")
+    row.consumed_at = now
+    await session.flush()
+    return row
 
 
 async def consume_state(provider: str, state: str, session: AsyncSession) -> OAuthState:
@@ -331,6 +355,29 @@ async def start_shopify(
     return UrlOut(url=f"https://{payload.shop}/admin/oauth/authorize?{urlencode(params)}")
 
 
+@router.get("/shopify/install")
+async def install_shopify(
+    shop: str = Query(..., min_length=3, max_length=120),
+    session: AsyncSession = Depends(get_session),
+):
+    """Start OAuth immediately when Shopify opens the public app URL."""
+    if not settings.shopify_client_id or not settings.shopify_client_secret:
+        raise HTTPException(status_code=503, detail="Shopify integration is not configured")
+    normalized_shop = ShopifyStartInput(store_id=uuid.uuid4(), shop=shop).shop
+    state = await make_state(
+        "shopify_public", None, session, external_reference=normalized_shop
+    )
+    params = {
+        "client_id": settings.shopify_client_id,
+        "scope": settings.shopify_scopes,
+        "redirect_uri": settings.shopify_redirect_uri,
+        "state": state,
+    }
+    return RedirectResponse(
+        f"https://{normalized_shop}/admin/oauth/authorize?{urlencode(params)}"
+    )
+
+
 def verify_shopify_callback(params: dict[str, str]) -> bool:
     supplied = params.get("hmac", "")
     message = "&".join(f"{key}={value}" for key, value in sorted(params.items()) if key != "hmac")
@@ -356,7 +403,9 @@ async def shopify_callback(
     normalized_shop = ShopifyStartInput(store_id=uuid.uuid4(), shop=shop).shop
     if not verify_shopify_callback(params):
         raise HTTPException(status_code=401, detail="Invalid Shopify callback signature")
-    state_row = await consume_state("shopify", state, session)
+    state_row = await consume_shopify_state(state, session)
+    if state_row.external_reference and state_row.external_reference != normalized_shop:
+        raise HTTPException(status_code=400, detail="Shopify shop does not match OAuth state")
     async with httpx.AsyncClient(timeout=15) as client:
         response = await client.post(
             f"https://{normalized_shop}/admin/oauth/access_token",
@@ -368,6 +417,60 @@ async def shopify_callback(
         )
         response.raise_for_status()
     token = response.json()
+    if state_row.provider == "shopify_public":
+        shop_name = normalized_shop.removesuffix(".myshopify.com")
+        currency = "SAR"
+        country_code = "SA"
+        async with httpx.AsyncClient(timeout=15) as client:
+            shop_response = await client.post(
+                f"https://{normalized_shop}/admin/api/{settings.shopify_api_version}/graphql.json",
+                headers={
+                    "X-Shopify-Access-Token": token["access_token"],
+                    "Content-Type": "application/json",
+                },
+                json={"query": "{ shop { name currencyCode billingAddress { countryCodeV2 } } }"},
+            )
+        if not shop_response.is_error:
+            shop_data = ((shop_response.json().get("data") or {}).get("shop") or {})
+            shop_name = shop_data.get("name") or shop_name
+            currency = shop_data.get("currencyCode") or currency
+            country_code = (shop_data.get("billingAddress") or {}).get("countryCodeV2") or country_code
+
+        claim_token = secrets.token_urlsafe(48)
+        pending = await session.scalar(
+            select(ShopifyPendingInstall).where(ShopifyPendingInstall.shop == normalized_shop)
+        )
+        values = {
+            "shop_name": shop_name[:160],
+            "currency": currency[:3],
+            "country_code": country_code[:2],
+            "access_token_encrypted": encrypt_text(token["access_token"]),
+            "claim_token_hash": hashlib.sha256(claim_token.encode()).hexdigest(),
+            "expires_at": datetime.now(UTC) + timedelta(minutes=30),
+            "claimed_at": None,
+        }
+        if pending:
+            for key, value in values.items():
+                setattr(pending, key, value)
+        else:
+            session.add(ShopifyPendingInstall(shop=normalized_shop, **values))
+        await session.commit()
+        redirect = RedirectResponse(
+            f"{settings.frontend_origin}/?{urlencode({'shopify': 'ready', 'shop': normalized_shop})}"
+        )
+        redirect.set_cookie(
+            "mujeeb_shopify_claim",
+            claim_token,
+            max_age=1800,
+            httponly=True,
+            secure=settings.secure_cookies,
+            samesite="lax",
+            domain=settings.cookie_domain,
+        )
+        return redirect
+
+    if not state_row.store_id:
+        raise HTTPException(status_code=400, detail="Shopify installation is missing a store")
     await register_shopify_webhooks(normalized_shop, token["access_token"])
     await upsert_integration(
         state_row.store_id,
@@ -381,6 +484,108 @@ async def shopify_callback(
     )
     await session.commit()
     return RedirectResponse(f"{settings.frontend_origin}/dashboard/integrations?connected=shopify")
+
+
+@router.post("/shopify/claim")
+async def claim_shopify_install(
+    request: Request,
+    response: Response,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    claim_token = request.cookies.get("mujeeb_shopify_claim", "")
+    if not claim_token:
+        raise HTTPException(status_code=400, detail="Shopify installation cookie is missing")
+    now = datetime.now(UTC)
+    pending = await session.scalar(
+        select(ShopifyPendingInstall).where(
+            ShopifyPendingInstall.claim_token_hash == hashlib.sha256(claim_token.encode()).hexdigest(),
+            ShopifyPendingInstall.claimed_at.is_(None),
+            ShopifyPendingInstall.expires_at > now,
+        )
+    )
+    if not pending:
+        raise HTTPException(status_code=400, detail="Shopify installation expired; reopen Mujeeb from Shopify")
+    store = await session.scalar(select(Store).where(Store.owner_id == user.id).order_by(Store.created_at))
+    if not store:
+        raise HTTPException(status_code=400, detail="Create your Mujeeb store before claiming Shopify")
+    owned_elsewhere = await session.scalar(
+        select(Integration.id).where(
+            Integration.platform == Platform.shopify,
+            Integration.external_store_id == pending.shop,
+            Integration.store_id != store.id,
+            Integration.is_connected.is_(True),
+        )
+    )
+    if owned_elsewhere:
+        raise HTTPException(status_code=409, detail="This Shopify store is already connected")
+
+    access_token = decrypt_text(pending.access_token_encrypted)
+    await register_shopify_webhooks(pending.shop, access_token)
+    store.name = pending.shop_name or store.name
+    store.platform = Platform.shopify
+    store.currency = pending.currency or store.currency
+    store.country_code = pending.country_code or store.country_code
+    await upsert_integration(
+        store.id,
+        Platform.shopify,
+        {"access_token": access_token},
+        session,
+        external_store_id=pending.shop,
+    )
+    pending.claimed_at = now
+    await record_lifecycle_event(
+        session,
+        "store_connected",
+        user_id=user.id,
+        store_id=store.id,
+        properties={"platform": "shopify", "source": "shopify_app_store"},
+    )
+    await session.commit()
+    response.delete_cookie(
+        "mujeeb_shopify_claim",
+        domain=settings.cookie_domain,
+        secure=settings.secure_cookies,
+        samesite="lax",
+    )
+    return {"status": "connected", "platform": "shopify", "shop": pending.shop}
+
+
+@router.get("/shopify/pricing", response_model=UrlOut)
+async def shopify_pricing_url(
+    store_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    await ensure_owned_store(store_id, user.id, session)
+    integration = await session.scalar(
+        select(Integration).where(
+            Integration.store_id == store_id,
+            Integration.platform == Platform.shopify,
+            Integration.is_connected.is_(True),
+        )
+    )
+    if not integration or not integration.external_store_id:
+        raise HTTPException(status_code=404, detail="Shopify is not connected")
+    access_token = decrypt_text(integration.access_token_encrypted)
+    async with httpx.AsyncClient(timeout=15) as client:
+        response = await client.post(
+            f"https://{integration.external_store_id}/admin/api/{settings.shopify_api_version}/graphql.json",
+            headers={
+                "X-Shopify-Access-Token": access_token,
+                "Content-Type": "application/json",
+            },
+            json={"query": "{ currentAppInstallation { app { handle } } }"},
+        )
+    if response.is_error:
+        raise HTTPException(status_code=502, detail="Unable to open Shopify pricing")
+    handle = (((response.json().get("data") or {}).get("currentAppInstallation") or {}).get("app") or {}).get("handle")
+    if not handle:
+        raise HTTPException(status_code=502, detail="Shopify did not return the app handle")
+    store_handle = integration.external_store_id.removesuffix(".myshopify.com")
+    return UrlOut(
+        url=f"https://admin.shopify.com/store/{store_handle}/charges/{handle}/pricing_plans"
+    )
 
 
 
@@ -397,15 +602,14 @@ async def register_shopify_webhooks(shop: str, access_token: str) -> None:
     """
     headers = {"X-Shopify-Access-Token": access_token, "Content-Type": "application/json"}
     async with httpx.AsyncClient(timeout=15) as client:
-        # The privacy topics are required for Shopify apps and registration is
-        # idempotent, so reconnecting a shop safely repairs missing webhooks.
+        # Merchant-specific operational topics are repaired on every install.
+        # Shopify privacy topics are app-specific and are declared in the
+        # repository-level shopify.app.toml instead of being registered per
+        # merchant through the Admin API.
         for topic in (
             "ORDERS_CREATE",
             "ORDERS_UPDATED",
             "APP_UNINSTALLED",
-            "CUSTOMERS_DATA_REQUEST",
-            "CUSTOMERS_REDACT",
-            "SHOP_REDACT",
         ):
             response = await client.post(
                 endpoint,

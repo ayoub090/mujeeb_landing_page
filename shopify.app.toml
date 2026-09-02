@@ -1,0 +1,23 @@
+client_id = "3db514e3c9abfcca1ae34cfc14632b29"
+name = "Mujeeb"
+application_url = "https://api.usemujeeb.com/api/integrations/shopify/install"
+embedded = false
+
+[access_scopes]
+scopes = "read_orders,read_customers"
+
+[auth]
+redirect_urls = [
+  "https://api.usemujeeb.com/api/integrations/shopify/callback"
+]
+
+[webhooks]
+api_version = "2026-07"
+
+[[webhooks.subscriptions]]
+compliance_topics = [
+  "customers/data_request",
+  "customers/redact",
+  "shop/redact"
+]
+uri = "https://api.usemujeeb.com/api/webhooks/shopify"
